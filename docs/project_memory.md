@@ -430,3 +430,16 @@
 - github_public_publish_v1_excluded_artifacts=.playwright-mcp, .pytest_cache, __pycache__, *.pyc, *.png
 - github_public_publish_v1_secret_scan=no matches for public-token/API-key/secret/password patterns outside historical docs/test-results exclusions
 - github_public_publish_v1_test_result_record=test_results/github_public_publish_v1_2026-05-25.md
+- active_milestone=CUTLASS acceleration baseline v1
+- cutlass_acceleration_baseline_v1_status=profiled
+- cutlass_acceleration_baseline_v1_gpu=NVIDIA GeForce RTX 3070 Laptop GPU
+- cutlass_acceleration_baseline_v1_cuda=torch 2.8.0+cu128; driver CUDA 12.8; nvcc available; ninja available
+- cutlass_acceleration_baseline_v1_build_blocker=MSVC cl.exe missing from PATH and not found under Visual Studio install path
+- cutlass_acceleration_baseline_v1_cutlass_source=C:\tmp\cmz_ascii\external\cutlass
+- cutlass_acceleration_baseline_v1_step_seconds=6.793559
+- cutlass_acceleration_baseline_v1_full_legal_once_seconds=0.113989
+- cutlass_acceleration_baseline_v1_host_append_legal_seconds=4.554635
+- cutlass_acceleration_baseline_v1_primary_bottleneck=host-append loop recomputes full legal trace continuation for each emitted token, causing ~39.96x legal-stream overhead before CUDA/CUTLASS work
+- cutlass_acceleration_baseline_v1_hotspots=FrozenMatrixAttentionInterpreter._candidate_table, _lookup_rows, _attention_select, _board_read, torch.argmax, torch.one_hot, Tensor.to
+- cutlass_acceleration_baseline_v1_plan=docs/cutlass_acceleration_plan.md
+- cutlass_acceleration_baseline_v1_test_result_record=test_results/perf_baseline_selfplay_step_2026-05-25.md

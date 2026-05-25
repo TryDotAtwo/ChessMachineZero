@@ -183,3 +183,10 @@
 - files_updated=.gitignore, docs/project_memory.md, docs/change_history.md, docs/prompt_history.md
 - scope=Public GitHub repository at https://github.com/TryDotAtwo/ChessMachineZero; initial branch main; initial commit cbdee31; generated screenshots/cache/bytecode artifacts excluded.
 - verification=GitHub CLI authenticated as TryDotAtwo; `gh repo create ... --public --source . --remote origin --push` succeeded; origin/main tracks local main; public repository URL returned by GitHub CLI.
+
+- change_id=cutlass_acceleration_baseline_v1
+- summary=Profiled the slow dashboard self-play path and wrote the CUTLASS acceleration plan.
+- files_added=docs/cutlass_acceleration_plan.md, test_results/perf_baseline_selfplay_step_2026-05-25.md
+- files_updated=docs/project_memory.md, docs/change_history.md
+- scope=Performance baseline only; no runtime behavior changes; identified host-append full-continuation recomputation and CPU/PyTorch tiny-op interpreter overhead before CUDA/CUTLASS implementation.
+- verification=One-step cProfile recorded step_seconds=6.793559; direct full legal trace recorded 0.113989s; host-append legal streaming recorded 4.554635s; environment check found RTX 3070 Laptop GPU, torch CUDA available, nvcc/ninja available, MSVC cl.exe unavailable.
