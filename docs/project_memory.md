@@ -416,3 +416,17 @@
 - percepta_two_transformer_dashboard_v9_1_browser_check=Playwright loaded http://127.0.0.1:8768; script cache-buster `/static/dashboard.js?v=9.1` loaded; button text became Pause automatically; status showed transformer_white computing move; ply advanced 0->1 within 30s; token log showed transformer_white token arrays; console warnings/errors=0
 - percepta_two_transformer_dashboard_v9_1_url=http://127.0.0.1:8768
 - percepta_two_transformer_dashboard_v9_1_server_pid=52820
+
+## 2026-05-25
+
+- active_milestone=public GitHub publish v1
+- github_public_publish_v1_status=implemented
+- github_public_publish_v1_repo_url=https://github.com/TryDotAtwo/ChessMachineZero
+- github_public_publish_v1_visibility=public
+- github_public_publish_v1_branch=main
+- github_public_publish_v1_initial_commit=cbdee31
+- github_public_publish_v1_publish_command=`gh repo create ChessMachineZero --public --description "Percepta-style trace VM chess machine with frozen attention rule weights" --source . --remote origin --push`
+- github_public_publish_v1_publish_scope=source, tests, docs, test_results
+- github_public_publish_v1_excluded_artifacts=.playwright-mcp, .pytest_cache, __pycache__, *.pyc, *.png
+- github_public_publish_v1_secret_scan=no matches for public-token/API-key/secret/password patterns outside historical docs/test-results exclusions
+- github_public_publish_v1_test_result_record=test_results/github_public_publish_v1_2026-05-25.md

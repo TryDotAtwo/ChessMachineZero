@@ -107,3 +107,9 @@
 - prompt_id=dashboard_selfplay_visibility_v9_1
 - user_request=The dashboard does not visibly look like it is playing.
 - interpreted_scope=Debug running dashboard, confirm backend self-play state, then make frontend self-play auto-start and show explicit computing status while sequential frozen-attention steps execute.
+
+## 2026-05-25
+
+- prompt_id=github_public_publish_and_cutlass_perf
+- user_request=Create a public GitHub repository, push the code, then investigate why runtime is slow and move the slow path toward CUTLASS.
+- interpreted_scope=Publish the current verified ChessMachineZero codebase to a public GitHub repo first; then profile the frozen-attention self-play path and prepare/implement CUTLASS acceleration work without hiding correctness bugs behind fallbacks.

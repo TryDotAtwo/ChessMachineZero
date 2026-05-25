@@ -174,3 +174,12 @@
 - files_updated=src/chess_machine_zero/dashboard/static/dashboard.js, src/chess_machine_zero/dashboard/static/index.html, tests/test_dashboard.py, AGENTS.md, docs/project_memory.md, docs/change_history.md, docs/prompt_history.md, test_results/percepta_two_transformer_dashboard_v9_2026-05-24.md
 - scope=Frontend self-play visibility; selfplay mode auto-starts on page load; Play uses sequential `setTimeout` loop instead of overlapping `setInterval`; status line reports `transformer_* computing move`.
 - verification=Tests added before implementation and failed on missing `state.busy`; dashboard targeted tests passed with 10 tests; dashboard warning-as-error tests passed with 10 tests; Playwright check verified `/static/dashboard.js?v=9.1`, automatic Pause state, and ply advance 0->1 with transformer token log.
+
+## 2026-05-25
+
+- change_id=github_public_publish_v1
+- summary=Initialized local git repository, created public GitHub repository, and pushed the ChessMachineZero codebase.
+- files_added=test_results/github_public_publish_v1_2026-05-25.md
+- files_updated=.gitignore, docs/project_memory.md, docs/change_history.md, docs/prompt_history.md
+- scope=Public GitHub repository at https://github.com/TryDotAtwo/ChessMachineZero; initial branch main; initial commit cbdee31; generated screenshots/cache/bytecode artifacts excluded.
+- verification=GitHub CLI authenticated as TryDotAtwo; `gh repo create ... --public --source . --remote origin --push` succeeded; origin/main tracks local main; public repository URL returned by GitHub CLI.
