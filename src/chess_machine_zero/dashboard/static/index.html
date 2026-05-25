@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ChessMachineZero Dashboard</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/static/dashboard.css">
+    <script defer src="/static/dashboard.js?v=9.1"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="board-region" aria-label="Chess board">
+        <header class="topbar">
+          <div>
+            <h1>ChessMachineZero</h1>
+            <p id="engineLine">loading</p>
+          </div>
+          <div class="status-grid">
+            <div><span>Side</span><strong id="sideToMove">-</strong></div>
+            <div><span>Ply</span><strong id="plyCount">0</strong></div>
+            <div><span>Legal</span><strong id="legalCount">0</strong></div>
+            <div><span>Illegal</span><strong id="illegalCount">0</strong></div>
+          </div>
+        </header>
+
+        <div class="board-wrap">
+          <div class="rank-labels" aria-hidden="true">
+            <span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+          </div>
+          <div id="board" class="board" role="grid" aria-label="Interactive chess board"></div>
+          <div class="file-labels" aria-hidden="true">
+            <span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="control-region" aria-label="Dashboard controls">
+        <section class="panel controls">
+          <div class="control-row">
+            <label for="mode">Mode</label>
+            <select id="mode">
+              <option value="selfplay">Transformer self-play</option>
+              <option value="human_white">Human white</option>
+              <option value="human_black">Human black</option>
+            </select>
+          </div>
+          <div class="control-row">
+            <label for="promotion">Promotion</label>
+            <select id="promotion">
+              <option value="q">Queen</option>
+              <option value="r">Rook</option>
+              <option value="b">Bishop</option>
+              <option value="n">Knight</option>
+            </select>
+          </div>
+          <div class="button-grid">
+            <button id="playPause" type="button">Play</button>
+            <button id="step" type="button">Step</button>
+            <button id="reset" type="button">Reset</button>
+          </div>
+          <p id="statusLine" class="status-line">loading</p>
+        </section>
+
+        <section class="panel">
+          <h2>Trace VM</h2>
+          <dl class="trace-stats">
+            <div><dt>Emitter</dt><dd id="lastEmitter">-</dd></div>
+            <div><dt>Verified</dt><dd id="traceVerified">-</dd></div>
+            <div><dt>Packets</dt><dd id="packetCount">0</dd></div>
+            <div><dt>CANDIDATE</dt><dd id="candidateCount">0</dd></div>
+            <div><dt>LEGAL_SET</dt><dd id="legalSetCount">0</dd></div>
+            <div><dt>COMMIT_MOVE</dt><dd id="commitCount">0</dd></div>
+          </dl>
+          <pre id="traceLog" class="trace-log" aria-label="Trace packet log"></pre>
+        </section>
+
+        <section class="panel lists">
+          <div>
+            <h2>Legal moves</h2>
+            <div id="legalMoves" class="move-list"></div>
+          </div>
+          <div>
+            <h2>Move history</h2>
+            <ol id="history" class="history-list"></ol>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </body>
+</html>

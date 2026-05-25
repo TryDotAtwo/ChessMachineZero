@@ -1,0 +1,9 @@
+__pycache__/
+.pytest_cache/
+.playwright-mcp/
+*.py[cod]
+*.png
+.venv/
+dist/
+build/
+*.egg-info/

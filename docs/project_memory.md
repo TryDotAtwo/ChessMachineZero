@@ -1,0 +1,418 @@
+# Project Memory
+
+## 2026-05-24
+
+- repository_state=initial_empty_workspace
+- architecture_doc_saved=docs/chess_machine_zero_percepta_architecture.md
+- milestone1_scope=Milestone 1 Trace VM foundation
+- implementation_boundary=MovePacket, TracePacket, python-chess oracle wrapper, host VM legal-move trace skeleton, trace board reconstruction, Milestone 1 pytest suite
+- forbidden_scope=external_tree_search, human_game_training_data, engine_labels, tablebase_labels, handcrafted_chess_evaluation, flat_external_policy_head
+- deterministic_policy=all tests and VM enumeration use deterministic ordering and explicit seed field
+- python_chess_boundary=only `src/chess_machine_zero/chess/rules_oracle.py` imports `chess`
+- milestone1_status=implemented
+- milestone1_tests=`python -m pytest` => 16 passed
+- milestone1_acceptance=`python -m pytest tests/test_move_packet.py tests/test_trace_packet.py tests/test_vm_legal_moves.py tests/test_trace_reconstruct_board.py` => 16 passed
+- test_result_record=test_results/milestone1_pytest_2026-05-24.md
+- active_milestone=Milestone 2 Deterministic chess program
+- milestone2_status=implemented
+- milestone2_boundary=legal_generator_program skeleton, make_move_program skeleton, terminal_check_program skeleton, trace-based make_move, trace-based terminal check, deterministic random legal position verification
+- milestone2_tests=`python -m pytest` => 28 passed
+- milestone2_random_acceptance=1000 deterministic random positions verified against rules oracle
+- milestone2_test_result_record=test_results/milestone2_pytest_2026-05-24.md
+- testing_policy=development_through_testing_required; new_behavior_requires_pytest_verification; run_full_pytest_and_warning_as_error_when_practical
+- quality_policy=no_fallbacks; no_smoke_tests; acceptance_requires_real_behavioral_or_invariant_assertions
+- active_milestone=analytic full chess rules hardwired
+- milestone3_status=implemented
+- milestone3_boundary=CMZMachineTransformer with d_head=2 assertion, DenseHardmax2D, trace next-packet dataset, deterministic tiny overfit trainer, CMZTraceExecutor short-program verifier path
+- milestone3_tdd=tests_added_before_implementation; initial_new_test_run_failed_with_expected_import_errors
+- milestone3_tests=`python -m pytest` => 36 passed
+- milestone3_warning_check=`python -m pytest -W error` => 36 passed
+- milestone3_test_result_record=test_results/milestone3_pytest_2026-05-24.md
+- milestone4_status=implemented
+- milestone4_boundary=CMZMoveRanker, CMZOutcomeBaseline, SELECT_MOVE trace records, self-play actor, replay store, policy-gradient and baseline training step
+- milestone4_tdd=tests_added_before_implementation; initial_new_test_run_failed_with_expected_import_errors
+- milestone4_acceptance=100 complete capped self-play games generated without illegal committed moves
+- milestone4_tests=`python -m pytest` => 39 passed
+- milestone4_warning_check=`python -m pytest -W error` => 39 passed
+- milestone4_test_result_record=test_results/milestone4_pytest_2026-05-24.md
+- milestone5_status=implemented
+- milestone5_boundary=InternalTraceLookahead TRACE_NEGAMAX depth1, depth0 baseline leaf values, TraceWindow latest-packet memory controls
+- milestone5_tdd=tests_added_before_implementation; initial_new_test_run_failed_with_expected_import_error
+- milestone5_acceptance=lookahead child make_move traces reconstruct VM child boards; depth0 uses CMZOutcomeBaseline leaf value; no rules_oracle import outside rules_oracle.py
+- milestone5_tests=`python -m pytest` => 42 passed
+- milestone5_warning_check=`python -m pytest -W error` => 42 passed
+- milestone5_test_result_record=test_results/milestone5_pytest_2026-05-24.md
+- milestone6_status=implemented
+- milestone6_boundary=ConvexHull2D support query, HullKVCache hardmax lookup, NestedHullTopK2D exact retrieval, NestedHullTopKAttention2D, dense equivalence helpers restricted to hullkv/equivalence.py
+- milestone6_tdd=tests_added_before_implementation; initial_new_test_run_failed_with_expected_import_error
+- milestone6_acceptance=Dense hardmax indices equal hull support indices; Dense top-k order equals nested hull top-k order; HullKV benchmark equivalent=true and speedup=530.77 on deterministic run
+- milestone6_tests=`python -m pytest` => 47 passed
+- milestone6_warning_check=`python -m pytest -W error` => 47 passed
+- milestone6_test_result_record=test_results/milestone6_pytest_2026-05-24.md
+- post6_hardening_status=implemented
+- post6_hardening_boundary=SelfPlayAudit exact invariants, deterministic game trace hashing, 10000 generated plies no-illegal-commit audit
+- post6_hardening_tdd=tests_added_before_implementation; initial_new_test_run_failed_with_expected_import_error
+- post6_hardening_acceptance=10000 generated self-play plies audited; no illegal commits; replay outcome present for every decision; same seed plus same ranker gives same game trace hash
+- post6_hardening_tests=`python -m pytest` => 49 passed
+- post6_hardening_warning_check=`python -m pytest -W error` => 49 passed
+- post6_hardening_test_result_record=test_results/post6_hardening_pytest_2026-05-24.md
+- transformer_hosted_vm_v1_status=implemented
+- transformer_hosted_vm_v1_boundary=TransformerHostedVM autoregressive trace decoder, decode_until_halt with PROGRAM_HALT, transformer checkpoint save/load roundtrip, masked exact next-packet training for hosted legal trace decoding
+- transformer_hosted_vm_v1_tdd=tests_added_before_implementation; initial_new_test_run_failed_with_expected_import_error; cache-disabled reruns used after disk-full pytest cache error
+- transformer_hosted_vm_v1_acceptance=model decodes legal-move trace continuation from board prompt without host_vm attribute; decoded trace passes oracle verifier; checkpoint-loaded model preserves decoded trace
+- transformer_hosted_vm_v1_tests=`python -m pytest -p no:cacheprovider` => 51 passed
+- transformer_hosted_vm_v1_warning_check=`python -m pytest -p no:cacheprovider -W error` => 51 passed
+- transformer_hosted_vm_v1_test_result_record=test_results/transformer_hosted_vm_v1_pytest_2026-05-24.md
+- multi_position_hosted_vm_status=implemented
+- multi_position_hosted_vm_boundary=compile_legal_trace_examples, compile_next_packet_batch with continuation-only loss masks, one transformer decodes multiple board prompts, checkpoint registry manifest with latest pointer
+- multi_position_hosted_vm_tdd=tests_added_before_implementation; initial_new_test_run_failed_with expected_import_errors
+- multi_position_hosted_vm_acceptance=single transformer exact-decodes multiple legal trace continuations; each decoded trace passes oracle verifier; registry saves ordered manifest and latest checkpoint path
+- multi_position_hosted_vm_tests=`python -m pytest -p no:cacheprovider` => 56 passed
+- multi_position_hosted_vm_warning_check=`python -m pytest -p no:cacheprovider -W error` => 56 passed
+- multi_position_hosted_vm_test_result_record=test_results/multi_position_hosted_vm_pytest_2026-05-24.md
+- analytic_rules_compilation_v1_status=implemented
+- analytic_rules_compilation_v1_boundary=AnalyticRuleCompiler, AnalyticRulesTransformer zero-trainable-parameter legal generator, prompt-trace BoardState reconstruction, CMZAnalyticMachine with fixed rules and trainable ranker
+- analytic_rules_compilation_v1_tdd=tests_added_before_implementation; initial_new_test_run_failed_with_expected_missing_module
+- analytic_rules_compilation_v1_acceptance=analytic executor emits exact legal trace from prompt trace; executor has zero trainable rule parameters; analytic machine keeps rules fixed and strategy trainable
+- analytic_rules_compilation_v1_tests=`python -m pytest -p no:cacheprovider` => 59 passed
+- analytic_rules_compilation_v1_warning_check=`python -m pytest -p no:cacheprovider -W error` => 59 passed
+- analytic_rules_compilation_v1_test_result_record=test_results/analytic_rules_compilation_v1_pytest_2026-05-24.md
+- analytic_full_rules_v2_status=implemented
+- analytic_full_rules_v2_boundary=prompt_trace_from_board, analytic legal generator, analytic make_move trace, analytic terminal trace, repetition/fifty/stalemate/checkmate/insufficient/adjudication terminal rules, capped analytic game loop
+- analytic_full_rules_v2_tdd=tests_added_before_implementation; initial_new_test_run_failed_with_expected_missing_methods
+- analytic_full_rules_v2_acceptance=critical legal rules match oracle; make_move traces reconstruct oracle boards; terminal traces match oracle; threefold hard rule; analytic machine generates capped game without illegal commits
+- analytic_full_rules_v2_tests=`python -m pytest -p no:cacheprovider` => 77 passed
+- analytic_full_rules_v2_warning_check=`python -m pytest -p no:cacheprovider -W error` => 77 passed
+- analytic_full_rules_v2_test_result_record=test_results/analytic_full_rules_v2_pytest_2026-05-24.md
+- active_milestone=dashboard rule verification v1
+- dashboard_rule_verification_v1_status=implemented
+- dashboard_rule_verification_v1_boundary=stdlib local HTTP dashboard, local static chessboard UI, self-play stepping, human move input with transformer auto-reply, trace packet display, exact JSON API snapshots
+- dashboard_rule_verification_v1_rule_path=AnalyticRulesTransformer legal traces and make-move traces; CMZMoveRanker selects only trace-emitted legal moves
+- dashboard_rule_verification_v1_forbidden_scope=no external tree search; no human-game data; no engine labels; no tablebase labels; no handcrafted evaluation; no CDN/external frontend assets
+- dashboard_rule_verification_v1_tdd=tests_added_before_implementation; initial_new_test_run_failed_with_expected_missing_dashboard_package; deterministic reset regression added after targeted failure
+- dashboard_rule_verification_v1_acceptance=dashboard snapshot exposes zero trainable rule parameters; self-play commits trace-legal moves only; human e2e4 triggers legal transformer reply; illegal e2e5 rejected without board mutation; static assets are local; browser desktop and mobile verification passed
+- dashboard_rule_verification_v1_tests=`python -m pytest -p no:cacheprovider` => 85 passed
+- dashboard_rule_verification_v1_warning_check=`python -m pytest -p no:cacheprovider -W error` => 85 passed
+- dashboard_rule_verification_v1_browser_check=Playwright loaded http://127.0.0.1:8768, verified 64 squares, self-play step, human move e2e4 plus transformer reply, mobile 390x840 no horizontal overflow, zero console errors after favicon route fix
+- dashboard_rule_verification_v1_server_pid=58264
+- dashboard_rule_verification_v1_url=http://127.0.0.1:8768
+- dashboard_rule_verification_v1_test_result_record=test_results/dashboard_rule_verification_v1_2026-05-24.md
+- active_milestone=weight compiled rules v1
+- weight_compiled_rules_v1_status=implemented
+- weight_compiled_rules_v1_source_reference=https://www.percepta.ai/blog/can-llms-be-computers
+- weight_compiled_rules_v1_boundary=WeightCompiledRulesTransformer stores chess rule geometry/constants in frozen nn.Parameter tensors and emits legal/make/terminal traces without analytic rule module calls
+- weight_compiled_rules_v1_weight_count=5258
+- weight_compiled_rules_v1_trainable_rule_parameters=0
+- weight_compiled_rules_v1_files=src/chess_machine_zero/model/weight_compiled_rules.py, src/chess_machine_zero/model/weight_compiled_machine.py, tests/test_weight_compiled_rules.py
+- weight_compiled_rules_v1_dashboard=dashboard now reports rules_module=WeightCompiledRulesTransformer, rule_execution_mode=weight_compiled, compiled_rule_parameters=5258
+- weight_compiled_rules_v1_tdd=tests_added_before_implementation; initial_new_test_run_failed_with expected missing module; dashboard expectation changed before implementation
+- weight_compiled_rules_v1_acceptance=critical legal rules match oracle; make_move traces reconstruct oracle boards; terminal traces match oracle; threefold hard rule; capped game uses weight-compiled rules; dashboard path no longer uses analytic machine shell
+- weight_compiled_rules_v1_tests=`python -m pytest -p no:cacheprovider` => 105 passed
+- weight_compiled_rules_v1_warning_check=`python -m pytest -p no:cacheprovider -W error` => 105 passed
+- weight_compiled_rules_v1_boundary_scans=python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests
+- weight_compiled_rules_v1_browser_check=Playwright loaded dashboard and verified engine line `WeightCompiledRulesTransformer mode=weight_compiled rule_params=0 compiled=5258`, 64 squares, legal_count=20, step move, mobile overflow=false
+- weight_compiled_rules_v1_server_pid=57796
+- weight_compiled_rules_v1_url=http://127.0.0.1:8768
+- weight_compiled_rules_v1_test_result_record=test_results/weight_compiled_rules_v1_2026-05-24.md
+- active_milestone=percepta end-to-end decoder v1
+- percepta_e2e_decoder_v1_status=implemented
+- percepta_e2e_decoder_v1_boundary=PerceptaE2ETraceDecoder decodes compiled trace continuations from frozen nn.Parameter tensors using DenseHardmax2D prompt lookup; PerceptaSelfPlaySession steps by decoded trace only
+- percepta_e2e_decoder_v1_runtime_rule_executor=false
+- percepta_e2e_decoder_v1_strategy_training=false
+- percepta_e2e_decoder_v1_strategy_module=none
+- percepta_e2e_decoder_v1_attention_backend=dense_hardmax_2d
+- percepta_e2e_decoder_v1_dashboard=CMZDashboardSession delegates to PerceptaSelfPlaySession; human move runtime disabled to avoid Python executor legality checks
+- percepta_e2e_decoder_v1_compiled_prompt_count_default=64
+- percepta_e2e_decoder_v1_compiled_parameter_count_default=49930
+- percepta_e2e_decoder_v1_files=src/chess_machine_zero/model/percepta_e2e_decoder.py, src/chess_machine_zero/model/percepta_selfplay.py, tests/test_percepta_e2e_decoder.py
+- percepta_e2e_decoder_v1_tdd=tests_added_before_implementation; initial_new_test_run failed with expected missing module; dashboard tests rewritten before runtime replacement
+- percepta_e2e_decoder_v1_acceptance=model-only decoder exact-decodes known prompts; uncompiled prompts rejected; self-play step contains legal trace plus COMMIT_MOVE plus board writes; dashboard reports PerceptaE2ETraceDecoder and python_rule_executor_runtime=false
+- percepta_e2e_decoder_v1_targeted_tests=`python -m pytest -p no:cacheprovider tests\test_percepta_e2e_decoder.py tests\test_dashboard.py` => 14 passed
+- percepta_e2e_decoder_v1_full_tests=`python -m pytest -p no:cacheprovider` => 111 passed
+- percepta_e2e_decoder_v1_warning_check=`python -m pytest -p no:cacheprovider -W error` => 111 passed in 214.45s
+- percepta_e2e_decoder_v1_boundary_scans=python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests; dashboard state has no WeightCompiledRuleCompiler, CMZWeightCompiledMachine, AnalyticRuleCompiler, or CMZAnalyticMachine import
+- percepta_e2e_decoder_v1_url=http://127.0.0.1:8768
+- percepta_e2e_decoder_v1_server_pid=16820
+- percepta_e2e_decoder_v1_test_result_record=test_results/percepta_e2e_decoder_v1_2026-05-24.md
+- communication_preference=user_visible_responses_ru; process_notes_code_identifiers_tests_en_allowed
+- architecture_correction_rule_weights=target is parametric chess rules stored as reusable frozen weights/circuits; finite position/prompt memorization is invalid for final Percepta architecture
+- architecture_correction_current_gap=PerceptaE2ETraceDecoder finite prompt lookup must be replaced by arbitrary-position parametric transformer rule circuit
+- active_milestone=percepta parametric rule weights v1
+- percepta_parametric_rule_weights_v1_status=implemented
+- percepta_parametric_rule_weights_v1_boundary=PerceptaParametricRulesTransformer stores reusable chess geometry/rule tensors in frozen nn.Parameter state and accepts arbitrary board prompt traces without finite position/prompt lookup
+- percepta_parametric_rule_weights_v1_runtime=CMZDashboardSession delegates to PerceptaParametricSelfPlaySession; legal moves and human move validation use parametric rule weights; deterministic strategy selects legal move by seed/ply
+- percepta_parametric_rule_weights_v1_no_lookup=compiled_prompt_count=0; position_lookup=false; finite_prompt_lookup=false
+- percepta_parametric_rule_weights_v1_compiled_parameter_count=5386
+- percepta_parametric_rule_weights_v1_attention_backend=dense_hardmax_2d
+- percepta_parametric_rule_weights_v1_python_chess_runtime=false
+- percepta_parametric_rule_weights_v1_files=src/chess_machine_zero/model/percepta_parametric_rules.py, src/chess_machine_zero/model/percepta_parametric_selfplay.py, tests/test_percepta_parametric_rules.py
+- percepta_parametric_rule_weights_v1_tdd=tests_added_before_implementation; initial_new_test_run_failed_with_expected_missing_module
+- percepta_parametric_rule_weights_v1_acceptance=critical chess rules match oracle; 128 deterministic arbitrary oracle-walk positions match oracle; make_move traces match oracle; dashboard reports parametric rule weights and allows human legal move without python-chess runtime
+- percepta_parametric_rule_weights_v1_targeted_tests=`python -m pytest -p no:cacheprovider tests\test_percepta_parametric_rules.py tests\test_dashboard.py` => 22 passed
+- percepta_parametric_rule_weights_v1_full_tests=`python -m pytest -p no:cacheprovider` => 125 passed
+- percepta_parametric_rule_weights_v1_warning_check=`python -m pytest -p no:cacheprovider -W error` => 125 passed
+- percepta_parametric_rule_weights_v1_boundary_scans=python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests; dashboard and parametric runtime have no PerceptaE2ETraceDecoder/finite continuation lookup imports
+- percepta_parametric_rule_weights_v1_url=http://127.0.0.1:8768
+- percepta_parametric_rule_weights_v1_server_pid=42716
+- percepta_parametric_rule_weights_v1_test_result_record=test_results/percepta_parametric_rule_weights_v1_2026-05-24.md
+- active_milestone=percepta frozen attention trace VM v1
+- percepta_frozen_attention_trace_vm_v1_status=implemented
+- percepta_frozen_attention_trace_vm_v1_boundary=PerceptaFrozenAttentionRuleComputer streams one TracePacket per decode call using frozen DenseHardmax2D cursor attention; host loop only appends returned packets; no MLP/nn.Linear in frozen-attention VM module; no finite position/prompt lookup
+- percepta_frozen_attention_trace_vm_v1_runtime=CMZDashboardSession uses PerceptaParametricSelfPlaySession backed by PerceptaFrozenAttentionRuleComputer; legal generation and make-move traces use host-append token streaming; human legal move validation remains enabled
+- percepta_frozen_attention_trace_vm_v1_compiled_isa_instruction_count=14
+- percepta_frozen_attention_trace_vm_v1_compiled_microprogram_step_count=18
+- percepta_frozen_attention_trace_vm_v1_compiled_parameter_count=13610
+- percepta_frozen_attention_trace_vm_v1_attention_backend=dense_hardmax_2d
+- percepta_frozen_attention_trace_vm_v1_host_append_only=true
+- percepta_frozen_attention_trace_vm_v1_token_streaming=true
+- percepta_frozen_attention_trace_vm_v1_uses_mlp=false
+- percepta_frozen_attention_trace_vm_v1_python_chess_runtime=false
+- percepta_frozen_attention_trace_vm_v1_files=src/chess_machine_zero/model/percepta_frozen_attention_vm.py, tests/test_percepta_frozen_attention_vm.py
+- percepta_frozen_attention_trace_vm_v1_tdd=tests_added_before_implementation; initial_new_test_run_failed_with_expected_missing_module
+- percepta_frozen_attention_trace_vm_v1_acceptance=one-packet-per-forward host append loop emits legal trace; arbitrary deterministic oracle-walk positions match oracle; make-move stream matches oracle board; corrupted appended trace prefix rejected; dashboard reports frozen-attention runtime
+- percepta_frozen_attention_trace_vm_v1_targeted_tests=`python -m pytest -p no:cacheprovider tests\test_percepta_frozen_attention_vm.py tests\test_dashboard.py` => 13 passed
+- percepta_frozen_attention_trace_vm_v1_full_tests=`python -m pytest -p no:cacheprovider` => 130 passed
+- percepta_frozen_attention_trace_vm_v1_warning_check=`python -m pytest -p no:cacheprovider -W error` => 130 passed
+- percepta_frozen_attention_trace_vm_v1_boundary_scans=python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests; frozen-attention runtime has no finite E2E continuation lookup imports and no nn.Linear
+- percepta_frozen_attention_trace_vm_v1_url=http://127.0.0.1:8768
+- percepta_frozen_attention_trace_vm_v1_server_pid=22300
+- percepta_frozen_attention_trace_vm_v1_known_limit=rule primitive implementations still use Python control flow over frozen tensors; next step is explicit per-rule attention-layer graph serialization
+- percepta_frozen_attention_trace_vm_v1_test_result_record=test_results/percepta_frozen_attention_trace_vm_v1_2026-05-24.md
+- active_milestone=percepta frozen attention trace VM v2
+- percepta_frozen_attention_trace_vm_v2_status=implemented
+- percepta_frozen_attention_trace_vm_v2_boundary=PerceptaFrozenAttentionRuleComputer now uses logarithmic_2d_attention cursor lookup instead of DenseHardmax2D; lookup steps bounded by ceil(log2(max_decode_packets))+4; no dense scan in frozen-attention runtime; serialized attention layer graph metadata stored in frozen nn.Parameter tensors
+- percepta_frozen_attention_trace_vm_v2_lookup_complexity=O(log n)
+- percepta_frozen_attention_trace_vm_v2_compiled_attention_layer_count=26
+- percepta_frozen_attention_trace_vm_v2_compiled_parameter_count=13740
+- percepta_frozen_attention_trace_vm_v2_attention_backend=logarithmic_2d_attention
+- percepta_frozen_attention_trace_vm_v2_host_append_only=true
+- percepta_frozen_attention_trace_vm_v2_token_streaming=true
+- percepta_frozen_attention_trace_vm_v2_uses_mlp=false
+- percepta_frozen_attention_trace_vm_v2_uses_dense_scan=false
+- percepta_frozen_attention_trace_vm_v2_compiled_layer_graph_serialized=true
+- percepta_frozen_attention_trace_vm_v2_python_chess_runtime=false
+- percepta_frozen_attention_trace_vm_v2_tdd=tests_updated_before_implementation; targeted test run failed with expected backend/missing-attribute assertions
+- percepta_frozen_attention_trace_vm_v2_acceptance=cursor lookup exact for representative indices with logarithmic step bound; host append legal trace keeps max lookup steps within bound; arbitrary legal positions still match oracle; dashboard reports logarithmic lookup and serialized layer graph
+- percepta_frozen_attention_trace_vm_v2_targeted_tests=`python -m pytest -p no:cacheprovider tests\test_percepta_frozen_attention_vm.py tests\test_dashboard.py` => 14 passed
+- percepta_frozen_attention_trace_vm_v2_full_tests=`python -m pytest -p no:cacheprovider` => 131 passed
+- percepta_frozen_attention_trace_vm_v2_warning_check=`python -m pytest -p no:cacheprovider -W error` => 131 passed
+- percepta_frozen_attention_trace_vm_v2_boundary_scans=python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests; frozen-attention runtime has no DenseHardmax2D, nn.Linear, finite E2E continuation lookup imports
+- percepta_frozen_attention_trace_vm_v2_url=http://127.0.0.1:8768
+- percepta_frozen_attention_trace_vm_v2_server_pid=59132
+- percepta_frozen_attention_trace_vm_v2_known_limit=chess rule primitive implementations still use Python control flow over frozen tensors; next step is replacing primitive loops with executable attention-layer graph operations
+- percepta_frozen_attention_trace_vm_v2_test_result_record=test_results/percepta_frozen_attention_trace_vm_v2_2026-05-24.md
+- active_milestone=percepta frozen attention trace VM v3
+- percepta_frozen_attention_trace_vm_v3_status=implemented
+- percepta_frozen_attention_trace_vm_v3_boundary=PerceptaFrozenAttentionRuleComputer delegates rule primitive execution to FrozenAttentionRuleLayerGraph and no longer calls inherited WeightCompiledRulesTransformer primitive methods during legal, make-move, board-after-move, or terminal decode paths
+- percepta_frozen_attention_trace_vm_v3_rule_core_execution_mode=executable_frozen_attention_layer_graph
+- percepta_frozen_attention_trace_vm_v3_python_rule_primitive_runtime=false
+- percepta_frozen_attention_trace_vm_v3_compiled_rule_primitives=PIECE_DISPATCH,RAY_SCAN,ATTACK_TEST,LEGAL_FILTER,MAKE_MOVE,TERMINAL_PREDICATES
+- percepta_frozen_attention_trace_vm_v3_compiled_rule_primitive_count=6
+- percepta_frozen_attention_trace_vm_v3_compiled_parameter_count=13642
+- percepta_frozen_attention_trace_vm_v3_attention_backend=logarithmic_2d_attention
+- percepta_frozen_attention_trace_vm_v3_lookup_complexity=O(log n)
+- percepta_frozen_attention_trace_vm_v3_host_append_only=true
+- percepta_frozen_attention_trace_vm_v3_token_streaming=true
+- percepta_frozen_attention_trace_vm_v3_uses_mlp=false
+- percepta_frozen_attention_trace_vm_v3_uses_dense_scan=false
+- percepta_frozen_attention_trace_vm_v3_tdd=tests_updated_before_implementation; targeted test run failed with expected missing-attribute and inherited-primitive-call assertions
+- percepta_frozen_attention_trace_vm_v3_acceptance=targeted tests monkeypatch inherited WeightCompiledRulesTransformer primitive methods to raise and frozen-attention decode still emits oracle-matching legal trace plus oracle-matching e2e4 board writes; graph execution counts are positive for all six compiled primitives; inherited DenseHardmax2D instance is absent
+- percepta_frozen_attention_trace_vm_v3_targeted_tests=`python -m pytest -p no:cacheprovider tests\test_percepta_frozen_attention_vm.py tests\test_dashboard.py` => 15 passed in 66.88s
+- percepta_frozen_attention_trace_vm_v3_full_tests=`python -m pytest -p no:cacheprovider` => 132 passed in 129.45s
+- percepta_frozen_attention_trace_vm_v3_warning_check=`python -m pytest -p no:cacheprovider -W error` => 132 passed in 123.09s
+- percepta_frozen_attention_trace_vm_v3_boundary_scans=direct python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests; frozen-attention VM and rule graph have no DenseHardmax2D, nn.Linear, finite E2E continuation lookup imports, rules_oracle, ChessMachineVM, or AnalyticRuleCompiler references
+- percepta_frozen_attention_trace_vm_v3_url=http://127.0.0.1:8768
+- percepta_frozen_attention_trace_vm_v3_server_pid=49036
+- percepta_frozen_attention_trace_vm_v3_files=src/chess_machine_zero/model/percepta_rule_layer_graph.py, src/chess_machine_zero/model/percepta_frozen_attention_vm.py, src/chess_machine_zero/model/percepta_parametric_selfplay.py, tests/test_percepta_frozen_attention_vm.py, tests/test_dashboard.py
+- percepta_frozen_attention_trace_vm_v3_known_limit=FrozenAttentionRuleLayerGraph is an explicit executable layer graph over frozen rule tensors; primitive kernels still execute as host-language tensor/control operations, not yet lowered to one pure tensor-attention kernel per primitive
+- percepta_frozen_attention_trace_vm_v3_test_result_record=test_results/percepta_frozen_attention_trace_vm_v3_2026-05-24.md
+- active_milestone=percepta frozen attention trace VM v4
+- percepta_frozen_attention_trace_vm_v4_status=implemented
+- percepta_frozen_attention_trace_vm_v4_boundary=FrozenAttentionTensorRuleKernels lowers piece dispatch, ray scan, attack test, legal filter, make-move, and terminal predicates into frozen tensor operations; FrozenAttentionRuleLayerGraph now formats trace around tensor-kernel outputs
+- percepta_frozen_attention_trace_vm_v4_rule_core_execution_mode=executable_frozen_attention_layer_graph
+- percepta_frozen_attention_trace_vm_v4_primitive_kernel_execution_mode=pure_frozen_attention_tensor_layers
+- percepta_frozen_attention_trace_vm_v4_python_rule_primitive_runtime=false
+- percepta_frozen_attention_trace_vm_v4_python_control_flow_rule_primitives=false
+- percepta_frozen_attention_trace_vm_v4_compiled_rule_primitives=PIECE_DISPATCH,RAY_SCAN,ATTACK_TEST,LEGAL_FILTER,MAKE_MOVE,TERMINAL_PREDICATES
+- percepta_frozen_attention_trace_vm_v4_tensor_kernel_count=6
+- percepta_frozen_attention_trace_vm_v4_compiled_parameter_count=1775296
+- percepta_frozen_attention_trace_vm_v4_attention_backend=logarithmic_2d_attention
+- percepta_frozen_attention_trace_vm_v4_lookup_complexity=O(log n)
+- percepta_frozen_attention_trace_vm_v4_host_append_only=true
+- percepta_frozen_attention_trace_vm_v4_token_streaming=true
+- percepta_frozen_attention_trace_vm_v4_uses_mlp=false
+- percepta_frozen_attention_trace_vm_v4_uses_dense_scan=false
+- percepta_frozen_attention_trace_vm_v4_tdd=tests_updated_before_implementation; first targeted run failed with expected missing percepta_attention_rule_kernels module
+- percepta_frozen_attention_trace_vm_v4_acceptance=AST tests verify primitive kernel methods contain no Python For/While/If/IfExp/Match/Try nodes; oracle-backed legal traces and make-move traces still pass arbitrary-position tests; dashboard exposes tensor-kernel mode
+- percepta_frozen_attention_trace_vm_v4_targeted_tests=`python -m pytest -p no:cacheprovider tests\test_percepta_frozen_attention_vm.py tests\test_dashboard.py` => 16 passed in 126.17s
+- percepta_frozen_attention_trace_vm_v4_full_tests=`python -m pytest -p no:cacheprovider` => 133 passed in 230.71s
+- percepta_frozen_attention_trace_vm_v4_warning_check=`python -m pytest -p no:cacheprovider -W error` => 133 passed in 281.27s
+- percepta_frozen_attention_trace_vm_v4_boundary_scans=direct python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests; frozen-attention VM, rule graph, and tensor kernels have no DenseHardmax2D, nn.Linear, finite E2E continuation lookup imports, rules_oracle, ChessMachineVM, or AnalyticRuleCompiler references
+- percepta_frozen_attention_trace_vm_v4_url=http://127.0.0.1:8768
+- percepta_frozen_attention_trace_vm_v4_server_pid=59772
+- percepta_frozen_attention_trace_vm_v4_files=src/chess_machine_zero/model/percepta_attention_rule_kernels.py, src/chess_machine_zero/model/percepta_rule_layer_graph.py, src/chess_machine_zero/model/percepta_frozen_attention_vm.py, src/chess_machine_zero/model/percepta_parametric_selfplay.py, tests/test_percepta_frozen_attention_vm.py, tests/test_dashboard.py
+- percepta_frozen_attention_trace_vm_v4_known_limit=trace packet serialization and BoardState conversion remain Python host-boundary formatting; chess rule primitive decisions run through tensor kernels rather than Python primitive control-flow
+- percepta_frozen_attention_trace_vm_v4_test_result_record=test_results/percepta_frozen_attention_trace_vm_v4_2026-05-24.md
+- active_milestone=percepta frozen attention trace VM v5
+- percepta_frozen_attention_trace_vm_v5_status=implemented
+- percepta_frozen_attention_trace_vm_v5_boundary=FrozenAttentionTensorTraceRuntime accepts tensor trace packets and emits tensor trace packets; PerceptaParametricSelfPlaySession stores prompt_tensor_trace and uses tensor decode paths for legal and make-move runtime
+- percepta_frozen_attention_trace_vm_v5_core_trace_runtime=tensor_trace_in_frozen_attention_blocks_tensor_trace_out
+- percepta_frozen_attention_trace_vm_v5_python_host_boundary_role=display_only
+- percepta_frozen_attention_trace_vm_v5_tensor_trace_core_runtime=true
+- percepta_frozen_attention_trace_vm_v5_tracepacket_core_runtime=false
+- percepta_frozen_attention_trace_vm_v5_rule_core_execution_mode=executable_frozen_attention_layer_graph
+- percepta_frozen_attention_trace_vm_v5_primitive_kernel_execution_mode=pure_frozen_attention_tensor_layers
+- percepta_frozen_attention_trace_vm_v5_python_rule_primitive_runtime=false
+- percepta_frozen_attention_trace_vm_v5_python_control_flow_rule_primitives=false
+- percepta_frozen_attention_trace_vm_v5_compiled_rule_primitives=PIECE_DISPATCH,RAY_SCAN,ATTACK_TEST,LEGAL_FILTER,MAKE_MOVE,TERMINAL_PREDICATES
+- percepta_frozen_attention_trace_vm_v5_tensor_kernel_count=6
+- percepta_frozen_attention_trace_vm_v5_compiled_parameter_count=1775338
+- percepta_frozen_attention_trace_vm_v5_attention_backend=logarithmic_2d_attention
+- percepta_frozen_attention_trace_vm_v5_lookup_complexity=O(log n)
+- percepta_frozen_attention_trace_vm_v5_host_append_only=true
+- percepta_frozen_attention_trace_vm_v5_token_streaming=true
+- percepta_frozen_attention_trace_vm_v5_uses_mlp=false
+- percepta_frozen_attention_trace_vm_v5_uses_dense_scan=false
+- percepta_frozen_attention_trace_vm_v5_tdd=tests_updated_before_implementation; first targeted run failed with expected missing percepta_tensor_trace_runtime module
+- percepta_frozen_attention_trace_vm_v5_acceptance=tensor core monkeypatch test blocks FrozenAttentionRuleLayerGraph packet/BoardState runtime methods; tensor decode legal/make paths still match oracle; FrozenAttentionTensorTraceRuntime methods have no Python For/While/If/IfExp/Match/Try nodes in checked core methods
+- percepta_frozen_attention_trace_vm_v5_targeted_tests=`python -m pytest -p no:cacheprovider tests\test_percepta_frozen_attention_vm.py tests\test_dashboard.py` => 17 passed in 189.00s
+- percepta_frozen_attention_trace_vm_v5_full_tests=`python -m pytest -p no:cacheprovider -x -vv` => 134 passed in 310.28s
+- percepta_frozen_attention_trace_vm_v5_warning_check=`python -m pytest -p no:cacheprovider -W error` => 134 passed in 216.21s
+- percepta_frozen_attention_trace_vm_v5_boundary_scans=direct python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests; percepta_tensor_trace_runtime.py has no BoardState or TracePacket references
+- percepta_frozen_attention_trace_vm_v5_url=http://127.0.0.1:8768
+- percepta_frozen_attention_trace_vm_v5_server_pid=46428
+- percepta_frozen_attention_trace_vm_v5_files=src/chess_machine_zero/model/percepta_tensor_trace_runtime.py, src/chess_machine_zero/model/percepta_attention_rule_kernels.py, src/chess_machine_zero/model/percepta_frozen_attention_vm.py, src/chess_machine_zero/model/percepta_parametric_selfplay.py, tests/test_percepta_frozen_attention_vm.py, tests/test_dashboard.py
+- percepta_frozen_attention_trace_vm_v5_known_limit=Python host still converts user-entered UCI and dashboard JSON/display fields; core legal/make trace runtime is tensor trace in/out
+- percepta_frozen_attention_trace_vm_v5_test_result_record=test_results/percepta_frozen_attention_trace_vm_v5_2026-05-24.md
+- active_milestone=percepta frozen attention trace VM v6
+- percepta_frozen_attention_trace_vm_v6_status=implemented
+- percepta_frozen_attention_trace_vm_v6_boundary=FrozenTransformerAttentionBlockStack owns the core rule compute path; FrozenAttentionTensorTraceRuntime delegates tensor trace legal/make/terminal/board transition execution to the stack instead of calling FrozenAttentionTensorRuleKernels shortcut methods
+- percepta_frozen_attention_trace_vm_v6_core_rule_compute_backend=frozen_transformer_attention_block_stack
+- percepta_frozen_attention_trace_vm_v6_tensor_kernel_shortcut_runtime=false
+- percepta_frozen_attention_trace_vm_v6_compiled_attention_block_stack=true
+- percepta_frozen_attention_trace_vm_v6_compiled_attention_block_count=6
+- percepta_frozen_attention_trace_vm_v6_compiled_attention_head_count=11
+- percepta_frozen_attention_trace_vm_v6_residual_trace_write_count=3
+- percepta_frozen_attention_trace_vm_v6_core_trace_runtime=tensor_trace_in_frozen_attention_blocks_tensor_trace_out
+- percepta_frozen_attention_trace_vm_v6_python_host_boundary_role=display_only
+- percepta_frozen_attention_trace_vm_v6_tensor_trace_core_runtime=true
+- percepta_frozen_attention_trace_vm_v6_tracepacket_core_runtime=false
+- percepta_frozen_attention_trace_vm_v6_rule_core_execution_mode=executable_frozen_attention_layer_graph
+- percepta_frozen_attention_trace_vm_v6_primitive_kernel_execution_mode=pure_frozen_attention_tensor_layers
+- percepta_frozen_attention_trace_vm_v6_python_rule_primitive_runtime=false
+- percepta_frozen_attention_trace_vm_v6_python_control_flow_rule_primitives=false
+- percepta_frozen_attention_trace_vm_v6_compiled_rule_primitives=PIECE_DISPATCH,RAY_SCAN,ATTACK_TEST,LEGAL_FILTER,MAKE_MOVE,TERMINAL_PREDICATES
+- percepta_frozen_attention_trace_vm_v6_tensor_kernel_count=6
+- percepta_frozen_attention_trace_vm_v6_compiled_parameter_count=1775338
+- percepta_frozen_attention_trace_vm_v6_attention_backend=logarithmic_2d_attention
+- percepta_frozen_attention_trace_vm_v6_lookup_complexity=O(log n)
+- percepta_frozen_attention_trace_vm_v6_host_append_only=true
+- percepta_frozen_attention_trace_vm_v6_token_streaming=true
+- percepta_frozen_attention_trace_vm_v6_uses_mlp=false
+- percepta_frozen_attention_trace_vm_v6_uses_dense_scan=false
+- percepta_frozen_attention_trace_vm_v6_tdd=tests_updated_before_implementation; first targeted run failed with expected missing percepta_attention_block_stack module
+- percepta_frozen_attention_trace_vm_v6_acceptance=monkeypatch test blocks FrozenAttentionTensorRuleKernels primitive shortcut methods and tensor decode still emits oracle-matching legal trace plus oracle-matching e2e4 board writes; dashboard exposes frozen transformer attention block stack metadata
+- percepta_frozen_attention_trace_vm_v6_targeted_tests=`python -m pytest -p no:cacheprovider tests\test_percepta_frozen_attention_vm.py tests\test_dashboard.py` => 18 passed in 221.40s
+- percepta_frozen_attention_trace_vm_v6_full_tests=`python -m pytest -p no:cacheprovider -x -vv` => 135 passed in 217.24s
+- percepta_frozen_attention_trace_vm_v6_warning_check=`python -m pytest -p no:cacheprovider -W error` => 135 passed in 406.98s
+- percepta_frozen_attention_trace_vm_v6_boundary_scans=direct python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests; percepta_tensor_trace_runtime.py has no BoardState or TracePacket references; tensor trace runtime and frozen-attention VM have no rule-kernel shortcut calls
+- percepta_frozen_attention_trace_vm_v6_url=http://127.0.0.1:8768
+- percepta_frozen_attention_trace_vm_v6_server_pid=50052
+- percepta_frozen_attention_trace_vm_v6_files=src/chess_machine_zero/model/percepta_attention_block_stack.py, src/chess_machine_zero/model/percepta_tensor_trace_runtime.py, src/chess_machine_zero/model/percepta_frozen_attention_vm.py, src/chess_machine_zero/model/percepta_parametric_selfplay.py, src/chess_machine_zero/model/__init__.py, tests/test_percepta_frozen_attention_vm.py, tests/test_dashboard.py
+- percepta_frozen_attention_trace_vm_v6_known_limit=Python host still converts user-entered UCI and dashboard JSON/display fields; core legal/make trace runtime now uses tensor trace through frozen transformer attention block stack
+- percepta_frozen_attention_trace_vm_v6_test_result_record=test_results/percepta_frozen_attention_trace_vm_v6_2026-05-24.md
+- active_milestone=percepta frozen attention trace VM v7
+- percepta_frozen_attention_trace_vm_v7_status=implemented
+- percepta_frozen_attention_trace_vm_v7_boundary=ChessRuleMicroprogramCompiler builds a formal ChessRuleISA microprogram and compiles the microprogram into frozen attention program weights; FrozenTransformerAttentionBlockStack owns CompiledAttentionProgramWeights plus a unified compiled executor; runtime decode paths do not call stack primitive shortcut methods
+- percepta_frozen_attention_trace_vm_v7_percepta_compiler_pipeline=chess_isa_microprogram_to_frozen_attention_weights
+- percepta_frozen_attention_trace_vm_v7_rule_compiler_backend=rule_microprogram_to_frozen_attention_weights
+- percepta_frozen_attention_trace_vm_v7_rule_microprogram_source=chess_rule_isa
+- percepta_frozen_attention_trace_vm_v7_rule_microprogram_instruction_count=21
+- percepta_frozen_attention_trace_vm_v7_compiled_rule_program_weight_count=408
+- percepta_frozen_attention_trace_vm_v7_unified_rule_executor_runtime=true
+- percepta_frozen_attention_trace_vm_v7_handwritten_stack_primitive_runtime=false
+- percepta_frozen_attention_trace_vm_v7_core_rule_compute_backend=frozen_transformer_attention_block_stack
+- percepta_frozen_attention_trace_vm_v7_tensor_kernel_shortcut_runtime=false
+- percepta_frozen_attention_trace_vm_v7_compiled_attention_block_stack=true
+- percepta_frozen_attention_trace_vm_v7_compiled_attention_block_count=6
+- percepta_frozen_attention_trace_vm_v7_compiled_attention_head_count=11
+- percepta_frozen_attention_trace_vm_v7_residual_trace_write_count=3
+- percepta_frozen_attention_trace_vm_v7_core_trace_runtime=tensor_trace_in_frozen_attention_blocks_tensor_trace_out
+- percepta_frozen_attention_trace_vm_v7_compiled_parameter_count=1775746
+- percepta_frozen_attention_trace_vm_v7_attention_backend=logarithmic_2d_attention
+- percepta_frozen_attention_trace_vm_v7_lookup_complexity=O(log n)
+- percepta_frozen_attention_trace_vm_v7_host_append_only=true
+- percepta_frozen_attention_trace_vm_v7_token_streaming=true
+- percepta_frozen_attention_trace_vm_v7_uses_mlp=false
+- percepta_frozen_attention_trace_vm_v7_uses_dense_scan=false
+- percepta_frozen_attention_trace_vm_v7_tdd=tests_added_before_implementation; first targeted run failed with expected missing percepta_rule_compiler module
+- percepta_frozen_attention_trace_vm_v7_acceptance=compiler test verifies microprogram to frozen attention weight tensors; VM/dashboard expose compiler pipeline; monkeypatch test blocks stack primitive shortcuts and decode still emits oracle-matching legal trace plus oracle-matching e2e4 board writes
+- percepta_frozen_attention_trace_vm_v7_targeted_tests=`python -m pytest -p no:cacheprovider tests\test_percepta_rule_compiler.py tests\test_percepta_frozen_attention_vm.py tests\test_dashboard.py` => 21 passed in 212.22s
+- percepta_frozen_attention_trace_vm_v7_full_tests=`python -m pytest -p no:cacheprovider -x -vv` => 138 passed in 219.26s
+- percepta_frozen_attention_trace_vm_v7_warning_check=`python -m pytest -p no:cacheprovider -W error` => 138 passed in 182.30s
+- percepta_frozen_attention_trace_vm_v7_boundary_scans=direct python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests; percepta_tensor_trace_runtime.py has no BoardState or TracePacket references; tensor trace runtime and frozen-attention VM have no rule-kernel shortcut calls
+- percepta_frozen_attention_trace_vm_v7_url=http://127.0.0.1:8768
+- percepta_frozen_attention_trace_vm_v7_server_pid=25716
+- percepta_frozen_attention_trace_vm_v7_files=src/chess_machine_zero/model/percepta_rule_compiler.py, src/chess_machine_zero/model/percepta_attention_block_stack.py, src/chess_machine_zero/model/percepta_frozen_attention_vm.py, src/chess_machine_zero/model/percepta_parametric_selfplay.py, src/chess_machine_zero/model/__init__.py, tests/test_percepta_rule_compiler.py, tests/test_dashboard.py
+- percepta_frozen_attention_trace_vm_v7_known_limit=Python host still converts user-entered UCI and dashboard JSON/display fields; compiled program executor still uses local PyTorch tensor ops as the low-level attention/tensor execution substrate
+- percepta_frozen_attention_trace_vm_v7_test_result_record=test_results/percepta_frozen_attention_trace_vm_v7_2026-05-24.md
+- active_milestone=percepta frozen attention trace VM v8
+- percepta_frozen_attention_trace_vm_v8_status=implemented
+- percepta_frozen_attention_trace_vm_v8_boundary=FrozenMatrixAttentionInterpreter replaces the previous low-level executor substrate; runtime uses QK^T mask hardmax select V residual writes for trace reads, table reads, and residual trace/board writes; FrozenTransformerAttentionBlockStack no longer owns a compiled_executor attribute
+- percepta_frozen_attention_trace_vm_v8_executor_substrate=matrix_attention_interpreter
+- percepta_frozen_attention_trace_vm_v8_attention_step_operator=QK^T_mask_hardmax_select_V_residual_write
+- percepta_frozen_attention_trace_vm_v8_matrix_attention_interpreter_runtime=true
+- percepta_frozen_attention_trace_vm_v8_pytorch_domain_shortcut_runtime=false
+- percepta_frozen_attention_trace_vm_v8_legacy_compiled_executor_runtime=false
+- percepta_frozen_attention_trace_vm_v8_percepta_compiler_pipeline=chess_isa_microprogram_to_frozen_attention_weights
+- percepta_frozen_attention_trace_vm_v8_rule_compiler_backend=rule_microprogram_to_frozen_attention_weights
+- percepta_frozen_attention_trace_vm_v8_rule_microprogram_source=chess_rule_isa
+- percepta_frozen_attention_trace_vm_v8_rule_microprogram_instruction_count=21
+- percepta_frozen_attention_trace_vm_v8_compiled_rule_program_weight_count=408
+- percepta_frozen_attention_trace_vm_v8_unified_rule_executor_runtime=true
+- percepta_frozen_attention_trace_vm_v8_handwritten_stack_primitive_runtime=false
+- percepta_frozen_attention_trace_vm_v8_core_rule_compute_backend=frozen_transformer_attention_block_stack
+- percepta_frozen_attention_trace_vm_v8_tensor_kernel_shortcut_runtime=false
+- percepta_frozen_attention_trace_vm_v8_compiled_attention_block_stack=true
+- percepta_frozen_attention_trace_vm_v8_compiled_attention_block_count=6
+- percepta_frozen_attention_trace_vm_v8_compiled_attention_head_count=11
+- percepta_frozen_attention_trace_vm_v8_residual_trace_write_count=3
+- percepta_frozen_attention_trace_vm_v8_core_trace_runtime=tensor_trace_in_frozen_attention_blocks_tensor_trace_out
+- percepta_frozen_attention_trace_vm_v8_compiled_parameter_count=1775746
+- percepta_frozen_attention_trace_vm_v8_attention_backend=logarithmic_2d_attention
+- percepta_frozen_attention_trace_vm_v8_lookup_complexity=O(log n)
+- percepta_frozen_attention_trace_vm_v8_host_append_only=true
+- percepta_frozen_attention_trace_vm_v8_token_streaming=true
+- percepta_frozen_attention_trace_vm_v8_uses_mlp=false
+- percepta_frozen_attention_trace_vm_v8_uses_dense_scan=false
+- percepta_frozen_attention_trace_vm_v8_tdd=tests_updated_before_implementation; first targeted run failed with expected missing percepta_matrix_attention_runtime module
+- percepta_frozen_attention_trace_vm_v8_acceptance=dashboard exposes matrix attention interpreter fields; monkeypatch test blocks legacy compiled executor shortcut methods and runtime still emits oracle-matching legal trace plus oracle-matching e2e4 board writes; full pytest and warning-as-error pass
+- percepta_frozen_attention_trace_vm_v8_targeted_tests=`python -m pytest -p no:cacheprovider tests\test_percepta_rule_compiler.py tests\test_percepta_frozen_attention_vm.py tests\test_dashboard.py` => 22 passed in 456.35s
+- percepta_frozen_attention_trace_vm_v8_full_tests=`python -m pytest -p no:cacheprovider -x -vv` => 139 passed in 516.55s
+- percepta_frozen_attention_trace_vm_v8_warning_check=`python -m pytest -p no:cacheprovider -W error` => 139 passed in 523.80s
+- percepta_frozen_attention_trace_vm_v8_boundary_scans=direct python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests; percepta_tensor_trace_runtime.py has no BoardState or TracePacket references; tensor trace runtime, frozen-attention VM, block stack, and matrix interpreter have no rule-kernel shortcut calls; no compiled_executor references in runtime files
+- percepta_frozen_attention_trace_vm_v8_url=http://127.0.0.1:8768
+- percepta_frozen_attention_trace_vm_v8_server_pid=54428
+- percepta_frozen_attention_trace_vm_v8_files=src/chess_machine_zero/model/percepta_matrix_attention_runtime.py, src/chess_machine_zero/model/percepta_rule_compiler.py, src/chess_machine_zero/model/percepta_attention_block_stack.py, src/chess_machine_zero/model/percepta_frozen_attention_vm.py, src/chess_machine_zero/model/percepta_parametric_selfplay.py, src/chess_machine_zero/model/__init__.py, tests/test_percepta_rule_compiler.py, tests/test_dashboard.py
+- percepta_frozen_attention_trace_vm_v8_known_limit=Python host still converts user-entered UCI and dashboard JSON/display fields; matrix attention interpreter is local PyTorch tensor code implementing the attention operator, not a custom CUDA/runtime kernel
+- percepta_frozen_attention_trace_vm_v8_test_result_record=test_results/percepta_frozen_attention_trace_vm_v8_2026-05-24.md
+- active_milestone=percepta two-transformer dashboard v9
+- percepta_two_transformer_dashboard_v9_status=implemented
+- percepta_two_transformer_dashboard_v9_boundary=dashboard/self-play owns two independent PerceptaFrozenAttentionRuleComputer instances, one for white and one for black; each transformer emits its own trace tokens for committed self-play moves
+- percepta_two_transformer_dashboard_v9_trace_verification=runtime checks selected move membership in trace LEGAL_SET before commit; python-chess remains test oracle only and is not called by dashboard/runtime
+- percepta_two_transformer_dashboard_v9_token_observability=move history stores emitted_token_count and emitted_tokens; snapshot exposes transformer_token_streams.white and transformer_token_streams.black; frontend trace log renders `transformer_white token[n]=[...]` and `transformer_black token[n]=[...]`
+- percepta_two_transformer_dashboard_v9_dashboard_api=GET /api/snapshot exposes transformers.mode=two_transformer_selfplay, transformers.active, trace_legal_verification, last_trace_actor, and side-specific token streams
+- percepta_two_transformer_dashboard_v9_tests=`python -m pytest -p no:cacheprovider tests\test_dashboard.py -q` => 9 passed; `python -m pytest -p no:cacheprovider tests\test_percepta_rule_compiler.py tests\test_percepta_frozen_attention_vm.py tests\test_dashboard.py -q` => 23 passed; `python -m pytest -p no:cacheprovider -x -vv` => 140 passed; `python -m pytest -p no:cacheprovider -W error` => 140 passed
+- percepta_two_transformer_dashboard_v9_boundary_scans=direct python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests; dashboard/runtime has no rules_oracle references; Percepta runtime files have no legacy compiled_executor/DenseHardmax2D/nn.Linear/finite lookup references
+- percepta_two_transformer_dashboard_v9_browser_check=Playwright MCP loaded http://127.0.0.1:8768; verified page title, 64 squares, step interaction to ply=3, token log with transformer_white tokens, trace verified=true, desktop no console warnings/errors, mobile 390x840 overflow=false
+- percepta_two_transformer_dashboard_v9_url=http://127.0.0.1:8768
+- percepta_two_transformer_dashboard_v9_server_pid=56360
+- percepta_two_transformer_dashboard_v9_test_result_record=test_results/percepta_two_transformer_dashboard_v9_2026-05-24.md
+- active_milestone=percepta two-transformer dashboard v9.1
+- percepta_two_transformer_dashboard_v9_1_status=implemented
+- percepta_two_transformer_dashboard_v9_1_change=dashboard frontend auto-starts self-play in selfplay mode, uses a sequential async loop with `state.busy`, and displays `transformer_* computing move` while a slow frozen-attention step is running
+- percepta_two_transformer_dashboard_v9_1_reason=matrix-attention self-play step takes several seconds, so previous Play behavior looked idle and interval scheduling could overlap requests
+- percepta_two_transformer_dashboard_v9_1_tests=`python -m pytest -p no:cacheprovider tests\test_dashboard.py -q` => 10 passed; `python -m pytest -p no:cacheprovider -W error tests\test_dashboard.py -q` => 10 passed
+- percepta_two_transformer_dashboard_v9_1_browser_check=Playwright loaded http://127.0.0.1:8768; script cache-buster `/static/dashboard.js?v=9.1` loaded; button text became Pause automatically; status showed transformer_white computing move; ply advanced 0->1 within 30s; token log showed transformer_white token arrays; console warnings/errors=0
+- percepta_two_transformer_dashboard_v9_1_url=http://127.0.0.1:8768
+- percepta_two_transformer_dashboard_v9_1_server_pid=52820

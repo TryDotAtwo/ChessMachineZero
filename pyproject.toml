@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chess-machine-zero"
+version = "0.1.0"
+description = "Trace-based ChessMachineZero Milestone 1 foundation."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "python-chess>=1.999",
+  "torch>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+]
+
+[project.scripts]
+cmz-dashboard = "chess_machine_zero.dashboard.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"chess_machine_zero.dashboard" = ["static/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
