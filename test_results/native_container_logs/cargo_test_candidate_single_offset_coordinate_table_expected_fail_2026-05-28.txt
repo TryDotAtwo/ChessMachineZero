@@ -1,0 +1,22 @@
+=== cmz exec start 2026-05-28T15:45:30Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.97s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 1 test
+
+thread 'tests::candidate_single_offset_coordinate_slot_uses_qk_table_lookup' (28240) panicked at crates/cmz-engine-sys/src/lib.rs:2018:9:
+assertion failed: body.contains("cmz_candidate_single_offset_coordinate_table_attention_value")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::candidate_single_offset_coordinate_slot_uses_qk_table_lookup ... FAILED
+
+failures:
+
+failures:
+    tests::candidate_single_offset_coordinate_slot_uses_qk_table_lookup
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 59 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p cmz-engine-sys --lib`
+=== cmz exec end 2026-05-28T15:45:30Z status=101 ===
+

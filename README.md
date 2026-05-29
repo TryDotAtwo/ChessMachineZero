@@ -1,78 +1,93 @@
 # ChessMachineZero
 
-ChessMachineZero is a trace-based chess machine prototype following
-`docs/chess_machine_zero_percepta_architecture.md`.
+ChessMachineZero is a trace-based chess machine prototype targeting a
+Percepta-style policy-only architecture: chess rules emit and verify
+TracePacket/MovePacket streams, while a trainable decoder policy consumes the
+same trace language and learns move selection without external tree search,
+human-game labels, engine labels, tablebase labels, or handcrafted evaluation.
 
-Current scope:
+## Current Runtime
 
-- Fixed MovePacket and TracePacket codecs.
-- `python-chess` development oracle confined to `src/chess_machine_zero/chess/rules_oracle.py`.
-- Deterministic VM traces for legal move enumeration, move application, terminal checks, and board writes.
-- Transformer-hosted trace decoder experiments and analytic fixed-rule executor.
-- Frozen-weight rule executor for legal generation, make-move, terminal rules, repetition, fifty-move, and capped games.
-- Local dashboard for observing trace-based self-play or playing human-vs-transformer.
+- Native workspace: `native/`
+- Native orchestration: Rust crates under `native/crates/`
+- Native engine: C++/CUDA implementation under `native/cpp/`
+- Native dashboard: `native/crates/cmz-dashboard`
+- Native CLI: `native/crates/cmz-cli`
+- Python production dashboard runtime: removed
+- Python/PyTorch Percepta attention runtime modules: removed from production source
+- Legacy Python strategy modules: removed from production source
+- Python remaining role: packet codecs, tests, docs, and `python-chess` oracle wrapper
+- `python-chess` direct import boundary: `src/chess_machine_zero/chess/rules_oracle.py`
 
-Current dashboard rule path:
+## Native Contract
 
-- `PerceptaFrozenAttentionRuleComputer`
-- `rule_execution_mode=percepta_frozen_attention_trace_vm`
-- `attention_backend=logarithmic_2d_attention`
-- `lookup_complexity=O(log n)`
-- `rule_core_execution_mode=executable_frozen_attention_layer_graph`
-- `primitive_kernel_execution_mode=pure_frozen_attention_tensor_layers`
-- `core_trace_runtime=tensor_trace_in_frozen_attention_blocks_tensor_trace_out`
-- `core_rule_compute_backend=frozen_transformer_attention_block_stack`
-- `tensor_kernel_shortcut_runtime=false`
-- `compiled_attention_block_stack=true`
-- `compiled_attention_block_count=6`
-- `compiled_attention_head_count=11`
-- `residual_trace_write_count=3`
-- `percepta_compiler_pipeline=chess_isa_microprogram_to_frozen_attention_weights`
-- `rule_compiler_backend=rule_microprogram_to_frozen_attention_weights`
-- `rule_microprogram_source=chess_rule_isa`
-- `rule_microprogram_instruction_count=21`
-- `compiled_rule_program_weight_count=408`
-- `unified_rule_executor_runtime=true`
-- `handwritten_stack_primitive_runtime=false`
-- `matrix_attention_interpreter_runtime=true`
-- `executor_substrate=matrix_attention_interpreter`
-- `attention_step_operator=QK^T_mask_hardmax_select_V_residual_write`
-- `pytorch_domain_shortcut_runtime=false`
-- `python_host_boundary_role=display_only`
-- `tensor_trace_core_runtime=true`
-- `tracepacket_core_runtime=false`
-- `python_rule_primitive_runtime=false`
-- `python_control_flow_rule_primitives=false`
-- `compiled_rule_primitives=[PIECE_DISPATCH,RAY_SCAN,ATTACK_TEST,LEGAL_FILTER,MAKE_MOVE,TERMINAL_PREDICATES]`
-- `tensor_kernel_count=6`
-- `compiled_layer_graph_serialized=true`
-- `parametric_rule_weights=true`
-- `host_append_only=true`
-- `token_streaming=true`
-- `uses_mlp=false`
-- `position_lookup=false`
-- `compiled_prompt_count=0`
-- `python_rule_executor_runtime=false`
-- `strategy_module=none`
-- `strategy_training=false`
-- `two_transformer_selfplay=true`
-- `transformer_white=PerceptaFrozenAttentionRuleComputer`
-- `transformer_black=PerceptaFrozenAttentionRuleComputer`
-- `trace_legal_verification=selected_move_in_trace_LEGAL_SET`
-- `dashboard_token_log=emitted_trace_packet_tokens_per_transformer`
+- `python_hot_path=false`
+- `fallback_allowed=false`
+- `decoder_backend=libtorch_cuda_policy_only_v1`
+- `dashboard_policy_decoder=true`
+- `dashboard_policy_selection_backend=native_libtorch_policy_decoder`
+- `actor_critic=false`
+- `value_head_enabled=false`
+- `target_full_frozen_attention_only=true`
+- `full_frozen_attention_only=false`
+- `semantic_attention_purity=false`
+- `remaining_non_attention_paths=terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow`
 
-Run tests:
+The contract intentionally keeps `full_frozen_attention_only=false` until every
+remaining CUDA chess-control-flow path is lowered to explicit frozen 2D
+QK-hardmax/select/write layers.
+
+## Implemented Native Slices
+
+- Native MovePacket and TracePacket codecs
+- Native legal trace streaming
+- Native make-move trace emission
+- CUDA board projection
+- CUDA trace-select attention
+- CUTLASS/HullKV hardmax integration for trace packet lookup
+- NestedHullTopK GPU/CUTLASS top-k path
+- Native policy-only decoder scaffold and policy-gradient update path
+- Native dashboard using policy decoder selection
+- Attack-mask, ray-scan, candidate-target, legal-filter, resolve-move, candidate-record, pawn, slider, terminal-legal-presence, and terminal-material lowering slices
+- Source-audit tests that keep remaining semantic gaps visible
+
+## Run Python Verification
 
 ```powershell
 $env:PYTHONDONTWRITEBYTECODE='1'
 python -m pytest -p no:cacheprovider -W error
 ```
 
-Run dashboard:
+## Run Native Verification In Docker
 
 ```powershell
-$env:PYTHONPATH='src'
-python -m chess_machine_zero.dashboard.server --host 127.0.0.1 --port 8768
+powershell -ExecutionPolicy Bypass -File .\docker\native\run_native_container.ps1
+powershell -ExecutionPolicy Bypass -File .\docker\native\exec_native.ps1 -Command "cd /work/native && cargo fmt --all -- --check" -Log "test_results/native_container_logs/cargo_fmt_manual.txt"
+powershell -ExecutionPolicy Bypass -File .\docker\native\exec_native.ps1 -Command "cd /work/native && cargo clippy --workspace --all-targets -- -D warnings" -Log "test_results/native_container_logs/cargo_clippy_manual.txt"
+powershell -ExecutionPolicy Bypass -File .\docker\native\exec_native.ps1 -Command "cd /work/native && cargo test --workspace" -Log "test_results/native_container_logs/cargo_test_workspace_manual.txt"
 ```
 
-Dashboard URL: `http://127.0.0.1:8768`
+## Run Native Dashboard
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\docker\native\run_native_container.ps1
+powershell -ExecutionPolicy Bypass -File .\docker\native\start_dashboard.ps1 -Port 8768
+docker logs -f cmz-native-dev
+```
+
+Dashboard URL from the Windows browser:
+
+```text
+http://127.0.0.1:8768
+```
+
+## Important Documents
+
+- Architecture source: `docs/chess_machine_zero_percepta_architecture.md`
+- Native Rust/C++/CUDA architecture: `docs/native_rust_cpp_cuda_architecture.md`
+- Policy-only architecture review handoff: `docs/cmz_percepta_policy_only_architecture_review.md`
+- Full code audit: `docs/percepta_policy_only_full_code_audit_2026-05-28.md`
+- Project memory: `docs/project_memory.md`
+- Change history: `docs/change_history.md`
+- Prompt history: `docs/prompt_history.md`
+- Test logs and evidence: `test_results/`

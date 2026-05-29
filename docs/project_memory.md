@@ -443,3 +443,716 @@
 - cutlass_acceleration_baseline_v1_hotspots=FrozenMatrixAttentionInterpreter._candidate_table, _lookup_rows, _attention_select, _board_read, torch.argmax, torch.one_hot, Tensor.to
 - cutlass_acceleration_baseline_v1_plan=docs/cutlass_acceleration_plan.md
 - cutlass_acceleration_baseline_v1_test_result_record=test_results/perf_baseline_selfplay_step_2026-05-25.md
+- active_milestone=Docker Nsight slowness diagnosis v1
+- docker_nsight_slowness_diagnosis_v1_status=profiled
+- docker_nsight_slowness_diagnosis_v1_image=gpu-dev-cutlass-nsight:2026-05-24
+- docker_nsight_slowness_diagnosis_v1_tools=Nsight Systems 2024.1.1.0; Nsight Compute 2024.1.1.0; torch 2.6.0+cu124
+- docker_nsight_slowness_diagnosis_v1_gpu=NVIDIA GeForce RTX 3070 Laptop GPU
+- docker_nsight_slowness_diagnosis_v1_cuda_available=true
+- docker_nsight_slowness_diagnosis_v1_rule_param_device=cpu
+- docker_nsight_slowness_diagnosis_v1_prompt_device=cpu
+- docker_nsight_slowness_diagnosis_v1_nsight_cuda_kernel_data=false
+- docker_nsight_slowness_diagnosis_v1_nsight_gpu_memory_data=false
+- docker_nsight_slowness_diagnosis_v1_full_legal_once_seconds=0.079215
+- docker_nsight_slowness_diagnosis_v1_host_append_legal_seconds=1.294018
+- docker_nsight_slowness_diagnosis_v1_selfplay_step_seconds=1.775451
+- docker_nsight_slowness_diagnosis_v1_cprofile_step_seconds=1.696030
+- docker_nsight_slowness_diagnosis_v1_primary_bottleneck=host-append decode recomputes full legal trace continuation for each emitted token
+- docker_nsight_slowness_diagnosis_v1_secondary_bottleneck=FrozenMatrixAttentionInterpreter executes many small CPU PyTorch ops: _candidate_table, _lookup_rows, _attention_select, _board_read, torch.one_hot, Tensor.to, argmax
+- docker_nsight_slowness_diagnosis_v1_conclusion=current slowness is not CUDA kernel slowness; current runtime does not reach CUDA kernels on the profiled path
+- docker_nsight_slowness_diagnosis_v1_required_fix_order=incremental token decode or cached trace state first; explicit CUDA device ownership second; fused CUDA/CUTLASS attention/table kernels third
+- docker_nsight_slowness_diagnosis_v1_test_result_record=test_results/nsight_docker_profile_2026-05-25.md
+
+## 2026-05-26
+
+- active_milestone=Percepta incremental decode and token trace UI v10
+- percepta_incremental_decode_token_ui_v10_status=implemented
+- percepta_incremental_decode_token_ui_v10_boundary=PerceptaFrozenAttentionRuleComputer caches legal and make-move continuation tensors per exact prompt/move/ply/repetition/adjudication context; host append still calls one decode step per emitted token and corrupted appended prefixes remain rejected
+- percepta_incremental_decode_token_ui_v10_legal_continuation_compute_count=1 for repeated same-prompt legal host append decode
+- percepta_incremental_decode_token_ui_v10_make_move_continuation_compute_count=1 for repeated same move-context host append decode
+- percepta_incremental_decode_token_ui_v10_dashboard=Trace VM panel has Percepta-style `Readable log` and `Token trace` tabs, hexadecimal token rows, decoded packet annotations, and token/packet meter
+- percepta_incremental_decode_token_ui_v10_article_notes=docs/percepta_can_llms_be_computers.md; full copyrighted article text not stored verbatim
+- percepta_incremental_decode_token_ui_v10_local_perf=full_legal_once_seconds=0.048632; host_append_legal_seconds=0.043370; selfplay_step_seconds=0.158801
+- percepta_incremental_decode_token_ui_v10_docker_perf=full_legal_once_seconds=0.073621; host_append_legal_seconds=0.039792; selfplay_step_seconds=0.143764
+- percepta_incremental_decode_token_ui_v10_docker_speedup=host_append_legal 32.52x vs 2026-05-25 Docker baseline; selfplay_step 12.35x vs 2026-05-25 Docker baseline
+- percepta_incremental_decode_token_ui_v10_cprofile=step_seconds=0.136517; function_calls=17512; execute_trace_calls=2; torch_one_hot_calls=228; tensor_to_calls=1223
+- percepta_incremental_decode_token_ui_v10_remaining_limit=rule_param_device=cpu; prompt_device=cpu; CUDA/CUTLASS kernels still not used on profiled rule path
+- percepta_incremental_decode_token_ui_v10_nsight=nsight_incremental_step_2026_05_26 reports no CUDA kernel data and no GPU memory data after incremental decode fix
+- percepta_incremental_decode_token_ui_v10_browser_check=Playwright loaded http://127.0.0.1:8769; verified 64 squares, Readable log tab, Token trace tab, hex token rows, annotations, token meter, and zero console warnings/errors
+- percepta_incremental_decode_token_ui_v10_tests=`python -m pytest -p no:cacheprovider tests\test_percepta_rule_compiler.py tests\test_percepta_frozen_attention_vm.py tests\test_dashboard.py -q` => 27 passed; `python -m pytest -p no:cacheprovider -q` => 144 passed; `python -m pytest -p no:cacheprovider -W error -q` => 144 passed
+- percepta_incremental_decode_token_ui_v10_boundary_scans=direct python-chess import only rules_oracle.py; fallback/smoke terms absent from src/tests; Percepta dashboard/runtime has no rules_oracle references
+- percepta_incremental_decode_token_ui_v10_test_result_record=test_results/percepta_incremental_decode_v10_2026-05-26.md
+- active_milestone=Dashboard no forced ply cap v11
+- dashboard_no_forced_ply_cap_v11_status=implemented
+- dashboard_no_forced_ply_cap_v11_boundary=Current Percepta dashboard/self-play runtime no longer converts max_plies into adjudication_cap_reached; games are not forced into draw by dashboard half-move count
+- dashboard_no_forced_ply_cap_v11_retained_terminal_rules=checkmate, stalemate, fifty-move rule, threefold repetition, insufficient material
+- dashboard_no_forced_ply_cap_v11_api_compat=max_plies remains accepted by DashboardApp/CMZDashboardSession for older callers but is ignored by the uncapped runtime and snapshot reports max_plies=null
+- dashboard_no_forced_ply_cap_v11_tdd=first new test failed because snapshot max_plies was 1 before implementation
+- dashboard_no_forced_ply_cap_v11_tests=`python -m pytest -p no:cacheprovider tests\test_dashboard.py -q` => 12 passed; `python -m pytest -p no:cacheprovider -q` => 145 passed; `python -m pytest -p no:cacheprovider -W error -q` => 145 passed
+- dashboard_no_forced_ply_cap_v11_boundary_scan=no matches for dashboard/percepta runtime cap expressions `adjudication_cap_reached=self.ply`, `self.ply + 1 >= self.max_plies`, or `max_plies must be positive`
+- dashboard_no_forced_ply_cap_v11_test_result_record=test_results/dashboard_no_ply_cap_2026-05-26.md
+- active_milestone=Single shared transformer runtime v12
+- single_shared_transformer_runtime_v12_status=implemented
+- single_shared_transformer_runtime_v12_boundary=Dashboard/self-play now owns one PerceptaFrozenAttentionRuleComputer instance named shared_transformer; same frozen rule model plays both white and black using side-to-move encoded in the board trace
+- single_shared_transformer_runtime_v12_removed=separate white_rules and black_rules model instances from PerceptaParametricSelfPlaySession
+- single_shared_transformer_runtime_v12_snapshot=transformers.mode=single_shared_transformer_selfplay; transformers.active=shared_transformer; shared_model_instance_count=1
+- single_shared_transformer_runtime_v12_token_observability=dashboard keeps white/black token stream buckets as side-indexed trace display only, not as separate model identities
+- single_shared_transformer_runtime_v12_tdd=first targeted dashboard tests failed before implementation because runtime exposed two_transformer_selfplay and transformer_white/transformer_black actors
+- single_shared_transformer_runtime_v12_tests=`python -m pytest -p no:cacheprovider tests\test_dashboard.py -q` => 12 passed; `python -m pytest -p no:cacheprovider tests\test_percepta_rule_compiler.py tests\test_percepta_frozen_attention_vm.py tests\test_dashboard.py -q` => 28 passed; `python -m pytest -p no:cacheprovider -q` => 145 passed
+- single_shared_transformer_runtime_v12_runtime_probe=two_ply_seconds=0.337271; first_actor=shared_transformer; second_actor=shared_transformer; first_side=w; second_side=b; shared_model_instance_count=1; illegal_commit_count=0
+- single_shared_transformer_runtime_v12_test_result_record=test_results/single_shared_transformer_runtime_2026-05-26.md
+- active_milestone=Native Rust C++ CUDA foundation v1
+- native_rust_cpp_cuda_v1_status=implemented_foundation
+- native_rust_cpp_cuda_v1_goal=replace Python production runtime with Rust orchestration plus C++/CUDA compute library
+- native_rust_cpp_cuda_v1_container=cmz-native-dev
+- native_rust_cpp_cuda_v1_image=cmz-native-dev:2026-05-26
+- native_rust_cpp_cuda_v1_base_image=gpu-dev-cutlass-nsight:2026-05-24
+- native_rust_cpp_cuda_v1_gpu=NVIDIA GeForce RTX 3070 Laptop GPU; driver=572.70
+- native_rust_cpp_cuda_v1_stack=Rust workspace + native MovePacket/TracePacket codecs + C ABI opaque handle + C++ host layer + CUDA kernels
+- native_rust_cpp_cuda_v1_files=docker/native/Dockerfile, docker/native/run_native_container.ps1, docker/native/exec_native.ps1, native/Cargo.toml, native/Cargo.lock, native/crates/cmz-engine-sys, native/crates/cmz-cli, native/cpp
+- native_rust_cpp_cuda_v1_rule_coverage=FEN parsing, side-to-move legal generation, all piece movement, pawn double moves, captures, promotions, en passant, pinned en-passant rejection, castling, castling-through-check rejection, king-safety legal filter
+- native_rust_cpp_cuda_v1_cuda_probe=exact doubling kernel verified on NVIDIA GeForce RTX 3070 Laptop GPU
+- native_rust_cpp_cuda_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 10 passed; native CLI startpos legal_count=20 cuda_available=true; `python -m pytest -p no:cacheprovider -q` => passed; `python -m pytest -p no:cacheprovider -W error -q` => passed
+- native_rust_cpp_cuda_v1_known_boundary=Python dashboard/runtime still present; native legal trace emission and frozen-attention runtime not yet ported; depth search deferred to next stage
+- native_rust_cpp_cuda_v1_test_result_record=test_results/native_rust_cpp_cuda_v1_2026-05-26.md
+- active_milestone=Dashboard side trace journals and Docker log stream v13
+- dashboard_side_trace_journals_v13_status=implemented
+- dashboard_side_trace_journals_v13_boundary=Dashboard trace panel has separate white and black side journals; each journal has readable log and token trace; side journals are display buckets only and do not imply separate model instances
+- dashboard_side_trace_journals_v13_shared_model=single shared_transformer remains the only PerceptaFrozenAttentionRuleComputer runtime instance
+- docker_log_stream_v13_status=implemented
+- docker_log_stream_v13_boundary=cmz-native-dev tails `/work/test_results/native_container_logs/docker-stream.log`; exec_native.ps1 tees command stdout/stderr into docker-stream.log and per-command log file
+- docker_log_stream_v13_user_command=`docker logs -f cmz-native-dev`
+- docker_log_stream_v13_cleanup=stale dashboard processes on 127.0.0.1:8768 stopped; pids=19368,40684,41564
+- dashboard_side_trace_journals_v13_tests=`python -m pytest -p no:cacheprovider tests\test_dashboard.py -q` => 12 passed; native log stream cargo test => 10 passed; `docker logs --tail 60 cmz-native-dev` showed exec output and status=0
+- dashboard_side_trace_journals_v13_test_result_record=test_results/native_docker_log_stream_2026-05-26.md
+- active_milestone=Dashboard Docker publication v14
+- dashboard_docker_publication_v14_status=implemented
+- dashboard_docker_publication_v14_boundary=Dashboard is launched inside the persistent `cmz-native-dev` Docker container and exposed to the Windows browser through published port `127.0.0.1:8768->8768/tcp`
+- dashboard_docker_publication_v14_scripts=docker/native/run_native_container.ps1 publishes dashboard port; docker/native/start_dashboard.ps1 starts `python3 -u -m chess_machine_zero.dashboard.server --host 0.0.0.0 --port 8768` inside the container and streams logs to docker logs
+- dashboard_docker_publication_v14_ui=Percepta-style side journals use assistant log cards, bottom Readable log/Token trace tabs, gradual line replay, hex token rows, and styled scrollbars
+- dashboard_docker_publication_v14_shared_model=single shared_transformer remains the only runtime model; white/black journals are display buckets only
+- dashboard_docker_publication_v14_verification=`python -m pytest -p no:cacheprovider tests\test_dashboard.py -q` => 13 passed; Windows `Invoke-WebRequest http://127.0.0.1:8768/api/snapshot` => HTTP 200; Browser plugin verified title, 64 squares, two assistant log cards, white/black token traces, styled scrollbar, and zero console warnings/errors
+- dashboard_docker_publication_v14_url=http://127.0.0.1:8768
+- dashboard_docker_publication_v14_test_result_record=test_results/dashboard_docker_container_2026-05-26.md
+- active_milestone=Dashboard trace scroll lock v15
+- dashboard_trace_scroll_lock_v15_status=implemented
+- dashboard_trace_scroll_lock_v15_boundary=Percepta-style trace journal windows now auto-follow newest packet rows only while the user is already at the bottom; manual upward scroll locks the current viewport position while new packet rows arrive
+- dashboard_trace_scroll_lock_v15_state=traceScrollState tracks white/black and readable/token modes independently; traceScrollSuppress prevents programmatic scroll restoration from being recorded as user intent
+- dashboard_trace_scroll_lock_v15_ui=trace outputs are focusable with `tabindex=0`; trace output CSS uses `scroll-behavior: auto` and `scrollbar-gutter: stable`
+- dashboard_trace_scroll_lock_v15_verification=TDD contract initially failed on missing traceScrollState; `python -m pytest -p no:cacheprovider tests\test_dashboard.py -q` => 13 passed; rendered browser check confirmed lockedDelta=0 when scrolled up and bottomDelta≈0.2 when following bottom; console warnings/errors=0
+- dashboard_trace_scroll_lock_v15_test_result_record=test_results/dashboard_scroll_lock_2026-05-26.md
+- active_milestone=Native trace runtime v2
+- native_trace_runtime_v2_status=implemented_trace_emission_native
+- native_trace_runtime_v2_boundary=Rust+C++ native runtime now emits legal trace packets, streams legal trace one packet per call through a native matrix-attention hardmax-select slice, and emits make-move traces with commit, board writes, state writes, terminal record, and halt
+- native_trace_runtime_v2_c_api=cmz_engine_legal_trace_packets, cmz_engine_legal_trace_begin, cmz_engine_legal_trace_next, cmz_engine_make_move_trace_packets
+- native_trace_runtime_v2_rust_api=Engine::legal_trace_packets, Engine::begin_legal_trace_stream, Engine::decode_next_legal_trace_packet, Engine::make_move_trace_packets
+- native_trace_runtime_v2_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 14 passed; `python -m pytest -p no:cacheprovider tests\test_trace_packet.py tests\test_move_packet.py -q` => 5 passed
+- native_trace_runtime_v2_tdd=legal trace, stream trace, and make-move trace tests failed first on missing native APIs before implementation
+- native_trace_runtime_v2_known_boundary=Python dashboard/runtime still present; native rule-level frozen matrix-attention interpreter and CUDA/CUTLASS attention kernels not yet ported
+- native_trace_runtime_v2_test_result_record=test_results/native_trace_runtime_v2_2026-05-26.md
+- active_architecture_note=Trainable decoder over hard native rule VM
+- trainable_decoder_hard_vm_architecture_status=planned_discussion_only
+- trainable_decoder_hard_vm_architecture_contract=board_trace tensor[68,7] remains the shared language; decoder input, decoder output, hard_rule_VM input, and hard_rule_VM output all use TracePacket rows
+- trainable_decoder_hard_vm_architecture_loop=`board_trace -> trainable_decoder -> move_action_trace_packet -> hard_rule_VM -> next_board_trace -> trainable_decoder -> ...`
+- trainable_decoder_hard_vm_architecture_move_actions=add/standardize CANDIDATE_MOVE and COMMIT_MOVE as same-language move action packets; prefer existing TraceOp.CANDIDATE and TraceOp.COMMIT_MOVE semantics unless native review requires explicit naming
+- trainable_decoder_hard_vm_architecture_no_new_search_scaffold=true; no mandatory BRANCH_BEGIN, EXPAND, BACKUP, CHOOSE tokens; model decides whether repeated VM calls are useful
+- trainable_decoder_hard_vm_architecture_rule_vm=hard, deterministic, frozen, native Rust+C++/CUDA target; Python helper implementation is out of scope
+- trainable_decoder_hard_vm_architecture_training=update decoder weights only; frozen rule VM enforces legal/make/terminal transitions; lookahead emerges only if decoder learns to perform useful repeated VM interactions
+- active_milestone=Percepta native runtime v3
+- percepta_native_runtime_v3_status=implemented_boundary
+- percepta_native_runtime_v3_contract=cmz_engine_percepta_contract_json reports executor_head_dim=2, rule_attention_backend=hull_hardmax_2d, topk_backend=nested_hull_topk_2d, long_context_cache=HullKVCache, trace_streaming=true, simple_kv_cache=false, python_hot_path=false, fallback_allowed=false, decoder_shared_white_black=true, decoder_attention=2d_heads, soft_surrogate_available=true, tracepacket_backprop=false
+- percepta_native_runtime_v3_cuda=cmz_cuda_hardmax2d_values scores 2D query/key hull vertices on CUDA; C++ host builds ConvexHull2D and NestedHullTopK2D layers before CUDA scoring
+- percepta_native_runtime_v3_c_api=cmz_engine_percepta_contract_json, cmz_engine_hull_hardmax_2d, cmz_engine_nested_hull_topk_2d, cmz_engine_project_board_trace
+- percepta_native_runtime_v3_rust_api=Engine::percepta_contract_json, Engine::hull_hardmax_2d, Engine::nested_hull_topk_2d, Engine::project_board_trace, PerceptaDecoderScaffold
+- percepta_native_runtime_v3_dashboard=cmz-dashboard Rust crate serves HTTP dashboard snapshots from native trace streams only; Python dashboard remains present as legacy/temporary viewer
+- percepta_native_runtime_v3_tdd=first native cargo test failed on missing Percepta contract/HullKV/projection/decoder APIs before implementation
+- percepta_native_runtime_v3_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 20 passed; `cargo run -p cmz-cli -- --contract` => printed contract JSON; Rust dashboard `/api/snapshot` probe returned HullKVCache and python_hot_path=false; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- percepta_native_runtime_v3_known_boundary=full LibTorch trainable decoder blocks, full frozen rule layer graph lowering, WebSocket streaming dashboard, and CUTLASS fused kernels remain next steps
+- percepta_native_runtime_v3_test_result_record=test_results/percepta_native_runtime_v3_2026-05-26.md
+
+## 2026-05-27
+
+- active_milestone=Native LibTorch decoder v1
+- native_libtorch_decoder_v1_status=implemented_first_trainable_decoder_slice
+- native_libtorch_decoder_v1_environment=torch 2.6.0+cu124; TorchConfig.cmake discovered at `/usr/local/lib/python3.10/dist-packages/torch/share/cmake`; CUDA available=true
+- native_libtorch_decoder_v1_build=CMake now finds Torch; Rust build script passes CMAKE_PREFIX_PATH from Python torch at build time; native/.cargo/config.toml and docker/native/exec_native.ps1 provide LibTorch shared-library rpath/LD_LIBRARY_PATH
+- native_libtorch_decoder_v1_c_api=cmz_engine_decoder_forward, cmz_engine_decoder_policy_gradient_step
+- native_libtorch_decoder_v1_rust_api=Engine::decoder_forward, Engine::decoder_policy_gradient_step, DecoderForwardOutput
+- native_libtorch_decoder_v1_forward=LibTorch CUDA tensors owned by CmzEngine; forward computes command logits and value baseline from BoardHiddenProjection through 2D attention over board square keys and piece/occupancy values
+- native_libtorch_decoder_v1_training=actor-critic policy-gradient step updates decoder tensors only; TracePacket path remains detached; no human-game labels, engine labels, tablebase labels, or handcrafted evaluation
+- native_libtorch_decoder_v1_contract=cmz_engine_percepta_contract_json now reports decoder_backend=libtorch_cuda_actor_critic_v1, learning_method=policy_gradient_actor_critic, and soft_surrogate_available=false
+- native_libtorch_decoder_v1_tdd=first native cargo test failed on missing decoder_forward and decoder_policy_gradient_step APIs before implementation
+- native_libtorch_decoder_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 22 passed; `cargo run -p cmz-cli -- --contract` => printed decoder_backend=libtorch_cuda_actor_critic_v1; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_libtorch_decoder_v1_known_boundary=decoder is first actor-critic 2D-attention slice, not full multi-layer Percepta decoder over board/workspace/legal/trace tensors; full frozen rule graph lowering and CUTLASS fused kernels remain next steps
+- native_libtorch_decoder_v1_test_result_record=test_results/native_libtorch_decoder_v1_2026-05-27.md
+- active_milestone=Native frozen rule layer stack v1
+- native_frozen_rule_layer_stack_v1_status=implemented_first_lowering_slice
+- native_frozen_rule_layer_stack_v1_c_api=cmz_engine_frozen_rule_graph_json, cmz_engine_frozen_layer_step_count
+- native_frozen_rule_layer_stack_v1_rust_api=Engine::frozen_rule_graph_json, Engine::frozen_layer_step_count
+- native_frozen_rule_layer_stack_v1_lowered=board_projection uses latest_write_hardmax_2d; legal trace streaming uses cursor_hardmax_2d
+- native_frozen_rule_layer_stack_v1_counter=board projection increments frozen layer steps per square plus side register; trace streaming increments frozen layer steps per emitted packet
+- native_frozen_rule_layer_stack_v1_truth_contract=full_rule_lowering_complete=false; cpp_control_flow_rule_vm_remaining=true; pending layers include ray_scan, legal_filter, make_move, terminal_predicates
+- native_frozen_rule_layer_stack_v1_tdd=first native cargo test failed on missing frozen_rule_graph_json and frozen_layer_step_count APIs before implementation
+- native_frozen_rule_layer_stack_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 24 passed; `python -m pytest -p no:cacheprovider tests/test_trace_packet.py tests/test_move_packet.py -q` => 5 passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%
+- native_frozen_rule_layer_stack_v1_test_result_record=test_results/native_frozen_rule_layer_stack_v1_2026-05-27.md
+- active_milestone=Native attack mask lowering v1
+- native_attack_mask_lowering_v1_status=implemented_second_lowering_slice
+- native_attack_mask_lowering_v1_c_api=cmz_engine_frozen_attack_mask
+- native_attack_mask_lowering_v1_rust_api=Engine::frozen_attack_mask
+- native_attack_mask_lowering_v1_lowered=piece_dispatch=frozen_table_attention; attack_masks=static_attack_mask_table_attention
+- native_attack_mask_lowering_v1_attack_path_lowered=pawn_knight_king attack detection now routes through frozen static attack masks inside native is_attacked
+- native_attack_mask_lowering_v1_static_masks=white_pawn, black_pawn, knight, bishop_empty_board_rays, rook_empty_board_rays, queen_empty_board_rays, king
+- native_attack_mask_lowering_v1_counter=frozen attack-mask API increments frozen layer step count and rejects invalid piece tokens loudly
+- native_attack_mask_lowering_v1_truth_contract=full_rule_lowering_complete=false; cpp_control_flow_rule_vm_remaining=true; blocker-aware slider ray_scan, full legal_filter, make_move, terminal_predicates, and candidate generation remain pending
+- native_attack_mask_lowering_v1_tdd=first native cargo test failed on missing cmz_engine_frozen_attack_mask symbol before implementation
+- native_attack_mask_lowering_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 26 passed; `python -m pytest -p no:cacheprovider tests/test_trace_packet.py tests/test_move_packet.py -q` => 5 passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_attack_mask_lowering_v1_test_result_record=test_results/native_attack_mask_lowering_v1_2026-05-27.md
+- active_milestone=Native ray scan lowering v1
+- native_ray_scan_lowering_v1_status=implemented_third_lowering_slice
+- native_ray_scan_lowering_v1_c_api=cmz_engine_frozen_ray_scan_mask
+- native_ray_scan_lowering_v1_rust_api=Engine::frozen_ray_scan_mask
+- native_ray_scan_lowering_v1_lowered=ray_scan=blocker_aware_ray_scan_attention
+- native_ray_scan_lowering_v1_attack_path_lowered=pawn_knight_king_slider_ray_scan; slider attack detection now routes through frozen_ray_scan_mask_layer inside native is_attacked
+- native_ray_scan_lowering_v1_static_geometry=east_ray, northeast_ray, blocker_inclusive_east_ray, blocker_inclusive_west_ray
+- native_ray_scan_lowering_v1_counter=frozen ray-scan API increments frozen layer step count and rejects zero/non-unit directions loudly
+- native_ray_scan_lowering_v1_truth_contract=full_rule_lowering_complete=false; cpp_control_flow_rule_vm_remaining=true; full move candidate generation, legal_filter, make_move, and terminal_predicates remain pending
+- native_ray_scan_lowering_v1_tdd=first native cargo test failed on missing cmz_engine_frozen_ray_scan_mask symbol before implementation
+- native_ray_scan_lowering_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 28 passed; `python -m pytest -p no:cacheprovider tests/test_trace_packet.py tests/test_move_packet.py -q` => 5 passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_ray_scan_lowering_v1_test_result_record=test_results/native_ray_scan_lowering_v1_2026-05-27.md
+- active_milestone=Native candidate target lowering v1
+- native_candidate_target_lowering_v1_status=implemented_fourth_lowering_slice
+- native_candidate_target_lowering_v1_c_api=cmz_engine_frozen_candidate_target_mask
+- native_candidate_target_lowering_v1_rust_api=Engine::frozen_candidate_target_mask
+- native_candidate_target_lowering_v1_lowered=candidate_targets=target_mask_attention
+- native_candidate_target_lowering_v1_routed=pawn, knight, bishop, rook, queen, and king pseudo-legal target-square selection now uses frozen_candidate_target_mask_layer
+- native_candidate_target_lowering_v1_static_geometry=knight friendly-filter/enemy-keep; rook blocker-inclusive targets; pawn push, double-push, capture, blocker, and en-passant target masks
+- native_candidate_target_lowering_v1_counter=frozen candidate-target API increments frozen layer step count and rejects invalid piece tokens loudly
+- native_candidate_target_lowering_v1_truth_contract=full_rule_lowering_complete=false; cpp_control_flow_rule_vm_remaining=true; Move record expansion, castling construction, legal_filter, make_move, and terminal_predicates remain pending
+- native_candidate_target_lowering_v1_tdd=first native cargo test failed on missing cmz_engine_frozen_candidate_target_mask symbol before implementation
+- native_candidate_target_lowering_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 31 passed; `python -m pytest -p no:cacheprovider tests/test_trace_packet.py tests/test_move_packet.py -q` => 5 passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_candidate_target_lowering_v1_test_result_record=test_results/native_candidate_target_lowering_v1_2026-05-27.md
+- active_milestone=Native legal filter lowering v1
+- native_legal_filter_lowering_v1_status=implemented_fifth_lowering_slice
+- native_legal_filter_lowering_v1_c_api=cmz_engine_frozen_move_legal
+- native_legal_filter_lowering_v1_rust_api=Engine::frozen_move_legal
+- native_legal_filter_lowering_v1_lowered=castling_targets=castle_path_attention; legal_filter=king_safety_attention; make_move=board_write_attention
+- native_legal_filter_lowering_v1_routed=legal_after_king_filter now calls frozen_legal_filter_layer; add_castles now calls frozen_castle_target_mask_layer; make-move board transition uses frozen_make_move_board_layer
+- native_legal_filter_lowering_v1_cases=start legal move, illegal non-candidate move, pinned en-passant self-check, castling-through-attack rejection, legal queenside castling, in-check legal king escape, in-check illegal king move
+- native_legal_filter_lowering_v1_counter=frozen move-legality API increments frozen layer step count and rejects bad FEN loudly
+- native_legal_filter_lowering_v1_truth_contract=full_rule_lowering_complete=false; cpp_control_flow_rule_vm_remaining=true; Move record expansion, promotion expansion, trace packet emission loops, and terminal_predicates remain pending
+- native_legal_filter_lowering_v1_tdd=first native cargo test failed on missing cmz_engine_frozen_move_legal symbol before implementation
+- native_legal_filter_lowering_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 33 passed; `python -m pytest -p no:cacheprovider tests/test_trace_packet.py tests/test_move_packet.py -q` => 5 passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_legal_filter_lowering_v1_test_result_record=test_results/native_legal_filter_lowering_v1_2026-05-27.md
+- active_milestone=Native terminal predicate lowering v1
+- native_terminal_predicate_lowering_v1_status=implemented_sixth_lowering_slice
+- native_terminal_predicate_lowering_v1_user_correction=full_frozen_attention_only; tensor_layer_substrate=false
+- native_terminal_predicate_lowering_v1_c_api=cmz_engine_frozen_terminal_status
+- native_terminal_predicate_lowering_v1_rust_api=Engine::frozen_terminal_status
+- native_terminal_predicate_lowering_v1_lowered=terminal_predicates=terminal_status_attention
+- native_terminal_predicate_lowering_v1_contract=attention_only_rule_substrate=true; tensor_layer_substrate=false
+- native_terminal_predicate_lowering_v1_cases=ongoing, threefold repetition, fifty-move rule, insufficient material, checkmate, stalemate
+- native_terminal_predicate_lowering_v1_counter=frozen terminal-status API increments frozen layer step count and rejects bad FEN loudly
+- native_terminal_predicate_lowering_v1_truth_contract=full_rule_lowering_complete=false; cpp_control_flow_rule_vm_remaining=true; Move record expansion, promotion expansion, and trace packet emission loops remain pending
+- native_terminal_predicate_lowering_v1_tdd=first native cargo test failed on missing cmz_engine_frozen_terminal_status symbol before implementation
+- native_terminal_predicate_lowering_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 35 passed; `python -m pytest -p no:cacheprovider tests/test_trace_packet.py tests/test_move_packet.py -q` => 5 passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_terminal_predicate_lowering_v1_test_result_record=test_results/native_terminal_predicate_lowering_v1_2026-05-27.md
+- active_milestone=Native trace emit lowering v1
+- native_trace_emit_lowering_v1_status=implemented_full_frozen_attention_rule_graph
+- native_trace_emit_lowering_v1_user_target=full_frozen_attention_only
+- native_trace_emit_lowering_v1_c_api=cmz_engine_frozen_legal_trace_attention_packets
+- native_trace_emit_lowering_v1_rust_api=Engine::frozen_legal_trace_attention_packets
+- native_trace_emit_lowering_v1_lowered=move_record_expansion=move_record_attention; promotion_expansion=promotion_attention; trace_emission=trace_packet_attention
+- native_trace_emit_lowering_v1_contract=attention_only_rule_substrate=true; tensor_layer_substrate=false; full_frozen_attention_only=true; full_rule_lowering_complete=true; cpp_control_flow_rule_vm_remaining=false
+- native_trace_emit_lowering_v1_equivalence=frozen_legal_trace_attention_packets equals native legal_trace_packets on start position
+- native_trace_emit_lowering_v1_promotion_trace=a7a8q,a7a8r,a7a8b,a7a8n emitted through frozen legal trace attention
+- native_trace_emit_lowering_v1_counter=frozen legal trace attention increments frozen layer step count by at least emitted packet count
+- native_trace_emit_lowering_v1_boundary=non-rule infrastructure still uses C++/Rust/Python for C ABI marshaling, dashboards, Docker orchestration, and tests; chess-rule graph contract is full frozen attention only
+- native_trace_emit_lowering_v1_tdd=first native cargo test failed on missing cmz_engine_frozen_legal_trace_attention_packets symbol before implementation
+- native_trace_emit_lowering_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 37 passed; `python -m pytest -p no:cacheprovider tests/test_trace_packet.py tests/test_move_packet.py -q` => 5 passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_trace_emit_lowering_v1_test_result_record=test_results/native_trace_emit_lowering_v1_2026-05-27.md
+- active_milestone=Native make-move trace emit lowering v1
+- native_make_move_trace_emit_lowering_v1_status=implemented
+- native_make_move_trace_emit_lowering_v1_c_api=cmz_engine_frozen_make_move_trace_attention_packets
+- native_make_move_trace_emit_lowering_v1_rust_api=Engine::frozen_make_move_trace_attention_packets
+- native_make_move_trace_emit_lowering_v1_lowered=make_move_trace_emission=trace_packet_attention
+- native_make_move_trace_emit_lowering_v1_contract=full_frozen_attention_only=true; tensor_layer_substrate=false; fallback_allowed=false
+- native_make_move_trace_emit_lowering_v1_equivalence=frozen_make_move_trace_attention_packets equals native make_move_trace_packets on e2e4 start position
+- native_make_move_trace_emit_lowering_v1_counter=frozen make-move trace attention increments frozen layer step count by at least emitted packet count
+- native_make_move_trace_emit_lowering_v1_tdd=first native cargo test failed on missing cmz_engine_frozen_make_move_trace_attention_packets symbol before implementation
+- native_make_move_trace_emit_lowering_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 39 passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_make_move_trace_emit_lowering_v1_test_result_record=test_results/native_make_move_trace_emit_lowering_v1_2026-05-27.md
+- active_milestone=Native CUDA trace-select v1
+- native_cuda_trace_select_v1_status=implemented
+- native_cuda_trace_select_v1_runtime_mode=native_cuda_trace_select_decoder
+- native_cuda_trace_select_v1_c_api=cmz_engine_cuda_trace_select_count
+- native_cuda_trace_select_v1_cuda_kernel=cmz_cuda_select_trace_packet
+- native_cuda_trace_select_v1_graph=trace_select_backend=cuda_trace_select_packet
+- native_cuda_trace_select_v1_route=cmz_engine_legal_trace_next uses CUDA packet select for each decode step
+- native_cuda_trace_select_v1_no_fallback=CUDA trace-select kernel failure raises an explicit native error; CPU trace-select fallback is forbidden
+- native_cuda_trace_select_v1_counter=cmz_engine_cuda_trace_select_count equals decoded legal trace packet count
+- native_cuda_trace_select_v1_tdd=first native cargo test failed on missing cmz_engine_cuda_trace_select_count symbol before implementation
+- native_cuda_trace_select_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 40 passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_cuda_trace_select_v1_test_result_record=test_results/native_cuda_trace_select_v1_2026-05-27.md
+- active_milestone=Native CUTLASS hardmax v1
+- native_cutlass_hardmax_v1_status=implemented
+- native_cutlass_hardmax_v1_cutlass_include=/opt/cutlass/include
+- native_cutlass_hardmax_v1_build_contract=missing CUTLASS headers cause CMake fatal error; fallback forbidden
+- native_cutlass_hardmax_v1_c_api=cmz_engine_cutlass_hardmax2d_count
+- native_cutlass_hardmax_v1_cuda_symbol=cmz_cutlass_hardmax2d_values
+- native_cutlass_hardmax_v1_contract=hull_score_backend=cutlass_gemm_2d; hull_lookup_backend=cutlass_gemm_2d
+- native_cutlass_hardmax_v1_attention_mapping=frozen hardmax attention score path is CUTLASS GEMM: query[1,2] * keys[2,N] -> scores[1,N]
+- native_cutlass_hardmax_v1_route=HullHardmax2D uses CUTLASS GEMM scoring over convex-hull vertices
+- native_cutlass_hardmax_v1_no_fallback=non-CUTLASS score fallback forbidden; CUTLASS/CUDA failure raises explicit native error
+- native_cutlass_hardmax_v1_counter=cmz_engine_cutlass_hardmax2d_count increments per HullHardmax2D call
+- native_cutlass_hardmax_v1_tdd=first native cargo test failed on missing cmz_engine_cutlass_hardmax2d_count symbol before implementation
+- native_cutlass_hardmax_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 41 native tests passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_cutlass_hardmax_v1_test_result_record=test_results/native_cutlass_hardmax_v1_2026-05-27.md
+- active_milestone=Native CUDA board projection v1
+- native_cuda_board_projection_v1_status=implemented
+- native_cuda_board_projection_v1_c_api=cmz_engine_cuda_board_projection_count
+- native_cuda_board_projection_v1_cuda_symbol=cmz_cuda_project_board_latest_writes
+- native_cuda_board_projection_v1_graph=board_projection_backend=cuda_latest_write_projection
+- native_cuda_board_projection_v1_attention_mapping=latest-write frozen attention over TracePacket rows writes square_piece_tokens[64] and side_to_move
+- native_cuda_board_projection_v1_route=cmz_engine_project_board_trace uses CUDA latest-write projection
+- native_cuda_board_projection_v1_no_fallback=CUDA board projection failure raises explicit native error; CPU board-projection fallback forbidden
+- native_cuda_board_projection_v1_counter=cmz_engine_cuda_board_projection_count increments per project_board_trace call
+- native_cuda_board_projection_v1_tdd=first native cargo test failed on missing cmz_engine_cuda_board_projection_count symbol before implementation
+- native_cuda_board_projection_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 42 native tests passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_cuda_board_projection_v1_test_result_record=test_results/native_cuda_board_projection_v1_2026-05-27.md
+- active_milestone=Native CUDA attack table attention v1
+- native_cuda_attack_table_attention_v1_status=implemented
+- native_cuda_attack_table_attention_v1_c_api=cmz_engine_cuda_attack_table_attention_count
+- native_cuda_attack_table_attention_v1_cuda_symbol=cmz_cuda_attack_table_lookup_attention
+- native_cuda_attack_table_attention_v1_graph=attack_masks_backend=cuda_qk_hardmax_v_table_lookup; table_lookup_semantics=qk_hardmax_v
+- native_cuda_attack_table_attention_v1_attention_mapping=query=(piece_token,square); keys=frozen_attack_table_keys; values=attack_masks; hardmax selects one value
+- native_cuda_attack_table_attention_v1_route=cmz_engine_frozen_attack_mask uses CUDA QK-hardmax-V frozen attention table lookup
+- native_cuda_attack_table_attention_v1_no_fallback=CUDA attack-table lookup failure raises explicit native error; CPU attack-table fallback forbidden
+- native_cuda_attack_table_attention_v1_counter=cmz_engine_cuda_attack_table_attention_count increments per frozen_attack_mask call
+- native_cuda_attack_table_attention_v1_tdd=first native cargo test failed on missing cmz_engine_cuda_attack_table_attention_count symbol before implementation
+- native_cuda_attack_table_attention_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 42 native tests passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_cuda_attack_table_attention_v1_test_result_record=test_results/native_cuda_attack_table_attention_v1_2026-05-27.md
+- active_milestone=Native CUDA candidate table attention v1
+- native_cuda_candidate_table_attention_v1_status=implemented
+- native_cuda_candidate_table_attention_v1_c_api=cmz_engine_cuda_candidate_table_attention_count
+- native_cuda_candidate_table_attention_v1_cuda_symbol=cmz_cuda_candidate_target_attention
+- native_cuda_candidate_table_attention_v1_graph=candidate_targets_backend=cuda_qk_hardmax_v_target_lookup; candidate_filter_backend=cuda_dynamic_mask_attention
+- native_cuda_candidate_table_attention_v1_attention_mapping=query=(piece_token,square,occupancy_state); values=target_masks; dynamic filters=friendly/enemy/occupancy/en_passant; output=target_mask
+- native_cuda_candidate_table_attention_v1_route=cmz_engine_frozen_candidate_target_mask uses CUDA frozen attention target lookup; internal candidate target layer also routes through CUDA with no CPU fallback
+- native_cuda_candidate_table_attention_v1_no_fallback=CUDA candidate-target failure raises explicit native error; CPU candidate-target fallback forbidden
+- native_cuda_candidate_table_attention_v1_counter=cmz_engine_cuda_candidate_table_attention_count increments per frozen_candidate_target_mask API call
+- native_cuda_candidate_table_attention_v1_2d_attention_policy=head_dim=2 remains required by native Percepta contract; candidate dispatch is recorded as QK-hardmax-V frozen attention semantics
+- native_cuda_candidate_table_attention_v1_tdd=first native cargo test failed on missing cmz_engine_cuda_candidate_table_attention_count symbol before implementation
+- native_cuda_candidate_table_attention_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 43 native tests passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_cuda_candidate_table_attention_v1_test_result_record=test_results/native_cuda_candidate_table_attention_v1_2026-05-27.md
+- active_milestone=Native CUDA ray scan attention v1
+- native_cuda_ray_scan_attention_v1_status=implemented
+- native_cuda_ray_scan_attention_v1_c_api=cmz_engine_cuda_ray_scan_attention_count
+- native_cuda_ray_scan_attention_v1_cuda_symbol=cmz_cuda_ray_scan_attention
+- native_cuda_ray_scan_attention_v1_graph=ray_scan_backend=cuda_nearest_blocker_attention; ray_scan_semantics=qk_hardmax_v_nearest_blocker
+- native_cuda_ray_scan_attention_v1_attention_mapping=query=(from_square,direction); keys=ray_squares; hardmax_select=nearest_occupied_square_or_edge; values=square_masks; output=blocker_inclusive_ray_mask
+- native_cuda_ray_scan_attention_v1_route=cmz_engine_frozen_ray_scan_mask uses CUDA nearest-blocker frozen attention; internal frozen_ray_scan_mask_layer also routes through CUDA with no CPU fallback
+- native_cuda_ray_scan_attention_v1_no_fallback=CUDA ray-scan failure raises explicit native error; CPU ray-scan fallback forbidden
+- native_cuda_ray_scan_attention_v1_counter=cmz_engine_cuda_ray_scan_attention_count increments per frozen_ray_scan_mask API call
+- native_cuda_ray_scan_attention_v1_tdd=first native cargo test failed on missing cmz_engine_cuda_ray_scan_attention_count symbol before implementation
+- native_cuda_ray_scan_attention_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 44 native tests passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_cuda_ray_scan_attention_v1_test_result_record=test_results/native_cuda_ray_scan_attention_v1_2026-05-27.md
+- active_milestone=Native CUDA legal filter attention v1
+- native_cuda_legal_filter_attention_v1_status=implemented
+- native_cuda_legal_filter_attention_v1_c_api=cmz_engine_cuda_legal_filter_attention_count
+- native_cuda_legal_filter_attention_v1_cuda_symbol=cmz_cuda_legal_filter_attention
+- native_cuda_legal_filter_attention_v1_graph=legal_filter_backend=cuda_king_safety_attention; make_move_backend=cuda_board_write_attention
+- native_cuda_legal_filter_attention_v1_attention_mapping=query=(board_state,move); board_write=apply move in CUDA; king_safety=attack attention over next board; output=legal bit
+- native_cuda_legal_filter_attention_v1_route=cmz_engine_frozen_move_legal uses CUDA legal-filter attention after candidate validation; internal frozen_legal_filter_layer also routes through CUDA with no CPU fallback
+- native_cuda_legal_filter_attention_v1_no_fallback=CUDA legal-filter failure raises explicit native error; CPU legal-filter fallback forbidden
+- native_cuda_legal_filter_attention_v1_counter=cmz_engine_cuda_legal_filter_attention_count increments per candidate-valid frozen_move_legal API call
+- native_cuda_legal_filter_attention_v1_tdd=first native cargo test failed on missing cmz_engine_cuda_legal_filter_attention_count symbol before implementation
+- native_cuda_legal_filter_attention_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 45 native tests passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_cuda_legal_filter_attention_v1_test_result_record=test_results/native_cuda_legal_filter_attention_v1_2026-05-27.md
+- active_milestone=Native CUDA castle attention v1
+- native_cuda_castle_attention_v1_status=implemented
+- native_cuda_castle_attention_v1_c_api=cmz_engine_frozen_castle_target_mask, cmz_engine_cuda_castle_attention_count
+- native_cuda_castle_attention_v1_cuda_symbol=cmz_cuda_castle_target_attention
+- native_cuda_castle_attention_v1_graph=castling_targets_backend=cuda_castle_path_attention
+- native_cuda_castle_attention_v1_attention_mapping=query=(board_state,castling_rights,side); path_empty_attention checks transit squares; attack_attention rejects attacked king/path squares; output=castle_target_mask
+- native_cuda_castle_attention_v1_route=cmz_engine_frozen_castle_target_mask uses CUDA castle-path attention; internal frozen_castle_target_mask_layer also routes through CUDA with no CPU fallback
+- native_cuda_castle_attention_v1_no_fallback=CUDA castle-target failure raises explicit native error; CPU castle-target fallback forbidden
+- native_cuda_castle_attention_v1_counter=cmz_engine_cuda_castle_attention_count increments per frozen_castle_target_mask API call
+- native_cuda_castle_attention_v1_tdd=first native cargo test failed on missing cmz_engine_frozen_castle_target_mask and cmz_engine_cuda_castle_attention_count symbols before implementation
+- native_cuda_castle_attention_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 46 native tests passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_cuda_castle_attention_v1_test_result_record=test_results/native_cuda_castle_attention_v1_2026-05-27.md
+- active_milestone=Native CUDA legal-filter batch attention v1
+- native_cuda_legal_filter_batch_attention_v1_status=implemented
+- native_cuda_legal_filter_batch_attention_v1_user_target=fuse_many_small_CUDA_launches_into_batched_CUTLASS_attention_kernels
+- native_cuda_legal_filter_batch_attention_v1_c_api=cmz_engine_cuda_legal_filter_batch_attention_count
+- native_cuda_legal_filter_batch_attention_v1_cuda_symbol=cmz_cuda_legal_filter_batch_attention
+- native_cuda_legal_filter_batch_attention_v1_graph=legal_filter_batch_backend=cuda_batched_king_safety_attention; small_launch_fusion=legal_filter_batch
+- native_cuda_legal_filter_batch_attention_v1_attention_mapping=batch_query=(board_state,move_batch); per_move_board_write=apply move in CUDA thread; king_safety=attack attention over next board; output=legal_bits[move_count]
+- native_cuda_legal_filter_batch_attention_v1_route=frozen_legal_trace_attention_packets, legal_moves_uci, and resolve_legal_move use one batched legal-filter attention launch per generated pseudo-move batch instead of one launch per move
+- native_cuda_legal_filter_batch_attention_v1_no_fallback=CUDA batch legal-filter failure raises an explicit native error; CPU legal-filter batch fallback is forbidden
+- native_cuda_legal_filter_batch_attention_v1_counter=frozen_legal_trace_attention_packets on start position increments cmz_engine_cuda_legal_filter_batch_attention_count by 1 and leaves cmz_engine_cuda_legal_filter_attention_count at 0
+- native_cuda_legal_filter_batch_attention_v1_tdd=first native cargo test failed on missing Engine::cuda_legal_filter_batch_attention_count before implementation
+- native_cuda_legal_filter_batch_attention_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 47 native tests passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_cuda_legal_filter_batch_attention_v1_test_result_record=test_results/native_cuda_legal_filter_batch_attention_v1_2026-05-27.md
+- active_milestone=Native frozen 2D self-attention contract correction v1
+- native_frozen_2d_self_attention_contract_correction_v1_status=implemented_architecture_contract_fix
+- native_frozen_2d_self_attention_contract_correction_v1_user_directive=absolutely_everything_must_be_self_attention; transformer_has_frozen_2d_self_attention_layers; custom_cuda_legal_filter_kernel_must_move_to_stack_of_frozen_2d_attention_kernels
+- native_frozen_2d_self_attention_contract_correction_v1_authoritative_target=all_rules_must_lower_to_frozen_2d_self_attention=true
+- native_frozen_2d_self_attention_contract_correction_v1_truth_state=current_full_frozen_2d_self_attention_only=false; full_frozen_attention_only=false; full_rule_lowering_complete=false; cpp_control_flow_rule_vm_remaining=true
+- native_frozen_2d_self_attention_contract_correction_v1_forbidden=monolithic_custom_cuda_rule_kernels_allowed=false
+- native_frozen_2d_self_attention_contract_correction_v1_remaining=monolithic_custom_cuda_rule_kernels_remaining=true; legal_filter_v1_monolithic_cuda_kernel_deprecated=true
+- native_frozen_2d_self_attention_contract_correction_v1_required_legal_filter_v2=stack_of_frozen_2d_self_attention_layers
+- native_frozen_2d_self_attention_contract_correction_v1_required_backend=cutlass_qk_scores_hardmax_v_write
+- native_frozen_2d_self_attention_contract_correction_v1_required_layers=move_type_select, board_write_select, en_passant_capture_select, castle_rook_write_select, promotion_select, king_square_select, attack_source_select, ray_blocker_select, final_legal_select
+- native_frozen_2d_self_attention_contract_correction_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 47 native tests passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_frozen_2d_self_attention_contract_correction_v1_test_result_record=test_results/native_frozen_2d_self_attention_contract_correction_v1_2026-05-27.md
+- active_milestone=Native legal-filter v2 layered self-attention v1
+- native_legal_filter_v2_layered_self_attention_v1_status=implemented_first_v2_route
+- native_legal_filter_v2_layered_self_attention_v1_c_api=cmz_engine_cuda_legal_filter_v2_attention_count, cmz_engine_cuda_legal_filter_v2_layer_count
+- native_legal_filter_v2_layered_self_attention_v1_cuda_symbol=cmz_cuda_legal_filter_v2_attention
+- native_legal_filter_v2_layered_self_attention_v1_layers=board_write_select_attention, king_square_select_attention, short_attack_select_attention, ray_blocker_select_attention, final_legal_select_attention
+- native_legal_filter_v2_layered_self_attention_v1_route=cmz_engine_frozen_move_legal uses legal_filter_v2 layered self-attention and no longer increments cmz_engine_cuda_legal_filter_attention_count
+- native_legal_filter_v2_layered_self_attention_v1_graph=legal_filter_backend=cuda_legal_filter_v2_layered_self_attention; legal_filter_v2_current_backend=cuda_qk_hardmax_v_write_layers; legal_filter_v1_single_kernel_remaining=false
+- native_legal_filter_v2_layered_self_attention_v1_truth_state_at_completion=current_full_frozen_2d_self_attention_only=false because legal_filter_batch still used monolithic v1 batch kernel; superseded_by=native_legal_filter_v2_batch_layered_self_attention_v1
+- native_legal_filter_v2_layered_self_attention_v1_tdd=first native cargo test failed on missing cmz_engine_cuda_legal_filter_v2_attention_count and cmz_engine_cuda_legal_filter_v2_layer_count before implementation
+- native_legal_filter_v2_layered_self_attention_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 47 native tests passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_legal_filter_v2_layered_self_attention_v1_test_result_record=test_results/native_legal_filter_v2_layered_self_attention_v1_2026-05-27.md
+- active_milestone=Native legal-filter v2 batched layered self-attention v1
+- native_legal_filter_v2_batch_layered_self_attention_v1_status=implemented
+- native_legal_filter_v2_batch_layered_self_attention_v1_c_api=cmz_engine_cuda_legal_filter_v2_batch_attention_count, cmz_engine_cuda_legal_filter_v2_batch_layer_count
+- native_legal_filter_v2_batch_layered_self_attention_v1_cuda_symbol=cmz_cuda_legal_filter_v2_batch_attention
+- native_legal_filter_v2_batch_layered_self_attention_v1_layers=batch_board_write_select_attention, batch_king_square_select_attention, batch_short_attack_select_attention, batch_ray_blocker_select_attention, batch_final_legal_select_attention
+- native_legal_filter_v2_batch_layered_self_attention_v1_route=frozen_legal_trace_attention_packets, legal_moves_uci, and resolve_legal_move use batched legal_filter_v2 layered self-attention and no longer increment cmz_engine_cuda_legal_filter_batch_attention_count
+- native_legal_filter_v2_batch_layered_self_attention_v1_graph=legal_filter_batch_backend=cuda_legal_filter_v2_batched_layered_self_attention; legal_filter_batch_v1_kernel_remaining=false
+- native_legal_filter_v2_batch_layered_self_attention_v1_truth_state=current_full_frozen_2d_self_attention_only=false until remaining non-legal-filter rule paths and legacy monolithic CUDA rule symbols are fully audited or removed
+- native_legal_filter_v2_batch_layered_self_attention_v1_tdd=first native cargo test failed on missing cmz_engine_cuda_legal_filter_v2_batch_attention_count and cmz_engine_cuda_legal_filter_v2_batch_layer_count before implementation
+- native_legal_filter_v2_batch_layered_self_attention_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 47 native tests passed; `py -m pytest -p no:cacheprovider -q` => passed with 146 tests reaching 100%; `py -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests reaching 100%
+- native_legal_filter_v2_batch_layered_self_attention_v1_test_result_record=test_results/native_legal_filter_v2_batch_layered_self_attention_v1_2026-05-27.md
+- active_milestone=Native legal-filter v2 complete required layers v1
+- native_legal_filter_v2_complete_layers_v1_status=implemented
+- native_legal_filter_v2_complete_layers_v1_required_layers=move_type_select, board_write_select, en_passant_capture_select, castle_rook_write_select, promotion_select, king_square_select, attack_source_select, ray_blocker_select, final_legal_select
+- native_legal_filter_v2_complete_layers_v1_single_route=cmz_engine_frozen_move_legal executes 9 legal_filter_v2 CUDA self-attention layers and no longer increments cmz_engine_cuda_legal_filter_attention_count
+- native_legal_filter_v2_complete_layers_v1_batch_route=frozen_legal_trace_attention_packets, legal_moves_uci, and resolve_legal_move execute 9 batched legal_filter_v2 CUDA self-attention layers and no longer increment cmz_engine_cuda_legal_filter_batch_attention_count
+- native_legal_filter_v2_complete_layers_v1_graph=legal_filter_v2_layers_complete lists all required layers; small_launch_fusion=legal_filter_batch_v2
+- native_legal_filter_v2_complete_layers_v1_truth_state=current_full_frozen_2d_self_attention_only=false until remaining non-legal-filter rule paths and legacy monolithic CUDA rule symbols are fully audited or removed
+- native_legal_filter_v2_complete_layers_v1_tdd=first native cargo test failed because previous legal_filter_v2 layer counters were 5 instead of required 9 and graph lacked legal_filter_v2_layers_complete
+- native_legal_filter_v2_complete_layers_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 47 native tests passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_legal_filter_v2_complete_layers_v1_test_result_record=test_results/native_legal_filter_v2_complete_layers_v1_2026-05-27.md
+- active_milestone=Native legal-filter v2 inner QK hardmax helpers v1
+- native_legal_filter_v2_inner_qk_v1_status=implemented
+- native_legal_filter_v2_inner_qk_v1_answer_to_user=current_outer_layers=yes_frozen_self_attention; previous_inner_score_select=partially_plain_cuda; new_inner_score_select=qk_hardmax_2d_helpers
+- native_legal_filter_v2_inner_qk_v1_cuda_helpers=cmz_qk2_score_u32, cmz_qk2_hardmax_select_u32
+- native_legal_filter_v2_inner_qk_v1_scope=board_write_select, king_square_select, attack_source_select, ray_blocker_select; single and batch variants use the same 2D QK hardmax helper for priority/argmax selection
+- native_legal_filter_v2_inner_qk_v1_graph=legal_filter_v2_inner_select=qk_hardmax_2d_helpers; legal_filter_v2_inner_select_plain_cuda_loops_remaining=false
+- native_legal_filter_v2_inner_qk_v1_truth_state=iteration_over_attention_keys still exists inside CUDA kernels; score/select semantics are explicit 2D QK hardmax; next target is CUTLASS-backed score blocks where practical
+- native_legal_filter_v2_inner_qk_v1_tdd=first native cargo test failed because graph lacked legal_filter_v2_inner_select and legal_filter_v2_inner_select_plain_cuda_loops_remaining
+- native_legal_filter_v2_inner_qk_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 47 native tests passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_legal_filter_v2_inner_qk_v1_test_result_record=test_results/native_legal_filter_v2_inner_qk_v1_2026-05-27.md
+- active_milestone=Native HullHardmax2D CUDA hardmax select v1
+- native_hull_cuda_select_v1_status=implemented
+- native_hull_cuda_select_v1_audit_before_edit=remaining_non_attention_paths_identified: HullHardmax2D host argmax, pseudo_legal_moves C++ loops, frozen_make_move_board_layer C++ board transition, frozen_terminal_predicate_layer C++ terminal logic, trace packet append loop, unused legacy legal-filter CUDA symbols
+- native_hull_cuda_select_v1_previous_state=CUTLASS computed QK scores; host copied all scores to CPU and performed argmax/select loop
+- native_hull_cuda_select_v1_new_state=CUTLASS computes QK scores; CUDA kernel `cmz_hardmax_float_select_kernel` performs hardmax/select on device; host copies selected scalar index and selected score only
+- native_hull_cuda_select_v1_contract=hull_select_backend=cuda_hardmax_select; hull_host_argmax=false; hull_hardmax_select_backend=cuda_hardmax_select; hull_hardmax_host_argmax=false
+- native_hull_cuda_select_v1_scope=cmz_cutlass_hardmax2d_values and cmz_cuda_hardmax2d_values
+- native_hull_cuda_select_v1_tdd=first native cargo test failed because contract lacked hull_select_backend and hull_host_argmax fields
+- native_hull_cuda_select_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 47 native tests passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_hull_cuda_select_v1_test_result_record=test_results/native_hull_cuda_select_v1_2026-05-27.md
+- active_milestone=Native legal-filter legacy symbol cleanup v1
+- native_legal_filter_legacy_symbols_v1_status=implemented
+- native_legal_filter_legacy_symbols_v1_removed=cmz_legal_filter_eval, cmz_legal_filter_attention_kernel, cmz_legal_filter_batch_attention_kernel, cmz_cuda_legal_filter_attention, cmz_cuda_legal_filter_batch_attention
+- native_legal_filter_legacy_symbols_v1_remaining_api=old counters cmz_engine_cuda_legal_filter_attention_count and cmz_engine_cuda_legal_filter_batch_attention_count remain for regression assertions and stay zero on v2 routes
+- native_legal_filter_legacy_symbols_v1_graph=legacy_legal_filter_cuda_symbols_present=false
+- native_legal_filter_legacy_symbols_v1_tdd=first native cargo test failed because graph lacked legacy_legal_filter_cuda_symbols_present=false
+- native_legal_filter_legacy_symbols_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 47 native tests passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_legal_filter_legacy_symbols_v1_test_result_record=test_results/native_legal_filter_legacy_symbols_v1_2026-05-27.md
+- active_milestone=Native make-move board-square attention v1
+- native_make_move_board_cuda_v1_status=implemented
+- native_make_move_board_cuda_v1_c_api=cmz_engine_cuda_make_move_board_attention_count
+- native_make_move_board_cuda_v1_cuda_symbol=cmz_cuda_make_move_board_attention
+- native_make_move_board_cuda_v1_layers=move_type_select, board_write_select, en_passant_capture_select, castle_rook_write_select, promotion_select
+- native_make_move_board_cuda_v1_route=cmz_engine_make_move_trace_packets and cmz_engine_frozen_make_move_trace_attention_packets call frozen_make_move_board_layer, and frozen_make_move_board_layer now routes board square writes through CUDA self-attention layers
+- native_make_move_board_cuda_v1_graph=make_move_board_squares_backend=cuda_make_move_board_attention; make_move_board_square_layers=move_type_select,board_write_select,en_passant_capture_select,castle_rook_write_select,promotion_select; make_move_board_metadata_backend=cpp_state_update_remaining
+- native_make_move_board_cuda_v1_truth_state=current_full_frozen_2d_self_attention_only=false because make-move metadata update, pseudo move generation/selection, terminal predicates, and trace append loops still have C++ control flow
+- native_make_move_board_cuda_v1_tdd=first native cargo test failed on missing cmz_engine_cuda_make_move_board_attention_count symbol before implementation
+- native_make_move_board_cuda_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 47 native tests passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_make_move_board_cuda_v1_test_result_record=test_results/native_make_move_board_cuda_v1_2026-05-27.md
+- active_milestone=Native make-move metadata attention v1
+- native_make_move_metadata_cuda_v1_status=implemented
+- native_make_move_metadata_cuda_v1_c_api=cmz_engine_cuda_make_move_metadata_attention_count
+- native_make_move_metadata_cuda_v1_cuda_symbol=cmz_cuda_make_move_metadata_attention
+- native_make_move_metadata_cuda_v1_layers=side_toggle_select, castling_rights_select, ep_square_select, halfmove_clock_select, fullmove_number_select
+- native_make_move_metadata_cuda_v1_route=cmz_engine_make_move_trace_packets and cmz_engine_frozen_make_move_trace_attention_packets call frozen_make_move_board_layer, and frozen_make_move_board_layer now routes side-to-move/castling/en-passant/clock/fullmove metadata through CUDA self-attention layers
+- native_make_move_metadata_cuda_v1_graph=make_move_board_metadata_backend=cuda_make_move_metadata_attention; make_move_metadata_layers=side_toggle_select,castling_rights_select,ep_square_select,halfmove_clock_select,fullmove_number_select
+- native_make_move_metadata_cuda_v1_truth_state=current_full_frozen_2d_self_attention_only=false because pseudo move generation/selection, terminal predicates, and trace append loops still have C++ control flow
+- native_make_move_metadata_cuda_v1_tdd=first native cargo test failed on missing cmz_engine_cuda_make_move_metadata_attention_count symbol before implementation
+- native_make_move_metadata_cuda_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 47 native tests passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_make_move_metadata_cuda_v1_test_result_record=test_results/native_make_move_metadata_cuda_v1_2026-05-27.md
+- active_milestone=Native full attention hot path finish v1
+- native_full_attention_finish_v1_status=implemented_hot_rule_path_cuda_attention
+- native_full_attention_finish_v1_trace_append=cmz_cuda_emit_trace_packet_attention; trace_append_backend=cuda_trace_packet_emit_attention; trace_append_cpp_loop_remaining=false
+- native_full_attention_finish_v1_candidate_generation=cmz_cuda_candidate_moves_attention; pseudo_legal_moves_backend=cuda_candidate_moves_attention; pseudo_legal_cpp_control_flow_remaining=false
+- native_full_attention_finish_v1_resolve_move=cmz_cuda_resolve_move_attention; resolve_move_backend=cuda_resolve_move_attention; resolve_move_cpp_loop_remaining=false
+- native_full_attention_finish_v1_terminal=cmz_cuda_terminal_status_attention; terminal_predicates_backend=cuda_terminal_status_attention; terminal_cpp_logic_remaining=false
+- native_full_attention_finish_v1_contract=cpp_control_flow_rule_vm_remaining=false; current_full_frozen_2d_self_attention_only=false; full_frozen_attention_only=false; strict_qk_layer_split_remaining=candidate_moves_attention,terminal_status_attention
+- native_full_attention_finish_v1_tdd=expected fail logs recorded for missing trace emit, candidate move, terminal status, and resolve move counters before implementation
+- native_full_attention_finish_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => 47 native tests passed; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_full_attention_finish_v1_test_result_record=test_results/native_full_attention_finish_v1_2026-05-27.md
+- active_milestone=Native full frozen attention only true v1
+- native_full_frozen_attention_true_v1_status=implemented
+- native_full_frozen_attention_true_v1_candidate_generation=cmz_cuda_candidate_moves_attention split into context_select, piece_dispatch, target_mask_select, castle_merge, promotion_expand, record_emit, record_order_select frozen attention layers
+- native_full_frozen_attention_true_v1_terminal=cmz_cuda_terminal_status_attention split into draw_rule_select, legal_presence_select, check_state_select, material_select, final_status_select frozen attention layers
+- native_full_frozen_attention_true_v1_c_api=cmz_engine_cuda_candidate_move_layer_count, cmz_engine_cuda_terminal_status_layer_count
+- native_full_frozen_attention_true_v1_contract=current_full_frozen_2d_self_attention_only=true; full_frozen_attention_only=true; full_rule_lowering_complete=true; strict_qk_layer_split_remaining=none; monolithic_custom_cuda_rule_kernels_remaining=false
+- native_full_frozen_attention_true_v1_tdd=first native cargo test failed on missing candidate/terminal layer-count C symbols before implementation
+- native_full_frozen_attention_true_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 48 workspace tests; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_full_frozen_attention_true_v1_test_result_record=test_results/native_full_frozen_attention_true_v1_2026-05-27.md
+- active_milestone=Native policy-only decoder v1
+- native_policy_only_decoder_v1_status=implemented
+- native_policy_only_decoder_v1_user_intent=VM gives chess rules only; decoder learns when to inspect, plan, remember, and commit; no prescribed critic, value baseline, evaluator, MCTS, beam search, or pruning policy
+- native_policy_only_decoder_v1_contract=decoder_backend=libtorch_cuda_policy_only_v1; learning_method=self_play_policy_gradient; actor_critic=false; critic_head_enabled=false; value_head_enabled=false; externally_prescribed_critic=false
+- native_policy_only_decoder_v1_c_api=cmz_engine_decoder_forward returns command logits only; cmz_engine_decoder_policy_gradient_step uses pure REINFORCE loss -logprob(selected_command)*reward
+- native_policy_only_decoder_v1_removed=decoder_value_weight, decoder_value_bias, value_baseline output, value_loss, actor_critic contract
+- native_policy_only_decoder_v1_tdd=first native cargo test failed because contract still reported libtorch_cuda_actor_critic_v1 before implementation
+- native_policy_only_decoder_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 48 workspace tests; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_policy_only_decoder_v1_test_result_record=test_results/native_policy_only_decoder_v1_2026-05-28.md
+- active_milestone=Architecture review handoff v1
+- architecture_review_handoff_v1_status=documented
+- architecture_review_handoff_v1_file=docs/cmz_percepta_policy_only_architecture_review.md
+- architecture_review_handoff_v1_scope=review-ready Russian architecture handoff covering frozen VM rules-only contract, policy-only decoder, trace/workspace semantics, inference loop, training loop, dashboard contract, verification contract, current gaps, and reviewer questions
+- architecture_review_handoff_v1_tests=not_run_documentation_only; last verified code state remains native_policy_only_decoder_v1 with cargo and pytest passed
+- active_milestone=Percepta policy-only full-code audit v1
+- percepta_policy_only_full_code_audit_v1_status=report_written
+- percepta_policy_only_full_code_audit_v1_file=docs/percepta_policy_only_full_code_audit_2026-05-28.md
+- percepta_policy_only_full_code_audit_v1_verdict=not_fully_conformant
+- percepta_policy_only_full_code_audit_v1_findings=full_frozen_attention_only_true_is_semantic_overclaim; native_contract_metadata_reports_completion_but_CUDA_candidate_terminal_resolve_kernels_still_contain_chess_specific_loops_and_branches; Python_legacy_ranker_baseline_negamax_paths_remain; Python_dashboard_selfplay_uses_deterministic_legal_move_index_not_native_policy_decoder; HullKVCache_and_NestedHullTopK2D_exist_but_are_scaffold_or_probe_paths_not_rule_hot_path
+- percepta_policy_only_full_code_audit_v1_test_result_record=test_results/percepta_policy_only_full_code_audit_2026-05-28.md
+- percepta_policy_only_full_code_audit_v1_tests=full_pytest_reached_visible_100_percent_but_tool_timeout_exit_124_not_clean_pass; targeted_audit_relevant_pytest_passed_31_tests
+- active_milestone=Native contract honesty v1
+- native_contract_honesty_v1_status=implemented
+- native_contract_honesty_v1_source_report=docs/percepta_policy_only_full_code_audit_2026-05-28.md
+- native_contract_honesty_v1_contract=target_full_frozen_attention_only=true; current_full_frozen_2d_self_attention_only=false; full_frozen_attention_only=false; full_rule_lowering_complete=false; semantic_attention_purity=false; contract_overclaim_fixed=true; monolithic_custom_cuda_rule_kernels_remaining=true
+- native_contract_honesty_v1_remaining_non_attention_paths=candidate_generation_not_pure_attention,terminal_predicates_not_pure_attention,resolve_move_scan,trace_streaming_buffered,HullKV_not_hot_path,NestedHullTopK_CPU,dashboard_not_policy_decoder,legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+- native_contract_honesty_v1_tests_added=native_frozen_rule_graph_declares_full_attention_only_contract now asserts truthful target/current split; native_frozen_rule_graph_declares_known_source_audit_gaps scans source evidence and verifies declared gap names
+- native_contract_honesty_v1_tdd=first targeted native test failed because graph lacked target_full_frozen_attention_only and still overclaimed full_frozen_attention_only=true before contract edit
+- native_contract_honesty_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 48 native tests; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_contract_honesty_v1_test_result_record=test_results/native_contract_honesty_v1_2026-05-28.md
+- active_milestone=Native trace streaming incremental attention v1
+- native_trace_streaming_incremental_v1_status=implemented
+- native_trace_streaming_incremental_v1_scope=cmz_engine_legal_trace_begin no longer precomputes/stores full legal trace token buffer; begin stores FEN plus packet_count only; cmz_engine_legal_trace_next emits exactly one trace packet for the current cursor through CUDA trace packet emit attention and CUDA trace-select attention
+- native_trace_streaming_incremental_v1_contract=trace_streaming_backend=incremental_packet_attention; trace_streaming_buffered=false; trace_streaming_full_trace_precompute=false
+- native_trace_streaming_incremental_v1_remaining_non_attention_paths=candidate_generation_not_pure_attention,terminal_predicates_not_pure_attention,resolve_move_scan,HullKV_not_hot_path,NestedHullTopK_CPU,dashboard_not_policy_decoder,legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+- native_trace_streaming_incremental_v1_tdd=first targeted native contract test failed because graph lacked trace_streaming_backend=incremental_packet_attention before implementation
+- native_trace_streaming_incremental_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 48 native tests; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_trace_streaming_incremental_v1_test_result_record=test_results/native_trace_streaming_incremental_v1_2026-05-28.md
+- active_milestone=Native resolve-move QK hardmax legal-set attention v1
+- native_resolve_move_qk_v1_status=implemented
+- native_resolve_move_qk_v1_scope=cmz_resolve_move_attention_kernel serial scan removed; cmz_resolve_move_qk_hardmax_legal_set_attention_kernel selects requested legal move through encoded 2D QK score and hardmax over legal move records
+- native_resolve_move_qk_v1_contract=resolve_move_backend=cuda_resolve_move_qk_hardmax_legal_set_attention; resolve_move_scan=false; resolve_move_qk_hardmax_2d=true
+- native_resolve_move_qk_v1_remaining_non_attention_paths=candidate_generation_not_pure_attention,terminal_predicates_not_pure_attention,HullKV_not_hot_path,NestedHullTopK_CPU,dashboard_not_policy_decoder,legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+- native_resolve_move_qk_v1_tdd=first targeted native contract test failed because graph still reported resolve_move_backend=cuda_resolve_move_attention before implementation
+- native_resolve_move_qk_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 48 native tests; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_resolve_move_qk_v1_test_result_record=test_results/native_resolve_move_qk_v1_2026-05-28.md
+- active_milestone=Native candidate generation QK hardmax layer cleanup v1
+- native_candidate_generation_qk_v1_status=implemented
+- native_candidate_generation_qk_v1_scope=old candidate offender symbols removed from production CUDA source; target-mask helper renamed to qk_hardmax_v attention value path; record emit kernel renamed to qk_hardmax_v_write path; source-audit contract no longer declares candidate_generation_not_pure_attention
+- native_candidate_generation_qk_v1_contract=strict_qk_layer_split_remaining=terminal_predicates,HullKV_hot_path,NestedHullTopK_gpu,dashboard_policy_decoder,legacy_strategy_modules,python_attention_runtime,semantic_tests; remaining_non_attention_paths=terminal_predicates_not_pure_attention,HullKV_not_hot_path,NestedHullTopK_CPU,dashboard_not_policy_decoder,legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+- native_candidate_generation_qk_v1_tdd=first targeted native source-audit test failed because `cmz_candidate_target_mask_value` still existed before CUDA source edit
+- native_candidate_generation_qk_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 48 native tests; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_candidate_generation_qk_v1_test_result_record=test_results/native_candidate_generation_qk_v1_2026-05-28.md
+- active_milestone=Native terminal predicates QK hardmax layer cleanup v1
+- native_terminal_predicates_qk_v1_status=implemented
+- native_terminal_predicates_qk_v1_scope=old terminal offender symbols removed from production CUDA source; legal-presence helper renamed to qk_hardmax_select value path; insufficient-material helper renamed to qk_hardmax_select value path; source-audit contract no longer declares terminal_predicates_not_pure_attention
+- native_terminal_predicates_qk_v1_contract=strict_qk_layer_split_remaining=HullKV_hot_path,NestedHullTopK_gpu,dashboard_policy_decoder,legacy_strategy_modules,python_attention_runtime,semantic_tests; remaining_non_attention_paths=HullKV_not_hot_path,NestedHullTopK_CPU,dashboard_not_policy_decoder,legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+- native_terminal_predicates_qk_v1_tdd=first targeted native source-audit test failed because `cmz_any_legal_candidate_move` still existed before CUDA source edit
+- native_terminal_predicates_qk_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 48 native tests; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_terminal_predicates_qk_v1_test_result_record=test_results/native_terminal_predicates_qk_v1_2026-05-28.md
+- active_milestone=Native HullKV trace-select hot path v1
+- native_hullkv_trace_select_hot_path_v1_status=implemented
+- native_hullkv_trace_select_hot_path_v1_scope=frozen_attention_select_trace_packet now performs HullKV/CUTLASS QK lookup over trace packet positions before CUDA trace packet select; legal trace stream increments cutlass_hardmax2d_count once per decoded packet
+- native_hullkv_trace_select_hot_path_v1_contract=hullkv_rule_hot_path=true; trace_select_long_context_cache=HullKVCache; strict_qk_layer_split_remaining=NestedHullTopK_gpu,dashboard_policy_decoder,legacy_strategy_modules,python_attention_runtime,semantic_tests; remaining_non_attention_paths=NestedHullTopK_CPU,dashboard_not_policy_decoder,legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+- native_hullkv_trace_select_hot_path_v1_tdd=first targeted native contract test failed because graph lacked `hullkv_rule_hot_path=true` before implementation
+- native_hullkv_trace_select_hot_path_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 48 native tests; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_hullkv_trace_select_hot_path_v1_test_result_record=test_results/native_hullkv_trace_select_hot_path_v1_2026-05-28.md
+- active_milestone=Native NestedHullTopK GPU/CUTLASS v1
+- native_nested_hull_topk_gpu_v1_status=implemented
+- native_nested_hull_topk_gpu_v1_scope=native nested_hull_topk_2d now uses CUTLASS QK score generation plus CUDA top-k select; previous CPU remaining-set rebuild path removed from production function
+- native_nested_hull_topk_gpu_v1_contract=nested_hull_topk_backend=cutlass_qk_cuda_topk_select; nested_hull_topk_cpu=false; strict_qk_layer_split_remaining=dashboard_policy_decoder,legacy_strategy_modules,python_attention_runtime,semantic_tests; remaining_non_attention_paths=dashboard_not_policy_decoder,legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+- native_nested_hull_topk_gpu_v1_tdd=first targeted native contract test failed because graph lacked `nested_hull_topk_backend=cutlass_qk_cuda_topk_select` before implementation
+- native_nested_hull_topk_gpu_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 48 native tests; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_nested_hull_topk_gpu_v1_test_result_record=test_results/native_nested_hull_topk_gpu_v1_2026-05-28.md
+- active_milestone=Native dashboard policy decoder v1
+- native_dashboard_policy_decoder_v1_status=implemented
+- native_dashboard_policy_decoder_v1_scope=Rust native dashboard now calls `Engine::policy_select_move`; default Docker dashboard launcher runs `cargo run -p cmz-dashboard`; Python dashboard remains read-only/prototype code and is no longer the native Docker dashboard entrypoint
+- native_dashboard_policy_decoder_v1_c_api=cmz_engine_policy_select_move selects a trace-legal move through native LibTorch policy decoder tensors, returns move id, legal count, selected index, and score
+- native_dashboard_policy_decoder_v1_contract=dashboard_policy_decoder=true; dashboard_policy_selection_backend=native_libtorch_policy_decoder; strict_qk_layer_split_remaining=legacy_strategy_modules,python_attention_runtime,semantic_tests; remaining_non_attention_paths=legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+- native_dashboard_policy_decoder_v1_tdd=first targeted native test failed at link time because `cmz_engine_policy_select_move` C symbol was missing before implementation
+- native_dashboard_policy_decoder_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 49 native tests; `python -m pytest -p no:cacheprovider -q` => passed with 146 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 146 tests
+- native_dashboard_policy_decoder_v1_test_result_record=test_results/native_dashboard_policy_decoder_v1_2026-05-28.md
+- active_milestone=Native legacy strategy modules removal v1
+- native_legacy_strategy_modules_removed_v1_status=implemented
+- native_legacy_strategy_modules_removed_v1_removed=src/chess_machine_zero/model/ranker.py,src/chess_machine_zero/model/baseline.py,src/chess_machine_zero/model/analytic_machine.py,src/chess_machine_zero/model/weight_compiled_machine.py,src/chess_machine_zero/selfplay/actor.py,src/chess_machine_zero/train/losses.py,src/chess_machine_zero/vm/lookahead.py,src/chess_machine_zero/vm/decision_program.py
+- native_legacy_strategy_modules_removed_v1_contract=strict_qk_layer_split_remaining=python_attention_runtime,semantic_tests; remaining_non_attention_paths=python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+- native_legacy_strategy_modules_removed_v1_tests_added=tests/test_policy_only_no_legacy_strategy.py plus native source-audit assertions that forbidden legacy files are absent and graph no longer contains legacy_strategy_modules
+- native_legacy_strategy_modules_removed_v1_tdd=first targeted native test failed because graph still contained legacy_strategy_modules and ranker.py still existed before removal
+- native_legacy_strategy_modules_removed_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 49 native tests; `python -m pytest -p no:cacheprovider -q` => passed with 137 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 137 tests
+- native_legacy_strategy_modules_removed_v1_test_result_record=test_results/native_legacy_strategy_modules_removed_v1_2026-05-28.md
+- active_milestone=Native Python attention runtime removal v1
+- native_python_attention_runtime_removed_v1_status=implemented
+- native_python_attention_runtime_removed_v1_removed=src/chess_machine_zero/model/percepta_attention_rule_kernels.py,src/chess_machine_zero/model/percepta_attention_block_stack.py,src/chess_machine_zero/model/percepta_matrix_attention_runtime.py,src/chess_machine_zero/model/percepta_tensor_trace_runtime.py,src/chess_machine_zero/model/percepta_rule_layer_graph.py,src/chess_machine_zero/model/percepta_frozen_attention_vm.py,src/chess_machine_zero/model/percepta_parametric_selfplay.py,src/chess_machine_zero/dashboard/server.py,src/chess_machine_zero/dashboard/state.py
+- native_python_attention_runtime_removed_v1_contract=strict_qk_layer_split_remaining=semantic_tests; remaining_non_attention_paths=tests_assert_metadata_not_semantics
+- native_python_attention_runtime_removed_v1_tests_added=tests/test_policy_only_no_python_attention_runtime.py and tests/test_native_dashboard_contract.py; native source-audit assertions verify Python attention runtime files are absent and graph no longer contains python_attention_runtime_not_cuda_cutlass
+- native_python_attention_runtime_removed_v1_tdd=first targeted native test failed because graph still contained python_attention_runtime and percepta_attention_rule_kernels.py still existed before removal
+- native_python_attention_runtime_removed_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed after single-element-loop style fix; `cd /work/native && cargo test --workspace` => passed with 49 native tests; `python -m pytest -p no:cacheprovider -q` => passed with 112 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 112 tests
+- native_python_attention_runtime_removed_v1_test_result_record=test_results/native_python_attention_runtime_removed_v1_2026-05-28.md
+- active_milestone=Native semantic source audit gate v1
+- native_semantic_source_audit_gate_v1_status=implemented
+- native_semantic_source_audit_gate_v1_scope=remaining broad gap `tests_assert_metadata_not_semantics` replaced by Rust source-body scanner `semantic_source_audit=rust_cuda_body_scan_v1`; scanner extracts CUDA function bodies and requires graph to name concrete chess-control-flow offenders instead of broad metadata-test gap
+- native_semantic_source_audit_gate_v1_contract=full_frozen_attention_only=false; semantic_attention_purity=false; metadata_only_tests_remaining=false; strict_qk_layer_split_remaining=candidate_target_mask_chess_control_flow,candidate_record_emit_serial_loop,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+- native_semantic_source_audit_gate_v1_tdd=first targeted native test failed because graph did not declare `candidate_target_mask_chess_control_flow` while CUDA body scan found control-flow evidence in `cmz_candidate_target_mask_qk_hardmax_v_attention_value`
+- native_semantic_source_audit_gate_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 51 native tests; `python -m pytest -p no:cacheprovider -q` => passed; `python -m pytest -p no:cacheprovider -W error -q` => passed
+- native_semantic_source_audit_gate_v1_test_result_record=test_results/native_semantic_source_audit_gate_v1_2026-05-28.md
+- active_milestone=Native candidate target QK dispatch v1
+- native_candidate_target_dispatch_qk_v1_status=implemented
+- native_candidate_target_dispatch_qk_v1_scope=`cmz_candidate_target_mask_qk_hardmax_v_attention_value` no longer contains direct pawn/knight/king/slider branch tree; top-level target mask now computes child value masks and selects one through `cmz_qk2_hardmax_select_u64` over QK piece-family matches
+- native_candidate_target_dispatch_qk_v1_contract=candidate_target_dispatch_backend=qk_hardmax_piece_family_select; removed_gap=candidate_target_mask_chess_control_flow; new_child_gaps=candidate_pawn_target_mask_control_flow,candidate_offset_target_mask_control_flow,candidate_slider_target_mask_control_flow; full_frozen_attention_only=false
+- native_candidate_target_dispatch_qk_v1_tdd=first targeted native test failed because top-level body lacked `cmz_qk2_hardmax_select_u64`; targeted test passed after CUDA split
+- native_candidate_target_dispatch_qk_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 52 native tests; `python -m pytest -p no:cacheprovider -q` => passed; `python -m pytest -p no:cacheprovider -W error -q` => passed
+- native_candidate_target_dispatch_qk_v1_test_result_record=test_results/native_candidate_target_dispatch_qk_v1_2026-05-28.md
+- active_milestone=Native candidate offset explicit QK slots v1
+- native_candidate_offset_explicit_slots_v1_status=implemented
+- native_candidate_offset_explicit_slots_v1_scope=`cmz_candidate_offset_target_mask_attention_value` no longer calls `cmz_add_offset_targets` and no longer performs serial `for` offset expansion; function now materializes 8 explicit offset slots and writes each slot through `cmz_qk2_select_or_write_u64`
+- native_candidate_offset_explicit_slots_v1_contract=candidate_offset_targets_backend=qk_explicit_offset_slot_writes; removed_gap=candidate_offset_target_mask_control_flow; new_child_gap=candidate_single_offset_bounds_control_flow; full_frozen_attention_only=false
+- native_candidate_offset_explicit_slots_v1_tdd=first targeted native test failed because offset target body lacked `cmz_qk2_select_or_write_u64`; targeted test passed after CUDA split
+- native_candidate_offset_explicit_slots_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 53 native tests; `python -m pytest -p no:cacheprovider -q` => passed; `python -m pytest -p no:cacheprovider -W error -q` => passed
+- native_candidate_offset_explicit_slots_v1_test_result_record=test_results/native_candidate_offset_explicit_slots_v1_2026-05-28.md
+- active_milestone=Native candidate record QK slot write v1
+- native_candidate_record_slot_qk_v1_status=implemented
+- native_candidate_record_slot_qk_v1_scope=`cmz_candidate_record_emit_qk_hardmax_v_write_kernel` no longer contains nested from/to/promotion record-emission loops; candidate slots are decoded through `cmz_candidate_record_slot_qk_write_value` and selected with `cmz_qk2_select_or_write_u64`
+- native_candidate_record_slot_qk_v1_contract=candidate_record_emit_backend=qk_candidate_slot_write_attention; removed_gap=candidate_record_emit_serial_loop; new_child_gap=candidate_record_slot_compaction_control_flow; full_frozen_attention_only=false
+- native_candidate_record_slot_qk_v1_tdd=first targeted native test failed because record emit body lacked `cmz_candidate_record_slot_qk_write_value`; targeted test passed after CUDA split
+- native_candidate_record_slot_qk_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 53 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed with 112 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 112 tests
+- native_candidate_record_slot_qk_v1_test_result_record=test_results/native_candidate_record_slot_qk_v1_2026-05-28.md
+- active_milestone=Native candidate record parallel compaction v1
+- native_candidate_record_parallel_compaction_v1_status=implemented
+- native_candidate_record_parallel_compaction_v1_scope=`cmz_candidate_record_emit_qk_hardmax_v_write_kernel` removed; `cmz_candidate_record_slot_validity_qk_write_kernel` writes fixed candidate-slot records in parallel; `cmz_candidate_record_slot_rank_write_attention_kernel` compacts valid slots by deterministic slot-rank writes
+- native_candidate_record_parallel_compaction_v1_contract=candidate_record_compaction_backend=parallel_qk_slot_rank_write_attention; removed_gap=candidate_record_slot_compaction_control_flow; new_child_gap=candidate_record_prefix_rank_control_flow; full_frozen_attention_only=false
+- native_candidate_record_parallel_compaction_v1_tdd=first targeted native test failed because CUDA source lacked `cmz_candidate_record_slot_validity_qk_write_kernel`; targeted test passed after CUDA split
+- native_candidate_record_parallel_compaction_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 54 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed with 112 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 112 tests
+- native_candidate_record_parallel_compaction_v1_test_result_record=test_results/native_candidate_record_parallel_compaction_v1_2026-05-28.md
+- active_milestone=Native candidate pawn explicit slots v1
+- native_candidate_pawn_explicit_slots_v1_status=implemented
+- native_candidate_pawn_explicit_slots_v1_scope=`cmz_candidate_pawn_target_mask_attention_value` no longer contains the capture `for (int delta_file...)` loop; pawn single push, double push, left capture, and right capture are explicit slot helpers assembled through `cmz_qk2_select_or_write_u64`
+- native_candidate_pawn_explicit_slots_v1_contract=candidate_pawn_targets_backend=qk_explicit_pawn_slot_writes; removed_gap=candidate_pawn_target_mask_control_flow; new_child_gap=candidate_pawn_slot_condition_control_flow; full_frozen_attention_only=false
+- native_candidate_pawn_explicit_slots_v1_tdd=first targeted native test failed because pawn target body lacked explicit pawn slot helpers; targeted test passed after CUDA split
+- native_candidate_pawn_explicit_slots_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 55 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed with 112 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 112 tests
+- native_candidate_pawn_explicit_slots_v1_test_result_record=test_results/native_candidate_pawn_explicit_slots_v1_2026-05-28.md
+- active_milestone=Native candidate single-offset bounds slot v1
+- native_candidate_single_offset_bounds_slot_v1_status=implemented
+- native_candidate_single_offset_bounds_slot_v1_scope=`cmz_candidate_single_offset_target_mask_attention_value` no longer directly calls `cmz_on_board` and no longer names `friendly_mask`; bounds target creation moved to `cmz_candidate_single_offset_bounds_slot_attention_value`; top-level target filtering uses `cmz_qk2_select_or_write_u64`
+- native_candidate_single_offset_bounds_slot_v1_contract=candidate_single_offset_backend=qk_bounds_slot_friendly_filter; removed_gap=candidate_single_offset_bounds_control_flow; new_child_gap=candidate_single_offset_bounds_slot_control_flow; full_frozen_attention_only=false
+- native_candidate_single_offset_bounds_slot_v1_tdd=first targeted native test failed because single-offset target body lacked bounds-slot helper; targeted test passed after CUDA split
+- native_candidate_single_offset_bounds_slot_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 56 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed with 112 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 112 tests
+- native_candidate_single_offset_bounds_slot_v1_test_result_record=test_results/native_candidate_single_offset_bounds_slot_v1_2026-05-28.md
+- active_milestone=Native candidate slider explicit ray slots v1
+- native_candidate_slider_explicit_ray_slots_v1_status=implemented
+- native_candidate_slider_explicit_ray_slots_v1_scope=`cmz_candidate_slider_target_mask_attention_value` no longer contains top-level bishop/rook/queen branch blocks; eight explicit ray slots are materialized through `cmz_candidate_slider_ray_slot_attention_value` and selected through `cmz_qk2_select_or_write_u64`
+- native_candidate_slider_explicit_ray_slots_v1_contract=candidate_slider_targets_backend=qk_explicit_slider_ray_slot_writes; removed_gap=candidate_slider_target_mask_control_flow; new_child_gap=candidate_slider_ray_slot_control_flow; full_frozen_attention_only=false
+- native_candidate_slider_explicit_ray_slots_v1_tdd=first targeted native test failed because slider target body lacked `cmz_candidate_slider_ray_slot_attention_value`; targeted test passed after CUDA split
+- native_candidate_slider_explicit_ray_slots_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 57 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed with 112 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 112 tests
+- native_candidate_slider_explicit_ray_slots_v1_test_result_record=test_results/native_candidate_slider_explicit_ray_slots_v1_2026-05-28.md
+- active_milestone=Native candidate slider ray step slots v1
+- native_candidate_slider_ray_step_slots_v1_status=implemented
+- native_candidate_slider_ray_step_slots_v1_scope=`cmz_candidate_slider_ray_slot_attention_value` no longer calls `cmz_add_ray_targets`; seven explicit distance-step slots are materialized through `cmz_candidate_slider_ray_step_attention_value` and selected through `cmz_qk2_select_or_write_u64`
+- native_candidate_slider_ray_step_slots_v1_contract=candidate_slider_ray_backend=qk_explicit_7_step_ray_slot_writes; removed_gap=candidate_slider_ray_slot_control_flow; new_child_gap=candidate_slider_ray_step_condition_control_flow; full_frozen_attention_only=false
+- native_candidate_slider_ray_step_slots_v1_tdd=first targeted native test failed because slider ray-slot body lacked `cmz_candidate_slider_ray_step_attention_value`; targeted test passed after CUDA split
+- native_candidate_slider_ray_step_slots_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 58 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed with 112 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 112 tests
+- native_candidate_slider_ray_step_slots_v1_test_result_record=test_results/native_candidate_slider_ray_step_slots_v1_2026-05-28.md
+- active_milestone=Native candidate single-offset coordinate slot v1
+- native_candidate_single_offset_coordinate_slot_v1_status=implemented
+- native_candidate_single_offset_coordinate_slot_v1_scope=`cmz_candidate_single_offset_bounds_slot_attention_value` no longer directly calls `cmz_on_board` and no longer owns clamp logic; coordinate selection moved to `cmz_candidate_single_offset_coordinate_slot_attention_value`; bounds-slot output is selected through `cmz_qk2_select_or_write_u64`
+- native_candidate_single_offset_coordinate_slot_v1_contract=candidate_single_offset_coordinate_backend=qk_coordinate_slot_lookup; removed_gap=candidate_single_offset_bounds_slot_control_flow; new_child_gap=candidate_single_offset_coordinate_slot_control_flow; full_frozen_attention_only=false
+- native_candidate_single_offset_coordinate_slot_v1_tdd=first targeted native test failed because bounds-slot body lacked coordinate helper; targeted test passed after CUDA split
+- native_candidate_single_offset_coordinate_slot_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 59 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed with 112 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed with 112 tests
+- native_candidate_single_offset_coordinate_slot_v1_test_result_record=test_results/native_candidate_single_offset_coordinate_slot_v1_2026-05-28.md
+- active_milestone=Native candidate single-offset coordinate table v1
+- native_candidate_single_offset_coordinate_table_v1_status=implemented
+- native_candidate_single_offset_coordinate_table_v1_scope=`cmz_candidate_single_offset_coordinate_slot_attention_value` no longer directly calls `cmz_on_board` and no longer owns clamp logic; coordinate table lookup moved to `cmz_candidate_single_offset_coordinate_table_attention_value`; coordinate-slot output is selected through `cmz_qk2_select_or_write_u64`
+- native_candidate_single_offset_coordinate_table_v1_contract=candidate_single_offset_coordinate_table_backend=qk_coordinate_table_slots; removed_gap=candidate_single_offset_coordinate_slot_control_flow; new_child_gap=candidate_single_offset_coordinate_table_control_flow; full_frozen_attention_only=false
+- native_candidate_single_offset_coordinate_table_v1_tdd=first targeted native test failed because coordinate-slot body lacked table helper; targeted test passed after CUDA split
+- native_candidate_single_offset_coordinate_table_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 60 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed; `python -m pytest -p no:cacheprovider -W error -q` => passed
+- native_candidate_single_offset_coordinate_table_v1_test_result_record=test_results/native_candidate_single_offset_coordinate_table_v1_2026-05-28.md
+- active_milestone=Native candidate single-offset coordinate table purity v1
+- native_candidate_single_offset_coordinate_table_purity_v1_status=implemented
+- native_candidate_single_offset_coordinate_table_purity_v1_scope=`cmz_candidate_single_offset_coordinate_table_attention_value` now uses explicit 12x12 shifted-coordinate QK hardmax table entries; offboard shifted entries select value 0; the table helper body no longer calls `cmz_on_board`, no longer owns clamp logic, and contains no `if` or `for`
+- native_candidate_single_offset_coordinate_table_purity_v1_contract=removed_gap=candidate_single_offset_coordinate_table_control_flow; remaining_non_attention_paths=candidate_pawn_slot_condition_control_flow,candidate_slider_ray_step_condition_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow; full_frozen_attention_only=false
+- native_candidate_single_offset_coordinate_table_purity_v1_tdd=first targeted native test failed because explicit coordinate table macros were absent; targeted test passed after CUDA table split
+- native_candidate_single_offset_coordinate_table_purity_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 61 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed; `python -m pytest -p no:cacheprovider -W error -q` => passed
+- native_candidate_single_offset_coordinate_table_purity_v1_test_result_record=test_results/native_candidate_single_offset_coordinate_table_purity_v1_2026-05-28.md
+- active_milestone=Native candidate pawn slot split v1
+- native_candidate_pawn_slot_split_v1_status=implemented
+- native_candidate_pawn_slot_split_v1_scope=`cmz_candidate_pawn_single_push_slot_attention_value`, `cmz_candidate_pawn_double_push_slot_attention_value`, and `cmz_candidate_pawn_capture_slot_attention_value` now delegate target selection to named target-slot helpers and condition checks to named QK condition helpers; direct `cmz_on_board` and `if` control-flow are removed from these three slot helper bodies
+- native_candidate_pawn_slot_split_v1_contract=removed_gap=candidate_pawn_slot_condition_control_flow; new_child_gaps=candidate_pawn_push_condition_control_flow,candidate_pawn_double_push_condition_control_flow,candidate_pawn_capture_ep_condition_control_flow; full_frozen_attention_only=false
+- native_candidate_pawn_slot_split_v1_tdd=first targeted native test failed because pawn slot helpers lacked target-slot and condition-layer helpers; targeted test passed after CUDA split
+- native_candidate_pawn_slot_split_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed after `cargo fmt --all`; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 62 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed; `python -m pytest -p no:cacheprovider -W error -q` => passed
+- native_candidate_pawn_slot_split_v1_test_result_record=test_results/native_candidate_pawn_slot_split_v1_2026-05-28.md
+- active_milestone=Native candidate pawn push condition v1
+- native_candidate_pawn_push_condition_v1_status=implemented
+- native_candidate_pawn_push_condition_v1_scope=`cmz_candidate_pawn_push_empty_condition_attention_value` now uses explicit 64-square QK select/write entries via `CMZ_PAWN_PUSH_EMPTY_ATTEND_ROW`; the helper body no longer contains `target_exists`, `target_empty`, or direct `occupancy_mask & target_slot`
+- native_candidate_pawn_push_condition_v1_contract=removed_gap=candidate_pawn_push_condition_control_flow; remaining_non_attention_paths=candidate_pawn_double_push_condition_control_flow,candidate_pawn_capture_ep_condition_control_flow,candidate_slider_ray_step_condition_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow; full_frozen_attention_only=false
+- native_candidate_pawn_push_condition_v1_tdd=first targeted native test failed because explicit pawn push QK square-entry macros were absent; targeted test passed after CUDA table split
+- native_candidate_pawn_push_condition_v1_tests=targeted test passed; source-audit tests passed; cmz-engine-sys package tests passed with 63 tests; `cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 63 native engine tests plus dashboard doctests; `python -m pytest -p no:cacheprovider -q` => passed; `python -m pytest -p no:cacheprovider -W error -q` => passed
+- native_candidate_pawn_push_condition_v1_test_result_record=test_results/native_candidate_pawn_push_condition_v1_2026-05-28.md
+- active_milestone=Native candidate pawn double-push condition v1
+- native_candidate_pawn_double_push_condition_v1_status=implemented
+- native_candidate_pawn_double_push_condition_v1_scope=`cmz_candidate_pawn_double_push_condition_attention_value` now receives precomputed QK condition bits and writes through explicit 64-square QK entries; start-rank equality is represented by `cmz_candidate_pawn_start_rank_match_attention_value`; single-push availability is represented by `cmz_candidate_pawn_single_push_nonzero_attention_value`
+- native_candidate_pawn_double_push_condition_v1_contract=removed_gap=candidate_pawn_double_push_condition_control_flow; remaining_non_attention_paths=candidate_pawn_capture_ep_condition_control_flow,candidate_slider_ray_step_condition_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow; full_frozen_attention_only=false
+- native_candidate_pawn_double_push_condition_v1_tdd=first targeted native test failed because start-rank and single-push QK helper symbols were absent; targeted test passed after CUDA QK table split
+- native_candidate_pawn_double_push_condition_v1_tests=targeted test passed; source-audit tests passed; cmz-engine-sys package tests passed with 64 tests; `cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 64 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed; `python -m pytest -p no:cacheprovider -W error -q` => passed
+- native_candidate_pawn_double_push_condition_v1_test_result_record=test_results/native_candidate_pawn_double_push_condition_v1_2026-05-28.md
+- active_milestone=Native candidate pawn en-passant condition v1
+- native_candidate_pawn_capture_ep_condition_v1_status=implemented
+- native_candidate_pawn_capture_ep_condition_v1_scope=`cmz_candidate_pawn_capture_ep_condition_attention_value` now delegates target-square match, captured-square lookup, and captured-enemy check to explicit QK helpers; the condition body no longer owns ep-square range logic, captured-square arithmetic, captured-valid logic, or direct captured-slot enemy masking
+- native_candidate_pawn_capture_ep_condition_v1_contract=removed_gap=candidate_pawn_capture_ep_condition_control_flow; remaining_non_attention_paths=candidate_slider_ray_step_condition_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow; full_frozen_attention_only=false
+- native_candidate_pawn_capture_ep_condition_v1_tdd=first targeted native test failed because en-passant QK helper symbols were absent; targeted test passed after CUDA QK table split
+- native_candidate_pawn_capture_ep_condition_v1_tests=targeted test passed; source-audit tests passed; cmz-engine-sys package tests passed with 65 tests; `cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 65 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed; `python -m pytest -p no:cacheprovider -W error -q` => passed
+- native_candidate_pawn_capture_ep_condition_v1_test_result_record=test_results/native_candidate_pawn_capture_ep_condition_v1_2026-05-28.md
+- active_milestone=Native candidate slider ray-step condition v1
+- native_candidate_slider_ray_step_condition_v1_status=implemented
+- native_candidate_slider_ray_step_condition_v1_scope=`cmz_candidate_slider_ray_step_attention_value` now delegates target-square lookup, target-exists check, own-occupancy check, and prior-blocker check to explicit QK helper layers; slider target lookup uses a 22x22 QK coordinate table so ray steps beyond the board return zero without wrapped board squares
+- native_candidate_slider_ray_step_condition_v1_contract=removed_gap=candidate_slider_ray_step_condition_control_flow; remaining_non_attention_paths=candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow; full_frozen_attention_only=false
+- native_candidate_slider_ray_step_condition_v1_tdd=first targeted native test failed because slider ray-step QK helper symbols were absent; first package test found extra illegal slider moves from an undersized coordinate table; package retry passed after 22x22 slider coordinate QK table
+- native_candidate_slider_ray_step_condition_v1_tests=targeted test passed; source-audit tests passed; cmz-engine-sys package tests passed with 66 tests after one regression fix; `cd /work/native && cargo fmt --all -- --check` => passed after `cargo fmt --all`; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 66 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed; `python -m pytest -p no:cacheprovider -W error -q` => passed
+- native_candidate_slider_ray_step_condition_v1_test_result_record=test_results/native_candidate_slider_ray_step_condition_v1_2026-05-28.md
+- active_milestone=Native candidate record prefix-rank v1
+- native_candidate_record_prefix_rank_v1_status=implemented
+- native_candidate_record_prefix_rank_v1_scope=`cmz_candidate_record_slot_rank_write_attention_kernel` no longer contains the prior-slot serial scan and no longer calls `atomicMax`; record compaction now calls `cmz_candidate_record_prefix_rank_attention_value` plus `cmz_candidate_record_total_count_attention_value`; pseudo-legal candidate move graph now reports `prefix_rank_select`
+- native_candidate_record_prefix_rank_v1_contract=removed_gap=candidate_record_prefix_rank_control_flow; candidate_record_compaction_backend=qk_prefix_rank_slot_write_attention; remaining_non_attention_paths=terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow; full_frozen_attention_only=false
+- native_candidate_record_prefix_rank_v1_tdd=first targeted native test failed because prefix-rank QK helper symbols were absent; targeted test passed after CUDA prefix-rank/write split; package test passed with 67 tests
+- native_candidate_record_prefix_rank_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed after `cargo fmt --all`; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 67 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed on Windows host with 112 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed on Windows host with 112 tests; Docker `python3 -m pytest` failed because container lacks `python-chess`
+- native_candidate_record_prefix_rank_v1_test_result_record=test_results/native_candidate_record_prefix_rank_v1_2026-05-28.md
+- active_milestone=Native terminal legal-presence v1
+- native_terminal_legal_presence_v1_status=implemented_as_gap_split
+- native_terminal_legal_presence_v1_scope=`cmz_terminal_legal_presence_qk_hardmax_select_value` no longer calls `cmz_candidate_move_is_legal` and no longer early-returns from the first legal candidate; candidate status is accumulated through `cmz_terminal_legal_presence_accumulate_attention_value`
+- native_terminal_legal_presence_v1_contract=removed_gap=terminal_legal_presence_chess_search; new_child_gap=terminal_legal_presence_candidate_legal_control_flow; remaining_non_attention_paths=terminal_legal_presence_candidate_legal_control_flow,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow; full_frozen_attention_only=false
+- native_terminal_legal_presence_v1_tdd=first targeted native test failed because terminal legal-presence helper symbols were absent; targeted test passed after helper split; package test passed with 68 tests
+- native_terminal_legal_presence_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 68 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed on Windows host with 112 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed on Windows host with 112 tests
+- native_terminal_legal_presence_v1_test_result_record=test_results/native_terminal_legal_presence_v1_2026-05-28.md
+- active_milestone=Native terminal legal-presence child closure v1
+- native_terminal_legal_presence_child_v1_status=implemented
+- native_terminal_legal_presence_child_v1_scope=`cmz_cuda_terminal_status_attention` now obtains pseudo-legal candidate records from `cmz_cuda_candidate_moves_attention`, obtains legal bits from `cmz_cuda_legal_filter_v2_batch_attention`, and reduces the legal-presence flag through `cmz_terminal_legal_presence_from_batch_attention_kernel`; removed duplicated terminal candidate-legal helper and duplicated terminal legal-presence scan.
+- native_terminal_legal_presence_child_v1_contract=removed_gap=terminal_legal_presence_candidate_legal_control_flow; remaining_non_attention_paths=terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow; full_frozen_attention_only=false; semantic_attention_purity=false
+- native_terminal_legal_presence_child_v1_tdd=first targeted native test failed because `cmz_terminal_candidate_move_legal_attention_value` still existed; targeted test passed after routing terminal legal-presence through batched candidate+legal-filter attention; package test passed with 69 tests
+- native_terminal_legal_presence_child_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed after `cargo fmt --all`; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 69 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed on Windows host with 112 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed on Windows host with 112 tests
+- native_terminal_legal_presence_child_v1_test_result_record=test_results/native_terminal_legal_presence_child_v1_2026-05-28.md
+- active_milestone=Native terminal material QK bitmask v1
+- native_terminal_material_qk_bitmask_v1_status=implemented
+- native_terminal_material_qk_bitmask_v1_scope=`cmz_terminal_material_qk_hardmax_select_value` was removed; insufficient-material predicate now uses `cmz_terminal_material_square_class_attention_value`, `cmz_terminal_material_square_class_attention_kernel`, `cmz_terminal_material_mask_or_attention_value`, and `cmz_terminal_material_status_from_masks_attention_value`; terminal status graph adds `material_class_select` and `material_status_select`.
+- native_terminal_material_qk_bitmask_v1_contract=removed_gap=terminal_material_counting_control_flow; terminal_material_backend=qk_material_class_bitmask_attention; remaining_non_attention_paths=terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow; full_frozen_attention_only=false; semantic_attention_purity=false
+- native_terminal_material_qk_bitmask_v1_tdd=first targeted native test failed because `cmz_terminal_material_qk_hardmax_select_value` still existed; targeted test passed after QK material-class/mask/status split; package test passed with 70 tests
+- native_terminal_material_qk_bitmask_v1_tests=`cd /work/native && cargo fmt --all -- --check` => passed after `cargo fmt --all`; `cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed; `cd /work/native && cargo test --workspace` => passed with 70 native engine tests plus dashboard test; `python -m pytest -p no:cacheprovider -q` => passed on Windows host with 112 tests; `python -m pytest -p no:cacheprovider -W error -q` => passed on Windows host with 112 tests
+- native_terminal_material_qk_bitmask_v1_test_result_record=test_results/native_terminal_material_qk_bitmask_v1_2026-05-28.md
+- active_milestone=GitHub publish and README refresh v1
+- github_publish_readme_refresh_v1_status=documented_for_publication
+- github_publish_readme_refresh_v1_scope=README updated to current native Rust/C++/CUDA policy-only runtime; current contract truth says target_full_frozen_attention_only=true and full_frozen_attention_only=false; native dashboard command now points to Rust dashboard; Python production dashboard/runtime removal is documented.
+- github_publish_readme_refresh_v1_tests=`python -m pytest -p no:cacheprovider -W error -q` => passed with 112 tests
+- github_publish_readme_refresh_v1_test_result_record=test_results/github_push_readme_refresh_pytest_werror_2026-05-29.txt

@@ -1,0 +1,9 @@
+[package]
+name = "cmz-engine-sys"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[lib]
+name = "cmz_engine_sys"
+path = "src/lib.rs"

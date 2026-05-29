@@ -4,7 +4,48 @@ const state = {
   playing: false,
   busy: false,
   timer: null,
+  sideTraceMode: {
+    white: "readable",
+    black: "readable",
+  },
+  traceReplayTimers: {
+    white: null,
+    black: null,
+  },
+  traceReplayCounts: {
+    white: 0,
+    black: 0,
+  },
+  traceReplayKeys: {
+    white: "",
+    black: "",
+  },
+  traceStreams: {
+    white: null,
+    black: null,
+  },
+  traceScrollState: {
+    white: makeTraceScrollState(),
+    black: makeTraceScrollState(),
+  },
+  traceScrollSuppress: {
+    white: false,
+    black: false,
+  },
 };
+
+function makeTraceScrollState() {
+  return {
+    readable: {
+      locked: false,
+      top: 0,
+    },
+    token: {
+      locked: false,
+      top: 0,
+    },
+  };
+}
 
 const els = {
   board: document.getElementById("board"),
@@ -19,7 +60,15 @@ const els = {
   candidateCount: document.getElementById("candidateCount"),
   legalSetCount: document.getElementById("legalSetCount"),
   commitCount: document.getElementById("commitCount"),
-  traceLog: document.getElementById("traceLog"),
+  tokenMeter: document.getElementById("tokenMeter"),
+  whiteJournalMeter: document.getElementById("whiteJournalMeter"),
+  blackJournalMeter: document.getElementById("blackJournalMeter"),
+  whiteTraceOutput: document.getElementById("whiteTraceOutput"),
+  blackTraceOutput: document.getElementById("blackTraceOutput"),
+  whiteReadableTab: document.getElementById("whiteReadableTab"),
+  whiteTokenTab: document.getElementById("whiteTokenTab"),
+  blackReadableTab: document.getElementById("blackReadableTab"),
+  blackTokenTab: document.getElementById("blackTokenTab"),
   legalMoves: document.getElementById("legalMoves"),
   history: document.getElementById("history"),
   mode: document.getElementById("mode"),
@@ -75,7 +124,7 @@ function renderSnapshot(snapshot) {
   renderBoard(snapshot);
   renderLegalMoves(snapshot);
   renderHistory(snapshot);
-  renderTrace(snapshot);
+  renderSideTraceJournals(snapshot);
 }
 
 function statusText(snapshot) {
@@ -149,22 +198,232 @@ function renderHistory(snapshot) {
   }
 }
 
-function renderTrace(snapshot) {
-  const last = snapshot.history[snapshot.history.length - 1];
-  if (last && last.emitted_tokens) {
-    const offset = Math.max(0, last.emitted_tokens.length - 120);
-    els.traceLog.textContent = last.emitted_tokens
-      .slice(offset)
-      .map((tokens, index) => `${last.actor} token[${offset + index + 1}]=[${tokens.join(",")}]`)
-      .join("\n");
+function renderSideTraceJournals(snapshot) {
+  const streams = snapshot.transformer_token_streams || {};
+  const white = streams.white || emptyTraceStream();
+  const black = streams.black || emptyTraceStream();
+  const totalPackets = white.packet_count + black.packet_count;
+  const visiblePackets = white.packets.length + black.packets.length;
+  els.tokenMeter.textContent = `tokens=${totalPackets * 7} packets=${totalPackets} visible=${visiblePackets}`;
+  scheduleSideJournal("white", white);
+  scheduleSideJournal("black", black);
+}
+
+function emptyTraceStream() {
+  return {
+    packet_count: 0,
+    visible_packet_count: 0,
+    truncated_count: 0,
+    packets: [],
+  };
+}
+
+function scheduleSideJournal(side, stream) {
+  const key = traceStreamKey(stream);
+  const previousKey = state.traceReplayKeys[side];
+  const targetCount = stream.packet_count;
+  state.traceStreams[side] = stream;
+  state.traceReplayKeys[side] = key;
+  if (state.traceReplayTimers[side] !== null) {
+    window.clearTimeout(state.traceReplayTimers[side]);
+    state.traceReplayTimers[side] = null;
+  }
+  if (key !== previousKey || targetCount < state.traceReplayCounts[side]) {
+    state.traceReplayCounts[side] = 0;
+  }
+  appendTraceLinesGradually(side);
+}
+
+function traceStreamKey(stream) {
+  const first = stream.packets[0];
+  const last = stream.packets[stream.packets.length - 1];
+  const firstToken = first ? first.tokens.join(".") : "none";
+  const lastToken = last ? last.tokens.join(".") : "none";
+  return `${stream.packet_count}:${firstToken}:${lastToken}`;
+}
+
+function appendTraceLinesGradually(side) {
+  const stream = state.traceStreams[side] || emptyTraceStream();
+  const targetCount = stream.packet_count;
+  const current = state.traceReplayCounts[side];
+  if (targetCount === 0) {
+    renderSideJournalFrame(side, stream, 0, 0);
     return;
   }
-  const packets = snapshot.last_trace.packets.slice(-90);
-  els.traceLog.textContent = packets
-    .map((packet, index) =>
-      `${snapshot.transformers.active} token[${index + 1}]=[${packet.tokens.join(",")}] op=${packet.op} tag=${packet.tag}`
-    )
-    .join("\n");
+  if (current >= targetCount) {
+    renderSideJournalFrame(side, stream, targetCount, targetCount);
+    return;
+  }
+  const next = Math.min(targetCount, current + 4);
+  state.traceReplayCounts[side] = next;
+  renderSideJournalFrame(side, stream, next, current + 1);
+  const tick = () => {
+    const activeStream = state.traceStreams[side] || emptyTraceStream();
+    const activeTarget = activeStream.packet_count;
+    const before = state.traceReplayCounts[side];
+    const after = Math.min(activeTarget, before + 4);
+    state.traceReplayCounts[side] = after;
+    renderSideJournalFrame(side, activeStream, after, before + 1);
+    if (after >= activeTarget) {
+      state.traceReplayTimers[side] = null;
+      return;
+    }
+    state.traceReplayTimers[side] = window.setTimeout(tick, 18);
+  };
+  state.traceReplayTimers[side] = window.setTimeout(tick, 18);
+}
+
+function renderSideJournalFrame(side, stream, displayCount, newStart) {
+  const meter = side === "white" ? els.whiteJournalMeter : els.blackJournalMeter;
+  const output = side === "white" ? els.whiteTraceOutput : els.blackTraceOutput;
+  const readableTab = side === "white" ? els.whiteReadableTab : els.blackReadableTab;
+  const tokenTab = side === "white" ? els.whiteTokenTab : els.blackTokenTab;
+  const mode = state.sideTraceMode[side];
+  const scrollState = state.traceScrollState[side][mode];
+  const sameRenderedMode = output.dataset.traceMode === mode;
+  const previousTop = sameRenderedMode ? output.scrollTop : scrollState.top;
+  const shouldFollow = !scrollState.locked && (!sameRenderedMode || isTraceNearBottom(output));
+  const packets = stream.packets.slice(-160);
+  const visibleCount = Math.min(displayCount, packets.length);
+  const visiblePackets = packets.slice(0, visibleCount);
+  const offset = Math.max(0, stream.packet_count - packets.length);
+  meter.textContent = `packets=${stream.packet_count} tokens=${stream.packet_count * 7}`;
+  readableTab.classList.toggle("active", mode === "readable");
+  tokenTab.classList.toggle("active", mode === "token");
+  readableTab.setAttribute("aria-selected", String(mode === "readable"));
+  tokenTab.setAttribute("aria-selected", String(mode === "token"));
+  output.classList.toggle("readable-log", mode === "readable");
+  output.classList.toggle("token-log", mode === "token");
+  output.dataset.traceMode = mode;
+  if (visiblePackets.length === 0) {
+    output.replaceChildren(emptyLogLine(side, mode));
+    restoreTraceScrollPosition(side, output, scrollState, true, previousTop);
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  visiblePackets.forEach((packet, index) => {
+    const absoluteIndex = offset + index + 1;
+    const line = document.createElement("div");
+    line.className = traceLineClass(packet, absoluteIndex >= offset + newStart);
+    line.textContent = mode === "token"
+      ? formatRawTokenLine(packet, absoluteIndex, side)
+      : formatReadableTraceLine(packet, absoluteIndex, side);
+    fragment.appendChild(line);
+  });
+  output.replaceChildren(fragment);
+  restoreTraceScrollPosition(side, output, scrollState, shouldFollow, previousTop);
+}
+
+function recordTraceScrollPosition(side) {
+  if (state.traceScrollSuppress[side]) {
+    return;
+  }
+  const output = side === "white" ? els.whiteTraceOutput : els.blackTraceOutput;
+  const mode = state.sideTraceMode[side];
+  const scrollState = state.traceScrollState[side][mode];
+  scrollState.top = output.scrollTop;
+  scrollState.locked = !isTraceNearBottom(output);
+}
+
+function isTraceNearBottom(output) {
+  const remaining = output.scrollHeight - output.clientHeight - output.scrollTop;
+  return remaining <= 8;
+}
+
+function restoreTraceScrollPosition(side, output, scrollState, shouldFollow, previousTop) {
+  state.traceScrollSuppress[side] = true;
+  if (shouldFollow) {
+    output.scrollTop = output.scrollHeight;
+    scrollState.top = output.scrollTop;
+    scrollState.locked = false;
+    window.setTimeout(() => {
+      state.traceScrollSuppress[side] = false;
+    }, 0);
+    return;
+  }
+  output.scrollTop = Math.min(previousTop, Math.max(0, output.scrollHeight - output.clientHeight));
+  scrollState.top = previousTop;
+  window.setTimeout(() => {
+    state.traceScrollSuppress[side] = false;
+  }, 0);
+}
+
+function emptyLogLine(side, mode) {
+  const line = document.createElement("div");
+  line.className = "trace-line trace-line-muted";
+  line.textContent = mode === "token"
+    ? `waiting for ${side} token trace`
+    : `waiting for ${side} trace packets`;
+  return line;
+}
+
+function traceLineClass(packet, fresh) {
+  const classes = ["trace-line", `trace-op-${packet.op.toLowerCase()}`];
+  if (fresh) {
+    classes.push("trace-line-new");
+  }
+  return classes.join(" ");
+}
+
+function formatReadableTraceLine(packet, index, side) {
+  const actor = `${side} shared_transformer`;
+  if (packet.op === "CANDIDATE") {
+    return `${actor} step=${index} try ${squareName(packet.a1)}${squareName(packet.a2)} promo=${packet.a3} flags=${packet.commit}`;
+  }
+  if (packet.op === "LEGAL_SET") {
+    return `${actor} step=${index} legal move_id=${packet.a0} ok=${packet.a1}`;
+  }
+  if (packet.op === "COMMIT_MOVE") {
+    return `${actor} step=${index} commit ${squareName(packet.a1)}${squareName(packet.a2)} promo=${packet.a3} flags=${packet.commit}`;
+  }
+  if (packet.op === "WRITE_SQ") {
+    return `${actor} step=${index} write ${squareName(packet.a0)} piece=${packet.a1} ply=${packet.a2}`;
+  }
+  if (packet.op === "TERMINAL_SET") {
+    return `${actor} step=${index} terminal result=${packet.a0} reason=${packet.a1} ply=${packet.a2}`;
+  }
+  if (packet.op === "PROGRAM_HALT") {
+    return `${actor} step=${index} halt tag=${packet.tag}`;
+  }
+  return `${actor} step=${index} ${packet.op} a0=${packet.a0} a1=${packet.a1} a2=${packet.a2} a3=${packet.a3} tag=${packet.tag} commit=${packet.commit}`;
+}
+
+function formatRawTokenLine(packet, index, side) {
+  const hexToken = packet.tokens.map((value) => Number(value).toString(16).padStart(2, "0")).join(" ");
+  return `${hexToken} ${side}.${packet.op.toLowerCase()}(${packetDescription(packet)},idx=${index})`;
+}
+
+function packetDescription(packet) {
+  if (packet.op === "CANDIDATE") {
+    return `move_id=${packet.a0},from=${squareName(packet.a1)},to=${squareName(packet.a2)},promo=${packet.a3},flags=${packet.commit}`;
+  }
+  if (packet.op === "LEGAL_SET") {
+    return `move_id=${packet.a0},sts=${packet.a1},bt=0`;
+  }
+  if (packet.op === "COMMIT_MOVE") {
+    return `from=${squareName(packet.a1)},to=${squareName(packet.a2)},promo=${packet.a3},flags=${packet.commit}`;
+  }
+  if (packet.op === "WRITE_SQ") {
+    return `sq=${squareName(packet.a0)},piece=${packet.a1},ply=${packet.a2}`;
+  }
+  if (packet.op === "WRITE_REG" || packet.op === "WRITE_CASTLE" || packet.op === "WRITE_EP" || packet.op === "WRITE_CLOCK") {
+    return `a0=${packet.a0},a1=${packet.a1},a2=${packet.a2},sts=1,bt=0`;
+  }
+  if (packet.op === "TERMINAL_SET") {
+    return `result=${packet.a0},reason=${packet.a1},ply=${packet.a2}`;
+  }
+  if (packet.op === "PROGRAM_HALT") {
+    return `tag=${packet.tag},sts=1,bt=0`;
+  }
+  return `a0=${packet.a0},a1=${packet.a1},a2=${packet.a2},a3=${packet.a3},tag=${packet.tag},commit=${packet.commit}`;
+}
+
+function squareName(index) {
+  if (!Number.isInteger(index) || index < 0 || index > 63) {
+    return String(index);
+  }
+  const files = "abcdefgh";
+  return `${files[index % 8]}${Math.floor(index / 8) + 1}`;
 }
 
 function targetSet() {
@@ -303,8 +562,39 @@ els.step.addEventListener("click", () => {
 
 els.reset.addEventListener("click", async () => {
   stopAutoPlay();
+  resetTraceReplayState();
   renderSnapshot(await api("/api/reset", {}));
 });
+
+function resetTraceReplayState() {
+  for (const side of ["white", "black"]) {
+    if (state.traceReplayTimers[side] !== null) {
+      window.clearTimeout(state.traceReplayTimers[side]);
+      state.traceReplayTimers[side] = null;
+    }
+    state.traceReplayCounts[side] = 0;
+    state.traceReplayKeys[side] = "";
+  }
+  resetTraceScrollState();
+}
+
+function resetTraceScrollState() {
+  state.traceScrollState.white = makeTraceScrollState();
+  state.traceScrollState.black = makeTraceScrollState();
+}
+
+function setSideTraceMode(side, mode) {
+  state.sideTraceMode[side] = mode;
+  const stream = state.traceStreams[side] || emptyTraceStream();
+  renderSideJournalFrame(side, stream, state.traceReplayCounts[side], state.traceReplayCounts[side] + 1);
+}
+
+els.whiteReadableTab.addEventListener("click", () => setSideTraceMode("white", "readable"));
+els.whiteTokenTab.addEventListener("click", () => setSideTraceMode("white", "token"));
+els.blackReadableTab.addEventListener("click", () => setSideTraceMode("black", "readable"));
+els.blackTokenTab.addEventListener("click", () => setSideTraceMode("black", "token"));
+els.whiteTraceOutput.addEventListener("scroll", () => recordTraceScrollPosition("white"));
+els.blackTraceOutput.addEventListener("scroll", () => recordTraceScrollPosition("black"));
 
 els.mode.addEventListener("change", () => {
   if (els.mode.value !== "selfplay") {

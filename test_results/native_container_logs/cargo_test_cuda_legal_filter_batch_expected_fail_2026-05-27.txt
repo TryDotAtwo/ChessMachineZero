@@ -1,0 +1,36 @@
+=== cmz exec start 2026-05-27T15:33:18Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+error[E0599]: no method named `cuda_legal_filter_batch_attention_count` found for struct `Engine` in the current scope
+    --> crates/cmz-engine-sys/src/lib.rs:1772:27
+     |
+ 201 | pub struct Engine {
+     | ----------------- method `cuda_legal_filter_batch_attention_count` not found for this struct
+...
+1772 |         assert_eq!(engine.cuda_legal_filter_batch_attention_count(), 0);
+     |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `cuda_legal_filter_attention_count` with a similar name
+     |
+1772 -         assert_eq!(engine.cuda_legal_filter_batch_attention_count(), 0);
+1772 +         assert_eq!(engine.cuda_legal_filter_attention_count(), 0);
+     |
+
+error[E0599]: no method named `cuda_legal_filter_batch_attention_count` found for struct `Engine` in the current scope
+    --> crates/cmz-engine-sys/src/lib.rs:1778:27
+     |
+ 201 | pub struct Engine {
+     | ----------------- method `cuda_legal_filter_batch_attention_count` not found for this struct
+...
+1778 |         assert_eq!(engine.cuda_legal_filter_batch_attention_count(), 1);
+     |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `cuda_legal_filter_attention_count` with a similar name
+     |
+1778 -         assert_eq!(engine.cuda_legal_filter_batch_attention_count(), 1);
+1778 +         assert_eq!(engine.cuda_legal_filter_attention_count(), 1);
+     |
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `cmz-engine-sys` (lib test) due to 2 previous errors
+=== cmz exec end 2026-05-27T15:33:18Z status=101 ===
+

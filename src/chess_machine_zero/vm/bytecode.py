@@ -30,11 +30,6 @@ class InstructionOp(IntEnum):
     UPDATE_EP = 111
     UPDATE_CLOCKS = 112
     CHECK_TERMINAL = 113
-    BEGIN_CANDIDATE_SCORING = 200
-    CALL_MOVE_RANKER = 201
-    WRITE_SCORE = 202
-    SAMPLE_BY_SCORE = 203
-    COMMIT_SELECTED_MOVE = 204
 
 
 @dataclass(frozen=True, slots=True)

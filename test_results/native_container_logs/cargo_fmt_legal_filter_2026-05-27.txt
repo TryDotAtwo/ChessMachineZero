@@ -1,0 +1,17 @@
+=== cmz exec start 2026-05-27T11:23:07Z ===
+Diff in /work/native/crates/cmz-engine-sys/src/lib.rs:409:
+         let uci = CString::new(uci).map_err(|_| "UCI contains interior nul byte".to_string())?;
+         let mut legal = 0i32;
+         let status = unsafe {
+-            cmz_engine_frozen_move_legal(
+-                self.raw.as_ptr(),
+-                fen.as_ptr(),
+-                uci.as_ptr(),
+-                &mut legal,
+-            )
++            cmz_engine_frozen_move_legal(self.raw.as_ptr(), fen.as_ptr(), uci.as_ptr(), &mut legal)
+         };
+         if status != 0 {
+             return Err(last_error(self.raw));
+=== cmz exec end 2026-05-27T11:23:07Z status=1 ===
+

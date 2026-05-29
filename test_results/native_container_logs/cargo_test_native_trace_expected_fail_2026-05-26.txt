@@ -1,0 +1,28 @@
+=== cmz exec start 2026-05-26T13:36:08Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+error[E0599]: no method named `legal_trace_packets` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:212:28
+    |
+ 40 | pub struct Engine {
+    | ----------------- method `legal_trace_packets` not found for this struct
+...
+212 |         let trace = engine.legal_trace_packets(START).unwrap();
+    |                            ^^^^^^^^^^^^^^^^^^^ method not found in `Engine`
+
+error[E0599]: no method named `legal_trace_packets` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:232:14
+    |
+ 40 |   pub struct Engine {
+    |   ----------------- method `legal_trace_packets` not found for this struct
+...
+231 |           let trace = engine
+    |  _____________________-
+232 | |             .legal_trace_packets("4r2k/8/8/3pP3/8/8/8/4K3 w - d6 0 1")
+    | |             -^^^^^^^^^^^^^^^^^^^ method not found in `Engine`
+    | |_____________|
+    |
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `cmz-engine-sys` (lib test) due to 2 previous errors
+=== cmz exec end 2026-05-26T13:36:08Z status=101 ===
+

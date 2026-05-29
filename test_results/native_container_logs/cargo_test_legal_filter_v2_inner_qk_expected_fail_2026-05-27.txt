@@ -1,0 +1,27 @@
+=== cmz exec start 2026-05-27T17:15:07Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.88s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 2 tests
+
+thread 'tests::frozen_legal_trace_uses_batched_v2_layered_self_attention_without_v1_batch_kernel' (49166) panicked at crates/cmz-engine-sys/src/lib.rs:1843:9:
+assertion failed: graph.contains("\"legal_filter_v2_inner_select\":\"qk_hardmax_2d_helpers\"")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'tests::frozen_move_legal_uses_v2_layered_self_attention_without_v1_kernel' (49167) panicked at crates/cmz-engine-sys/src/lib.rs:1813:9:
+assertion failed: graph.contains("\"legal_filter_v2_inner_select\":\"qk_hardmax_2d_helpers\"")
+test tests::frozen_legal_trace_uses_batched_v2_layered_self_attention_without_v1_batch_kernel ... FAILED
+test tests::frozen_move_legal_uses_v2_layered_self_attention_without_v1_kernel ... FAILED
+
+failures:
+
+failures:
+    tests::frozen_legal_trace_uses_batched_v2_layered_self_attention_without_v1_batch_kernel
+    tests::frozen_move_legal_uses_v2_layered_self_attention_without_v1_kernel
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 45 filtered out; finished in 0.23s
+
+error: test failed, to rerun pass `-p cmz-engine-sys --lib`
+=== cmz exec end 2026-05-27T17:15:07Z status=101 ===
+

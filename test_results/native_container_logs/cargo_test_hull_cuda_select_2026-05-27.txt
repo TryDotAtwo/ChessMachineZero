@@ -1,0 +1,91 @@
+=== cmz exec start 2026-05-27T17:58:24Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+   Compiling cmz-dashboard v0.1.0 (/work/native/crates/cmz-dashboard)
+   Compiling cmz-cli v0.1.0 (/work/native/crates/cmz-cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.38s
+     Running unittests src/main.rs (target/debug/deps/cmz_cli-237550e061088e8c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/cmz_dashboard-b45e3c88d3eb00a9)
+
+running 1 test
+test tests::rust_dashboard_snapshot_uses_native_trace_stream_without_python_hot_path ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running unittests src/main.rs (target/debug/deps/cmz_dashboard-070cc0b8121b22a5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 47 tests
+test packets::tests::trace_packet_fixed_width_round_trip_matches_python_codec ... ok
+test packets::tests::square_codec_round_trips_python_layout ... ok
+test packets::tests::trace_packet_rejects_bad_width_negative_and_bad_enums ... ok
+test packets::tests::move_packet_rejects_invalid_values ... ok
+test packets::tests::move_packet_tuple_uci_and_id_round_trip_matches_python_codec ... ok
+test tests::frozen_candidate_targets_use_cuda_qk_hardmax_v_attention_without_cpu_fallback ... ok
+test tests::cuda_probe_doubles_exact_values_when_gpu_is_available ... ok
+test tests::frozen_castle_targets_use_cuda_castle_path_attention_without_cpu_fallback ... ok
+test tests::frozen_attack_mask_api_increments_layer_counter_and_rejects_invalid_piece ... ok
+test tests::frozen_candidate_target_mask_increments_counter_and_rejects_invalid_piece ... ok
+test tests::frozen_move_legal_uses_v2_layered_self_attention_without_v1_kernel ... ok
+test tests::frozen_move_legal_layer_increments_counter_and_rejects_bad_input ... ok
+test tests::frozen_candidate_target_mask_handles_pawn_push_capture_and_ep_targets ... ok
+test tests::frozen_attack_mask_uses_cuda_qk_hardmax_v_table_attention_without_cpu_fallback ... ok
+test tests::frozen_candidate_target_mask_filters_friendly_and_keeps_enemy_targets ... ok
+test tests::frozen_ray_scan_mask_increments_counter_and_rejects_invalid_direction ... ok
+test tests::frozen_ray_scan_uses_cuda_nearest_blocker_attention_without_cpu_fallback ... ok
+test tests::native_decoder_scaffold_requires_2d_heads_and_shared_side_input ... ok
+test tests::native_frozen_rule_graph_declares_full_attention_only_contract ... ok
+test tests::native_hull_hardmax_2d_uses_cutlass_gemm_frozen_attention_backend ... ok
+test tests::frozen_ray_scan_mask_matches_blocker_aware_slider_geometry ... ok
+test tests::frozen_terminal_status_layer_increments_counter_and_rejects_bad_input ... ok
+test tests::native_legal_trace_preserves_illegal_pseudo_candidate_rejection ... ok
+test tests::frozen_attack_masks_match_static_chess_geometry ... ok
+test tests::legal_filter_rejects_self_check_en_passant_and_castling_through_attack ... ok
+test tests::frozen_legal_trace_uses_batched_v2_layered_self_attention_without_v1_batch_kernel ... ok
+test tests::native_hull_hardmax_2d_matches_dense_argmax ... ok
+test tests::frozen_move_legal_layer_matches_king_safety_filter_cases ... ok
+test tests::native_percepta_contract_requires_hullkv_2d_attention_and_no_fallbacks ... ok
+test tests::frozen_legal_trace_attention_packets_match_legacy_native_trace_and_emit_promotions ... ok
+test tests::frozen_legal_trace_attention_packets_increment_layer_counter ... ok
+test tests::native_legal_trace_emits_candidate_legal_pairs_and_halt ... ok
+test tests::start_position_has_exact_20_legal_moves ... ok
+test tests::frozen_terminal_status_layer_matches_terminal_rule_cases ... ok
+test tests::side_to_move_controls_black_generation_and_check_escape_filter ... ok
+test tests::frozen_make_move_trace_attention_packets_increment_layer_counter ... ok
+test tests::native_nested_hull_topk_2d_matches_dense_topk_order ... ok
+test tests::board_projection_uses_cuda_latest_write_frozen_attention_without_cpu_fallback ... ok
+test tests::special_rules_include_castling_en_passant_and_promotion ... ok
+test tests::native_make_move_trace_emits_commit_board_writes_state_terminal_and_halt ... ok
+test tests::native_board_trace_projection_reconstructs_board_hidden_piece_tokens ... ok
+test tests::native_legal_trace_stream_decodes_one_packet_per_call ... ok
+test tests::native_legal_trace_stream_uses_cuda_trace_select_without_cpu_fallback ... ok
+test tests::frozen_make_move_trace_attention_packets_match_native_make_move_trace ... ok
+test tests::board_projection_and_trace_stream_increment_frozen_layer_steps ... ok
+test tests::native_libtorch_decoder_forward_uses_2d_attention_and_generic_commands ... ok
+test tests::native_libtorch_policy_gradient_step_changes_decoder_weights_without_trace_backprop ... ok
+
+test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+
+   Doc-tests cmz_dashboard
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests cmz_engine_sys
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+=== cmz exec end 2026-05-27T17:58:24Z status=0 ===
+

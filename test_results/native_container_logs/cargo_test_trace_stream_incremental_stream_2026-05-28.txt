@@ -1,0 +1,12 @@
+=== cmz exec start 2026-05-28T09:18:22Z ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.37s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 2 tests
+test tests::native_legal_trace_stream_uses_cuda_trace_select_without_cpu_fallback ... ok
+test tests::native_legal_trace_stream_decodes_one_packet_per_call ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 46 filtered out; finished in 0.70s
+
+=== cmz exec end 2026-05-28T09:18:22Z status=0 ===
+

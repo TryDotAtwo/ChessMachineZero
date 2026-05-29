@@ -1,0 +1,28 @@
+=== cmz exec start 2026-05-28T11:27:01Z ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.19s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 18 tests
+test tests::native_decoder_scaffold_requires_2d_heads_and_shared_side_input ... ok
+test tests::native_frozen_rule_graph_declares_full_attention_only_contract ... ok
+test tests::native_frozen_rule_graph_declares_known_source_audit_gaps ... ok
+test tests::native_percepta_contract_requires_hullkv_2d_attention_and_no_fallbacks ... ok
+test tests::native_nested_hull_topk_2d_matches_dense_topk_order ... ok
+test tests::native_hull_hardmax_2d_uses_cutlass_gemm_frozen_attention_backend ... ok
+test tests::native_legal_trace_preserves_illegal_pseudo_candidate_rejection ... ok
+test tests::native_hull_hardmax_2d_matches_dense_argmax ... ok
+test tests::native_legal_trace_emits_candidate_legal_pairs_and_halt ... ok
+test tests::native_make_move_trace_emits_commit_board_writes_state_terminal_and_halt ... ok
+test tests::native_board_trace_projection_reconstructs_board_hidden_piece_tokens ... ok
+test tests::frozen_legal_trace_attention_packets_match_legacy_native_trace_and_emit_promotions ... ok
+test tests::frozen_make_move_trace_attention_packets_match_native_make_move_trace ... ok
+test tests::native_legal_trace_stream_decodes_one_packet_per_call ... ok
+test tests::native_legal_trace_stream_uses_cuda_trace_select_without_cpu_fallback ... ok
+test tests::native_libtorch_decoder_forward_uses_2d_attention_and_generic_commands ... ok
+test tests::native_policy_decoder_selects_trace_legal_dashboard_move ... ok
+test tests::native_libtorch_policy_gradient_step_changes_decoder_weights_without_trace_backprop ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 2.02s
+
+=== cmz exec end 2026-05-28T11:27:01Z status=0 ===
+

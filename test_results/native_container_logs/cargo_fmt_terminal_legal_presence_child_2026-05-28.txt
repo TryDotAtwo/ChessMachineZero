@@ -1,0 +1,15 @@
+=== cmz exec start 2026-05-28T19:14:16Z ===
+Diff in /work/native/crates/cmz-engine-sys/src/lib.rs:2373:
+         let engine = Engine::new().unwrap();
+         let graph = engine.frozen_rule_graph_json().unwrap();
+         let source = cuda_source();
+-        let body = cuda_function_body(
+-            &source,
+-            "cmz_cuda_terminal_status_attention",
+-        );
++        let body = cuda_function_body(&source, "cmz_cuda_terminal_status_attention");
+ 
+         assert!(!source.contains("cmz_terminal_candidate_move_legal_attention_value"));
+         assert!(!source.contains("cmz_terminal_legal_presence_accumulate_attention_value"));
+=== cmz exec end 2026-05-28T19:14:16Z status=1 ===
+

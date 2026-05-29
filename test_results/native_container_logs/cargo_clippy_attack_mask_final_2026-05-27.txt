@@ -1,0 +1,4 @@
+=== cmz exec start 2026-05-27T10:27:09Z ===
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.16s
+=== cmz exec end 2026-05-27T10:27:09Z status=0 ===
+

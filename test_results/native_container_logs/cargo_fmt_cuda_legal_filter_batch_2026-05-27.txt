@@ -1,0 +1,3 @@
+=== cmz exec start 2026-05-27T15:42:34Z ===
+=== cmz exec end 2026-05-27T15:42:34Z status=0 ===
+

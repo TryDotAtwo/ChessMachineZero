@@ -1,0 +1,28 @@
+# Native Candidate Record Parallel Compaction V1
+
+## Scope
+
+- slice_id=native_candidate_record_parallel_compaction_v1
+- target_gap=candidate_record_slot_compaction_control_flow
+- implementation=cmz_candidate_record_slot_validity_qk_write_kernel + cmz_candidate_record_slot_rank_write_attention_kernel
+- contract_update=candidate_record_compaction_backend=parallel_qk_slot_rank_write_attention
+- removed_gap=candidate_record_slot_compaction_control_flow
+- new_gap=candidate_record_prefix_rank_control_flow
+- full_frozen_attention_only=false
+- semantic_attention_purity=false
+
+## TDD
+
+- expected_fail_log=test_results/native_container_logs/cargo_test_candidate_record_compaction_expected_fail_2026-05-28.txt
+- expected_fail_reason=CUDA source lacked cmz_candidate_record_slot_validity_qk_write_kernel before implementation
+- targeted_pass_log=test_results/native_container_logs/cargo_test_candidate_record_compaction_targeted_2026-05-28.txt
+- package_pass_log=test_results/native_container_logs/cargo_test_candidate_record_compaction_package_2026-05-28.txt
+
+## Verification
+
+- cargo_fmt=passed; log=test_results/native_container_logs/cargo_fmt_candidate_record_compaction_2026-05-28.txt
+- cargo_fmt_apply=passed; log=test_results/native_container_logs/cargo_fmt_apply_candidate_record_compaction_2026-05-28.txt
+- cargo_clippy=passed; log=test_results/native_container_logs/cargo_clippy_candidate_record_compaction_2026-05-28.txt
+- cargo_test_workspace=passed; log=test_results/native_container_logs/cargo_test_candidate_record_compaction_2026-05-28.txt
+- pytest=passed; log=test_results/candidate_record_compaction_pytest_2026-05-28.txt
+- pytest_werror=passed; log=test_results/candidate_record_compaction_pytest_werror_2026-05-28.txt

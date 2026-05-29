@@ -1,0 +1,13 @@
+=== cmz exec start 2026-05-28T11:47:01Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 27.23s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 2 tests
+test tests::native_frozen_rule_graph_declares_full_attention_only_contract ... ok
+test tests::native_frozen_rule_graph_declares_known_source_audit_gaps ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.03s
+
+=== cmz exec end 2026-05-28T11:47:01Z status=0 ===
+

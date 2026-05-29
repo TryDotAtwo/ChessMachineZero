@@ -1,0 +1,22 @@
+# Native Frozen Rule Layer Stack v1
+
+- date=2026-05-27
+- scope=First verified native lowering slice from C++ rule VM operations into explicit frozen attention layer stack.
+- tdd_red=`cd /work/native && cargo test --workspace` failed before implementation because `cmz_engine_frozen_rule_graph_json` and `cmz_engine_frozen_layer_step_count` were missing.
+- tdd_red_log=test_results/native_container_logs/cargo_test_frozen_layer_stack_expected_fail_2026-05-27.txt
+- implementation=Added frozen rule graph JSON contract, frozen layer step counter, latest-write hardmax board projection, and cursor hardmax trace select. Board projection and trace streaming now increment frozen layer steps.
+- lowered_layers=board_projection:latest_write_hardmax_2d; trace_select:cursor_hardmax_2d
+- declared_pending_layers=ray_scan, legal_filter, make_move, terminal_predicates
+- truth_contract=full_rule_lowering_complete=false; cpp_control_flow_rule_vm_remaining=true
+- cargo_fmt=`cd /work/native && cargo fmt --all -- --check` => passed
+- cargo_fmt_log=test_results/native_container_logs/cargo_fmt_frozen_layer_stack_2026-05-27.txt
+- cargo_clippy=`cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed
+- cargo_clippy_log=test_results/native_container_logs/cargo_clippy_frozen_layer_stack_2026-05-27.txt
+- cargo_test=`cd /work/native && cargo test --workspace` => passed; cmz-engine-sys=23 tests; cmz-dashboard=1 test
+- cargo_test_log=test_results/native_container_logs/cargo_test_frozen_layer_stack_2026-05-27.txt
+- final_cargo_test=`cd /work/native && cargo test --workspace` => passed; cmz-engine-sys=23 tests; cmz-dashboard=1 test
+- final_cargo_test_log=test_results/native_container_logs/cargo_test_frozen_layer_stack_final_2026-05-27.txt
+- packet_pytest=`python -m pytest -p no:cacheprovider tests/test_trace_packet.py tests/test_move_packet.py -q` => passed; 5 tests
+- packet_pytest_log=test_results/frozen_layer_stack_packet_pytest_2026-05-27.txt
+- full_pytest=`python -m pytest -p no:cacheprovider -q` => passed; 146 tests reached 100%
+- full_pytest_log=test_results/frozen_layer_stack_pytest_2026-05-27.txt

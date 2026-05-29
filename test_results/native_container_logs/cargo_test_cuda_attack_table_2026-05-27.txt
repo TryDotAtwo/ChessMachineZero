@@ -1,0 +1,12 @@
+=== cmz exec start 2026-05-27T13:53:24Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 51.16s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 1 test
+test tests::frozen_attack_mask_uses_cuda_qk_hardmax_v_table_attention_without_cpu_fallback ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.31s
+
+=== cmz exec end 2026-05-27T13:53:24Z status=0 ===
+

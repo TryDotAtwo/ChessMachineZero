@@ -1,0 +1,48 @@
+=== cmz exec start 2026-05-27T09:06:00Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+   Compiling cmz-dashboard v0.1.0 (/work/native/crates/cmz-dashboard)
+error[E0599]: no method named `decoder_forward` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:837:29
+    |
+105 | pub struct Engine {
+    | ----------------- method `decoder_forward` not found for this struct
+...
+837 |         let output = engine.decoder_forward(&hidden).unwrap();
+    |                             ^^^^^^^^^^^^^^^ method not found in `Engine`
+
+error[E0599]: no method named `decoder_forward` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:863:29
+    |
+105 | pub struct Engine {
+    | ----------------- method `decoder_forward` not found for this struct
+...
+863 |         let before = engine.decoder_forward(&hidden).unwrap();
+    |                             ^^^^^^^^^^^^^^^ method not found in `Engine`
+
+error[E0599]: no method named `decoder_policy_gradient_step` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:865:14
+    |
+105 |   pub struct Engine {
+    |   ----------------- method `decoder_policy_gradient_step` not found for this struct
+...
+864 |           let loss = engine
+    |  ____________________-
+865 | |             .decoder_policy_gradient_step(&hidden, 4, 1.0, 0.05)
+    | |             -^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `Engine`
+    | |_____________|
+    |
+
+error[E0599]: no method named `decoder_forward` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:867:28
+    |
+105 | pub struct Engine {
+    | ----------------- method `decoder_forward` not found for this struct
+...
+867 |         let after = engine.decoder_forward(&hidden).unwrap();
+    |                            ^^^^^^^^^^^^^^^ method not found in `Engine`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `cmz-engine-sys` (lib test) due to 4 previous errors
+warning: build failed, waiting for other jobs to finish...
+=== cmz exec end 2026-05-27T09:06:00Z status=101 ===
+

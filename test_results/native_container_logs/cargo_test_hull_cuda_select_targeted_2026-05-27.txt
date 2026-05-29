@@ -1,0 +1,12 @@
+=== cmz exec start 2026-05-27T17:56:37Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 34.62s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 1 test
+test tests::native_hull_hardmax_2d_uses_cutlass_gemm_frozen_attention_backend ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 46 filtered out; finished in 0.15s
+
+=== cmz exec end 2026-05-27T17:56:37Z status=0 ===
+

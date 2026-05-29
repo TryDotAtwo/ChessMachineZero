@@ -1,0 +1,64 @@
+# Native Contract Honesty V1 - 2026-05-28
+
+## Scope
+
+```text
+change_id=native_contract_honesty_v1
+source_report=docs/percepta_policy_only_full_code_audit_2026-05-28.md
+goal=remove full_frozen_attention_only overclaim from native frozen-rule graph contract
+target_full_frozen_attention_only=true
+current_full_frozen_2d_self_attention_only=false
+full_frozen_attention_only=false
+full_rule_lowering_complete=false
+semantic_attention_purity=false
+contract_overclaim_fixed=true
+```
+
+## Declared Remaining Gaps
+
+```text
+candidate_generation_not_pure_attention
+terminal_predicates_not_pure_attention
+resolve_move_scan
+trace_streaming_buffered
+HullKV_not_hot_path
+NestedHullTopK_CPU
+dashboard_not_policy_decoder
+legacy_strategy_modules
+python_attention_runtime_not_cuda_cutlass
+tests_assert_metadata_not_semantics
+```
+
+## TDD Evidence
+
+```text
+expected_fail_log=test_results/native_container_logs/cargo_test_contract_honesty_expected_fail_2026-05-28.txt
+expected_fail_result=failed_before_contract_edit
+expected_fail_reason=graph lacked target_full_frozen_attention_only and still reported full_frozen_attention_only=true
+```
+
+## Targeted Verification
+
+```text
+targeted_contract_log=test_results/native_container_logs/cargo_test_contract_honesty_targeted_2026-05-28.txt
+targeted_contract_result=passed
+targeted_source_audit_log=test_results/native_container_logs/cargo_test_contract_honesty_source_audit_2026-05-28.txt
+targeted_source_audit_result=passed
+```
+
+## Full Verification
+
+```text
+cargo_fmt_apply_log=test_results/native_container_logs/cargo_fmt_apply_contract_honesty_2026-05-28.txt
+cargo_fmt_apply_result=passed
+cargo_fmt_check_log=test_results/native_container_logs/cargo_fmt_contract_honesty_2026-05-28.txt
+cargo_fmt_check_result=passed
+cargo_clippy_log=test_results/native_container_logs/cargo_clippy_contract_honesty_2026-05-28.txt
+cargo_clippy_result=passed
+cargo_test_workspace_log=test_results/native_container_logs/cargo_test_contract_honesty_2026-05-28.txt
+cargo_test_workspace_result=passed; native_tests=48
+pytest_log=test_results/contract_honesty_pytest_2026-05-28.txt
+pytest_result=passed; tests=146
+pytest_werror_log=test_results/contract_honesty_pytest_werror_2026-05-28.txt
+pytest_werror_result=passed; tests=146
+```

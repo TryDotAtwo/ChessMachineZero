@@ -1,0 +1,14 @@
+=== cmz exec start 2026-05-27T11:37:54Z ===
+Diff in /work/native/crates/cmz-engine-sys/src/lib.rs:1483:
+ 
+         let _ = engine.frozen_terminal_status(START, 1, false).unwrap();
+         assert_eq!(engine.frozen_layer_step_count(), before + 1);
+-        assert!(engine.frozen_terminal_status("not a fen", 1, false).is_err());
++        assert!(engine
++            .frozen_terminal_status("not a fen", 1, false)
++            .is_err());
+     }
+ 
+     fn dense_hardmax_2d(query: (f32, f32), keys: &[(f32, f32)]) -> (usize, f32) {
+=== cmz exec end 2026-05-27T11:37:54Z status=1 ===
+

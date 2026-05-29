@@ -1,0 +1,28 @@
+# Native Candidate Single-Offset Bounds Slot V1
+
+## Scope
+
+- slice_id=native_candidate_single_offset_bounds_slot_v1
+- target_gap=candidate_single_offset_bounds_control_flow
+- implementation=cmz_candidate_single_offset_bounds_slot_attention_value + qk_bounds_slot_friendly_filter
+- contract_update=candidate_single_offset_backend=qk_bounds_slot_friendly_filter
+- removed_gap=candidate_single_offset_bounds_control_flow
+- new_gap=candidate_single_offset_bounds_slot_control_flow
+- full_frozen_attention_only=false
+- semantic_attention_purity=false
+
+## TDD
+
+- expected_fail_log=test_results/native_container_logs/cargo_test_candidate_single_offset_bounds_slot_expected_fail_2026-05-28.txt
+- expected_fail_reason=single-offset target body lacked bounds-slot helper before implementation
+- targeted_pass_log=test_results/native_container_logs/cargo_test_candidate_single_offset_bounds_slot_targeted_2026-05-28.txt
+- package_pass_log=test_results/native_container_logs/cargo_test_candidate_single_offset_bounds_slot_package_2026-05-28.txt
+
+## Verification
+
+- cargo_fmt=passed; log=test_results/native_container_logs/cargo_fmt_candidate_single_offset_bounds_slot_2026-05-28.txt
+- cargo_fmt_apply=passed; log=test_results/native_container_logs/cargo_fmt_apply_candidate_single_offset_bounds_slot_2026-05-28.txt
+- cargo_clippy=passed; log=test_results/native_container_logs/cargo_clippy_candidate_single_offset_bounds_slot_2026-05-28.txt
+- cargo_test_workspace=passed; log=test_results/native_container_logs/cargo_test_candidate_single_offset_bounds_slot_2026-05-28.txt
+- pytest=passed; log=test_results/candidate_single_offset_bounds_slot_pytest_2026-05-28.txt
+- pytest_werror=passed; log=test_results/candidate_single_offset_bounds_slot_pytest_werror_2026-05-28.txt

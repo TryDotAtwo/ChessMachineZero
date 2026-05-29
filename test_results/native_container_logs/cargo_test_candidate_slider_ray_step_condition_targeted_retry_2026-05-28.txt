@@ -1,0 +1,8 @@
+=== cmz exec start 2026-05-28T17:31:47Z ===
+error: unexpected argument 'start_position_has_exact_20_legal_moves' found
+
+Usage: cargo test [OPTIONS] [TESTNAME] [-- [ARGS]...]
+
+For more information, try '--help'.
+=== cmz exec end 2026-05-28T17:31:47Z status=1 ===
+

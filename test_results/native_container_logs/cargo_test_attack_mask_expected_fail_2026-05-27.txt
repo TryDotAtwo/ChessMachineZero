@@ -1,0 +1,18 @@
+=== cmz exec start 2026-05-27T10:16:19Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+   Compiling cmz-dashboard v0.1.0 (/work/native/crates/cmz-dashboard)
+   Compiling cmz-cli v0.1.0 (/work/native/crates/cmz-cli)
+error: linking with `cc` failed: exit status: 1
+  |
+  = note:  "cc" "-m64" "/work/native/target/debug/deps/rustcOyAKUw/symbols.o" "<109 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "-lcmz_engine" "-Wl,-Bdynamic" "-ltorch" "-ltorch_cpu" "-ltorch_cuda" "-lc10" "-lc10_cuda" "-lcudart" "-lstdc++" "-Wl,-Bstatic" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*,libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-Wl,-Bdynamic" "-lgcc_s" "-lutil" "-lrt" "-lpthread" "-lm" "-ldl" "-lc" "-L" "/work/native/target/debug/deps/rustcOyAKUw/raw-dylibs" "-B<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld" "-fuse-ld=lld" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-L" "/work/native/target/debug/build/cmz-engine-sys-a139c4eb43bd3490/out/cmake-build" "-L" "/usr/local/cuda/lib64" "-L" "/usr/local/lib/python3.10/dist-packages/torch/lib" "-L" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib" "-o" "/work/native/target/debug/deps/cmz_engine_sys-6cd64b39ee74e964" "-Wl,--gc-sections" "-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-Wl,-rpath,/usr/local/lib/python3.10/dist-packages/torch/lib" "-Wl,-rpath,/usr/local/lib/python3.10/dist-packages/torch/lib"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: rust-lld: error: undefined symbol: cmz_engine_frozen_attack_mask
+          >>> referenced by lib.rs:323 (crates/cmz-engine-sys/src/lib.rs:323)
+          >>>               /work/native/target/debug/deps/cmz_engine_sys-6cd64b39ee74e964.8sa3fzksq381h28qy1e4sh0f5.1qaozqh.rcgu.o:(cmz_engine_sys::Engine::frozen_attack_mask::h3adc42ddb90284b6)
+          collect2: error: ld returned 1 exit status
+          
+
+error: could not compile `cmz-engine-sys` (lib test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+=== cmz exec end 2026-05-27T10:16:19Z status=101 ===
+

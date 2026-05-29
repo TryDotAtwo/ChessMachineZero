@@ -1,0 +1,13 @@
+torch=2.6.0+cu124
+cuda_available=True
+device0=NVIDIA GeForce RTX 3070 Laptop GPU
+rule_param_device=cpu
+prompt_device=cpu
+full_legal_once_seconds=0.073621
+host_append_legal_seconds=0.039792
+host_append_legal_compute_count=1
+step_seconds=0.143764
+move=a2a3
+trace_packets=117
+full_legal_rows=109
+host_legal_rows=109

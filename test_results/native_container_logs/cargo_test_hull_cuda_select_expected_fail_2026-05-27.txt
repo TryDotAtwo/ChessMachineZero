@@ -1,0 +1,22 @@
+=== cmz exec start 2026-05-27T17:54:42Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.93s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 1 test
+
+thread 'tests::native_hull_hardmax_2d_uses_cutlass_gemm_frozen_attention_backend' (50201) panicked at crates/cmz-engine-sys/src/lib.rs:1311:9:
+assertion failed: contract.contains("\"hull_select_backend\":\"cuda_hardmax_select\"")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::native_hull_hardmax_2d_uses_cutlass_gemm_frozen_attention_backend ... FAILED
+
+failures:
+
+failures:
+    tests::native_hull_hardmax_2d_uses_cutlass_gemm_frozen_attention_backend
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 46 filtered out; finished in 0.26s
+
+error: test failed, to rerun pass `-p cmz-engine-sys --lib`
+=== cmz exec end 2026-05-27T17:54:42Z status=101 ===
+

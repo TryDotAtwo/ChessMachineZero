@@ -1,0 +1,4 @@
+=== cmz exec start 2026-05-26T20:14:00Z ===
+root     17721     1  0 20:11 ?        00:00:00 [cmz-dashboard] <defunct>
+=== cmz exec end 2026-05-26T20:14:00Z status=0 ===
+

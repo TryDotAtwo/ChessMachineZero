@@ -1,0 +1,24 @@
+=== cmz exec start 2026-05-26T16:21:15Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+error[E0599]: no method named `runtime_mode` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:419:27
+    |
+ 67 | pub struct Engine {
+    | ----------------- method `runtime_mode` not found for this struct
+...
+419 |         assert_eq!(engine.runtime_mode().unwrap(), "native_matrix_attention_trace_decoder");
+    |                           ^^^^^^^^^^^^ method not found in `Engine`
+
+error[E0599]: no method named `attention_decode_count` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:434:27
+    |
+ 67 | pub struct Engine {
+    | ----------------- method `attention_decode_count` not found for this struct
+...
+434 |         assert_eq!(engine.attention_decode_count(), packet_count);
+    |                           ^^^^^^^^^^^^^^^^^^^^^^ method not found in `Engine`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `cmz-engine-sys` (lib test) due to 2 previous errors
+=== cmz exec end 2026-05-26T16:21:15Z status=101 ===
+

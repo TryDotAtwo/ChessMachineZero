@@ -1,0 +1,6 @@
+=== cmz exec start 2026-05-26T16:23:22Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Checking cmz-cli v0.1.0 (/work/native/crates/cmz-cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.55s
+=== cmz exec end 2026-05-26T16:23:22Z status=0 ===
+

@@ -1,0 +1,27 @@
+=== cmz exec start 2026-05-28T11:44:53Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.91s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 2 tests
+
+thread 'tests::native_frozen_rule_graph_declares_full_attention_only_contract' (11662) panicked at crates/cmz-engine-sys/src/lib.rs:1604:9:
+assertion failed: graph.contains("\"strict_qk_layer_split_remaining\":\"python_attention_runtime,semantic_tests\"")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::native_frozen_rule_graph_declares_full_attention_only_contract ... FAILED
+
+thread 'tests::native_frozen_rule_graph_declares_known_source_audit_gaps' (11663) panicked at crates/cmz-engine-sys/src/lib.rs:1665:13:
+legacy strategy/search/eval module must be removed from production source: src/chess_machine_zero/model/ranker.py
+test tests::native_frozen_rule_graph_declares_known_source_audit_gaps ... FAILED
+
+failures:
+
+failures:
+    tests::native_frozen_rule_graph_declares_full_attention_only_contract
+    tests::native_frozen_rule_graph_declares_known_source_audit_gaps
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p cmz-engine-sys --lib`
+=== cmz exec end 2026-05-28T11:44:53Z status=101 ===
+

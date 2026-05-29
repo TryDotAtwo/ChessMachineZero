@@ -1,0 +1,22 @@
+=== cmz exec start 2026-05-28T07:49:49Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.57s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 1 test
+
+thread 'tests::native_percepta_contract_requires_hullkv_2d_attention_and_no_fallbacks' (187) panicked at crates/cmz-engine-sys/src/lib.rs:1323:9:
+assertion failed: contract.contains("\"decoder_backend\":\"libtorch_cuda_policy_only_v1\"")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::native_percepta_contract_requires_hullkv_2d_attention_and_no_fallbacks ... FAILED
+
+failures:
+
+failures:
+    tests::native_percepta_contract_requires_hullkv_2d_attention_and_no_fallbacks
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 46 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p cmz-engine-sys --lib`
+=== cmz exec end 2026-05-28T07:49:49Z status=101 ===
+

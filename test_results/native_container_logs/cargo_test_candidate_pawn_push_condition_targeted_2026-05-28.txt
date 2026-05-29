@@ -1,0 +1,12 @@
+=== cmz exec start 2026-05-28T16:33:47Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 39.86s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 1 test
+test tests::candidate_pawn_push_condition_uses_explicit_qk_square_entries ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 62 filtered out; finished in 0.00s
+
+=== cmz exec end 2026-05-28T16:33:47Z status=0 ===
+

@@ -1,0 +1,13 @@
+=== cmz exec start 2026-05-27T20:00:46Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 38.58s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 2 tests
+test tests::frozen_terminal_status_layer_increments_counter_and_rejects_bad_input ... ok
+test tests::frozen_terminal_status_layer_matches_terminal_rule_cases ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 45 filtered out; finished in 0.22s
+
+=== cmz exec end 2026-05-27T20:00:46Z status=0 ===
+

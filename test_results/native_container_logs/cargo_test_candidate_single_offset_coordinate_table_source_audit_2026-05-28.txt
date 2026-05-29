@@ -1,0 +1,8 @@
+=== cmz exec start 2026-05-28T15:47:12Z ===
+error: unexpected argument 'native_semantic_source_audit_names_concrete_rule_control_flow_offenders' found
+
+Usage: cargo test [OPTIONS] [TESTNAME] [-- [ARGS]...]
+
+For more information, try '--help'.
+=== cmz exec end 2026-05-28T15:47:12Z status=1 ===
+

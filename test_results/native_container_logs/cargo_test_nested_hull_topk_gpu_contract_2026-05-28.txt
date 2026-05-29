@@ -1,0 +1,11 @@
+=== cmz exec start 2026-05-28T11:03:14Z ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 1 test
+test tests::native_frozen_rule_graph_declares_full_attention_only_contract ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.00s
+
+=== cmz exec end 2026-05-28T11:03:14Z status=0 ===
+

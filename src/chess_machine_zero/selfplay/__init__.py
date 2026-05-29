@@ -1,6 +1,5 @@
 """Self-play generation and replay storage."""
 
-from chess_machine_zero.selfplay.actor import SelfPlayActor, SelfPlayConfig
 from chess_machine_zero.selfplay.audit import GameAudit, SelfPlayAuditError, audit_game_record, game_record_trace_hash
 from chess_machine_zero.selfplay.game_record import GameRecord, MoveDecision, ReplayRecord
 from chess_machine_zero.selfplay.replay import ReplayStore
@@ -11,9 +10,7 @@ __all__ = [
     "MoveDecision",
     "ReplayRecord",
     "ReplayStore",
-    "SelfPlayActor",
     "SelfPlayAuditError",
-    "SelfPlayConfig",
     "audit_game_record",
     "game_record_trace_hash",
 ]

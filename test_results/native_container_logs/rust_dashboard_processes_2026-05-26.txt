@@ -1,0 +1,4 @@
+=== cmz exec start 2026-05-26T20:13:17Z ===
+root     17721     1  0 20:11 ?        00:00:00 target/debug/cmz-dashboard --host 127.0.0.1 --port 8770
+=== cmz exec end 2026-05-26T20:13:17Z status=0 ===
+

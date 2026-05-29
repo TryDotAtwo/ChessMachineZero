@@ -1,0 +1,57 @@
+# Native Terminal Predicates QK V1 - 2026-05-28
+
+## Scope
+
+```text
+change_id=native_terminal_predicates_qk_v1
+source_gap=terminal_predicates_not_pure_attention
+goal=remove named terminal-predicate production offenders from source audit
+old_symbols=cmz_any_legal_candidate_move,cmz_insufficient_material_value
+new_symbols=cmz_terminal_legal_presence_qk_hardmax_select_value,cmz_terminal_material_qk_hardmax_select_value
+```
+
+## Contract
+
+```text
+strict_qk_layer_split_remaining=HullKV_hot_path,NestedHullTopK_gpu,dashboard_policy_decoder,legacy_strategy_modules,python_attention_runtime,semantic_tests
+remaining_non_attention_paths=HullKV_not_hot_path,NestedHullTopK_CPU,dashboard_not_policy_decoder,legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+full_frozen_attention_only=false
+target_full_frozen_attention_only=true
+semantic_attention_purity=false
+```
+
+## TDD Evidence
+
+```text
+expected_fail_log=test_results/native_container_logs/cargo_test_terminal_predicates_purity_expected_fail_2026-05-28.txt
+expected_fail_result=failed_before_cuda_source_edit
+expected_fail_reason=cmz_any_legal_candidate_move still existed in production CUDA source
+```
+
+## Targeted Verification
+
+```text
+source_audit_log=test_results/native_container_logs/cargo_test_terminal_predicates_purity_source_audit_2026-05-28.txt
+source_audit_result=passed
+contract_log=test_results/native_container_logs/cargo_test_terminal_predicates_purity_contract_2026-05-28.txt
+contract_result=passed
+package_behavior_log=test_results/native_container_logs/cargo_test_terminal_predicates_purity_package_2026-05-28.txt
+package_behavior_result=passed_48_native_tests
+```
+
+## Full Verification
+
+```text
+cargo_fmt_apply_log=test_results/native_container_logs/cargo_fmt_apply_terminal_predicates_qk_2026-05-28.txt
+cargo_fmt_apply_result=passed
+cargo_fmt_check_log=test_results/native_container_logs/cargo_fmt_terminal_predicates_qk_2026-05-28.txt
+cargo_fmt_check_result=passed
+cargo_clippy_log=test_results/native_container_logs/cargo_clippy_terminal_predicates_qk_2026-05-28.txt
+cargo_clippy_result=passed
+cargo_test_workspace_log=test_results/native_container_logs/cargo_test_terminal_predicates_qk_2026-05-28.txt
+cargo_test_workspace_result=passed_48_native_tests
+pytest_log=test_results/terminal_predicates_qk_pytest_2026-05-28.txt
+pytest_result=passed_146_tests
+pytest_werror_log=test_results/terminal_predicates_qk_pytest_werror_2026-05-28.txt
+pytest_werror_result=passed_146_tests
+```

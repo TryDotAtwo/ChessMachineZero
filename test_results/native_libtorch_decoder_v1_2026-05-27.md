@@ -1,0 +1,22 @@
+# Native LibTorch Decoder v1
+
+- date=2026-05-27
+- scope=Native trainable decoder v1 over the hard rule VM boundary.
+- tdd_red=`cd /work/native && cargo test --workspace` failed before implementation because `Engine::decoder_forward` and `Engine::decoder_policy_gradient_step` were missing.
+- tdd_red_log=test_results/native_container_logs/cargo_test_decoder_v1_expected_fail_2026-05-27.txt
+- environment_probe=torch 2.6.0+cu124; TorchConfig.cmake found under `/usr/local/lib/python3.10/dist-packages/torch/share/cmake`; CUDA available=true
+- environment_probe_log=test_results/native_container_logs/libtorch_probe_2026-05-27.txt
+- implementation=LibTorch C++ CUDA tensors owned by `CmzEngine`; decoder forward uses 2D attention over board square keys and piece/occupancy values; policy step uses actor-critic policy-gradient loss; TracePacket stays detached.
+- cargo_fmt=`cd /work/native && cargo fmt --all -- --check` => passed
+- cargo_fmt_log=test_results/native_container_logs/cargo_fmt_decoder_v1_2026-05-27.txt
+- cargo_clippy=`cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed
+- cargo_clippy_log=test_results/native_container_logs/cargo_clippy_decoder_v1_2026-05-27.txt
+- cargo_test=`cd /work/native && cargo test --workspace` => passed; cmz-engine-sys=21 tests; cmz-dashboard=1 test
+- cargo_test_log=test_results/native_container_logs/cargo_test_decoder_v1_final_2026-05-27.txt
+- cli_contract=`cd /work/native && cargo run -p cmz-cli -- --contract` => passed; contract includes `decoder_backend=libtorch_cuda_actor_critic_v1`
+- cli_contract_log=test_results/native_container_logs/cli_contract_decoder_v1_2026-05-27.txt
+- contract_truth=soft_surrogate_available=false because no soft-surrogate API is implemented in native decoder v1
+- pytest=`python -m pytest -p no:cacheprovider -q` => passed; 146 tests reached 100%
+- pytest_log=test_results/decoder_v1_pytest_2026-05-27.txt
+- pytest_werror=`python -m pytest -p no:cacheprovider -W error -q` => passed; 146 tests reached 100%
+- pytest_werror_log=test_results/decoder_v1_pytest_werror_2026-05-27.txt

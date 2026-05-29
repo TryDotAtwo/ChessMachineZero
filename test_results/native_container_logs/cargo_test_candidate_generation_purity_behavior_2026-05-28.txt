@@ -1,0 +1,8 @@
+=== cmz exec start 2026-05-28T10:13:55Z ===
+error: unexpected argument 'special_rules_include_castling_en_passant_and_promotion' found
+
+Usage: cargo test [OPTIONS] [TESTNAME] [-- [ARGS]...]
+
+For more information, try '--help'.
+=== cmz exec end 2026-05-28T10:13:55Z status=1 ===
+

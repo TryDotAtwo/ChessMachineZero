@@ -1,0 +1,57 @@
+# Native Dashboard Policy Decoder V1
+
+```text
+date=2026-05-28
+slice=native_dashboard_policy_decoder_v1
+goal=remove dashboard_not_policy_decoder from truthful Percepta-like native contract
+tdd_expected_fail_log=test_results/native_container_logs/cargo_test_dashboard_policy_decoder_expected_fail_2026-05-28.txt
+targeted_pass_log=test_results/native_container_logs/cargo_test_dashboard_policy_decoder_targeted_2026-05-28.txt
+```
+
+## Scope
+
+```text
+native_c_api_added=cmz_engine_policy_select_move
+rust_wrapper_added=Engine::policy_select_move
+dashboard_default=Rust cmz-dashboard
+docker_dashboard_entrypoint=cargo run -p cmz-dashboard
+python_dashboard_role=temporary/prototype_read_only_viewer
+dashboard_rule_computation=false
+policy_decoder_used=true
+trace_verified_legal=true
+```
+
+## Contract Delta
+
+```text
+before_remaining_non_attention_paths=dashboard_not_policy_decoder,legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+after_remaining_non_attention_paths=legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+dashboard_policy_decoder=true
+dashboard_policy_selection_backend=native_libtorch_policy_decoder
+strict_qk_layer_split_remaining=legacy_strategy_modules,python_attention_runtime,semantic_tests
+```
+
+## Verification
+
+```text
+targeted_native=cargo test -p cmz-engine-sys native_ -- --nocapture
+targeted_native_result=passed; tests=18
+cargo_fmt_check=passed
+cargo_clippy_workspace_all_targets_D_warnings=passed
+cargo_test_workspace=passed; tests=49
+pytest_q=passed; tests=146
+pytest_werror_q=passed; tests=146
+```
+
+## Logs
+
+```text
+expected_fail=test_results/native_container_logs/cargo_test_dashboard_policy_decoder_expected_fail_2026-05-28.txt
+targeted=test_results/native_container_logs/cargo_test_dashboard_policy_decoder_targeted_2026-05-28.txt
+fmt_apply=test_results/native_container_logs/cargo_fmt_apply_dashboard_policy_decoder_2026-05-28.txt
+fmt_check=test_results/native_container_logs/cargo_fmt_dashboard_policy_decoder_2026-05-28.txt
+clippy=test_results/native_container_logs/cargo_clippy_dashboard_policy_decoder_2026-05-28.txt
+cargo_test=test_results/native_container_logs/cargo_test_dashboard_policy_decoder_2026-05-28.txt
+pytest=test_results/dashboard_policy_decoder_pytest_2026-05-28.txt
+pytest_werror=test_results/dashboard_policy_decoder_pytest_werror_2026-05-28.txt
+```

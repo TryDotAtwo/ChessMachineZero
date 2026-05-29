@@ -1,0 +1,21 @@
+# Percepta Native Runtime v3
+
+- date=2026-05-26
+- scope=Native Percepta-like runtime contract, HullKV-backed 2D attention APIs, board trace projection, decoder scaffold, Rust dashboard crate.
+- tdd_red=`cd /work/native && cargo test --workspace` failed before implementation because `Engine::percepta_contract_json`, `Engine::hull_hardmax_2d`, `Engine::nested_hull_topk_2d`, `Engine::project_board_trace`, and `PerceptaDecoderScaffold` were missing.
+- tdd_red_log=test_results/native_container_logs/cargo_test_percepta_contract_expected_fail_2026-05-26.txt
+- cargo_fmt=`cd /work/native && cargo fmt --all -- --check` => passed
+- cargo_fmt_log=test_results/native_container_logs/cargo_fmt_percepta_native_2026-05-26.txt
+- cargo_clippy=`cd /work/native && cargo clippy --workspace --all-targets -- -D warnings` => passed
+- cargo_clippy_log=test_results/native_container_logs/cargo_clippy_percepta_native_2026-05-26.txt
+- cargo_test=`cd /work/native && cargo test --workspace` => passed; cmz-engine-sys=19 tests; cmz-dashboard=1 test
+- cargo_test_log=test_results/native_container_logs/cargo_test_percepta_native_final_2026-05-26.txt
+- cli_contract=`cd /work/native && cargo run -p cmz-cli -- --contract` => passed
+- cli_contract_log=test_results/native_container_logs/cli_contract_percepta_native_2026-05-26.txt
+- rust_dashboard_probe=`cd /work/native && cargo build -p cmz-dashboard && target/debug/cmz-dashboard ...; curl /api/snapshot` => passed; snapshot contains `HullKVCache` and `python_hot_path=false`
+- rust_dashboard_probe_log=test_results/native_container_logs/rust_dashboard_probe_2026-05-26.txt
+- pytest=`python -m pytest -p no:cacheprovider -q` => passed; 146 tests reached 100%
+- pytest_log=test_results/percepta_native_runtime_pytest_2026-05-26.txt
+- pytest_werror=`python -m pytest -p no:cacheprovider -W error -q` => passed; 146 tests reached 100%
+- pytest_werror_log=test_results/percepta_native_runtime_pytest_werror_2026-05-26.txt
+- contract={"executor_head_dim":2,"rule_attention_backend":"hull_hardmax_2d","topk_backend":"nested_hull_topk_2d","long_context_cache":"HullKVCache","trace_streaming":true,"simple_kv_cache":false,"python_hot_path":false,"fallback_allowed":false,"decoder_shared_white_black":true,"decoder_attention":"2d_heads","soft_surrogate_available":true,"tracepacket_backprop":false}

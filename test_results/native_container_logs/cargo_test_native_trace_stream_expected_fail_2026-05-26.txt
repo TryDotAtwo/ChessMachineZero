@@ -1,0 +1,30 @@
+=== cmz exec start 2026-05-26T13:58:53Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+error[E0599]: no method named `begin_legal_trace_stream` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:328:35
+    |
+ 47 | pub struct Engine {
+    | ----------------- method `begin_legal_trace_stream` not found for this struct
+...
+328 |         let packet_count = engine.begin_legal_trace_stream(START).unwrap();
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `Engine`
+
+error[E0599]: no method named `decode_next_legal_trace_packet` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:332:33
+    |
+ 47 | pub struct Engine {
+    | ----------------- method `decode_next_legal_trace_packet` not found for this struct
+...
+332 |             let packet = engine.decode_next_legal_trace_packet().unwrap();
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: there is a method `legal_trace_packets` with a similar name, but with different arguments
+   --> crates/cmz-engine-sys/src/lib.rs:100:5
+    |
+100 |     pub fn legal_trace_packets(&mut self, fen: &str) -> Result<Vec<TracePacket>, String> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `cmz-engine-sys` (lib test) due to 2 previous errors
+=== cmz exec end 2026-05-26T13:58:53Z status=101 ===
+

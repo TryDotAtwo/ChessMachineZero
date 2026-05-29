@@ -1,0 +1,46 @@
+Generating SQLite file /work/test_results/nsight_selfplay_step_2026_05_25.sqlite from /work/test_results/nsight_selfplay_step_2026_05_25.nsys-rep
+Processing [/work/test_results/nsight_selfplay_step_2026_05_25.sqlite] with [/opt/nvidia/nsight-compute/2024.1.1/host/target-linux-x64/reports/cuda_gpu_kern_sum.py]... 
+SKIPPED: /work/test_results/nsight_selfplay_step_2026_05_25.sqlite does not contain CUDA kernel data.
+
+Processing [/work/test_results/nsight_selfplay_step_2026_05_25.sqlite] with [/opt/nvidia/nsight-compute/2024.1.1/host/target-linux-x64/reports/cuda_gpu_mem_time_sum.py]... 
+SKIPPED: /work/test_results/nsight_selfplay_step_2026_05_25.sqlite does not contain GPU memory data.
+
+Processing [/work/test_results/nsight_selfplay_step_2026_05_25.sqlite] with [/opt/nvidia/nsight-compute/2024.1.1/host/target-linux-x64/reports/osrt_sum.py]... 
+
+ ** OS Runtime Summary (osrt_sum):
+
+ Time (%)  Total Time (ns)  Num Calls  Avg (ns)   Med (ns)   Min (ns)  Max (ns)   StdDev (ns)           Name         
+ --------  ---------------  ---------  ---------  ---------  --------  ---------  -----------  ----------------------
+     53.9        468043629       2175   215192.5     4746.0       165  216500204    4647654.9  read                  
+     25.9        224941907       5976    37640.9     1979.5       505   11035326     238492.6  stat64                
+      9.7         84044293         90   933825.5    64074.5       871   53900687    5934866.5  ioctl                 
+      4.9         42956953       1131    37981.4     6813.0      1092    1522339     159208.2  open64                
+      1.7         15097011     577783       26.1       22.0        14      42021         89.7  pthread_cond_signal   
+      1.1          9273759          4  2318439.8   443745.0      3370    8382899    4048551.6  fread                 
+      0.9          7380373       2006     3679.1      308.5       217    1876877      43795.4  fstat64               
+      0.7          6230412       7162      869.9      708.0       434     276577       4904.5  lstat64               
+      0.6          5164791          1  5164791.0  5164791.0   5164791    5164791          0.0  nanosleep             
+      0.2          1351328         30    45044.3     2902.5       705     669449     155246.5  fopen                 
+      0.1          1083930         17    63760.6    61998.0     51805      70766       4641.2  sleep                 
+      0.1           688878          9    76542.0    87162.0     29746     139956      39126.0  pthread_create        
+      0.1           636622          1   636622.0   636622.0    636622     636622          0.0  pthread_join          
+      0.0           330618         15    22041.2     1419.0       704     290543      74457.5  fclose                
+      0.0           310983         47     6616.7     5292.0      2902      20349       3625.2  mmap64                
+      0.0           170144        531      320.4       35.0        27      31208       2061.3  fgets                 
+      0.0           105007          1   105007.0   105007.0    105007     105007          0.0  pthread_cond_wait     
+      0.0            97176       1816       53.5       32.0        17      12253        292.2  pthread_cond_broadcast
+      0.0            84097          5    16819.4    11141.0      3900      38240      14851.2  fopen64               
+      0.0            81773         14     5840.9     5432.5      1237      23352       5593.0  open                  
+      0.0            53534          2    26767.0    26767.0       868      52666      36626.7  write                 
+      0.0            37192         68      546.9      120.5        15      27517       3323.8  sigaction             
+      0.0            11704          3     3901.3     4097.0      1297       6310       2512.2  mmap                  
+      0.0             7528         48      156.8       33.5        27       1303        297.4  fflush                
+      0.0             6814          2     3407.0     3407.0      1256       5558       3042.0  pipe2                 
+      0.0             3254         64       50.8       24.0        22       1148        150.7  pthread_mutex_trylock 
+      0.0             2900          3      966.7      511.0       302       2087        975.8  dup                   
+      0.0             1597          1     1597.0     1597.0      1597       1597          0.0  poll                  
+      0.0             1229          1     1229.0     1229.0      1229       1229          0.0  fwrite                
+      0.0              908         29       31.3       25.0        19        156         25.3  flockfile             
+      0.0              616          1      616.0      616.0       616        616          0.0  getc                  
+      0.0              592          1      592.0      592.0       592        592          0.0  fcntl                 
+

@@ -1,5 +1,6 @@
-"""Interactive dashboard for trace-based ChessMachineZero play."""
+"""Deprecated Python dashboard package.
 
-from chess_machine_zero.dashboard.state import CMZDashboardSession, DashboardMoveError, DashboardMoveEvent
+Production dashboard/runtime lives in the native Rust crate `cmz-dashboard`.
+"""
 
-__all__ = ["CMZDashboardSession", "DashboardMoveError", "DashboardMoveEvent"]
+__all__: list[str] = []

@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "crates/cmz-engine-sys",
+    "crates/cmz-cli",
+    "crates/cmz-dashboard",
+]
+resolver = "2"

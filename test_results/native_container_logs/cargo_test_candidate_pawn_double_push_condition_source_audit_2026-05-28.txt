@@ -1,0 +1,12 @@
+=== cmz exec start 2026-05-28T16:55:07Z ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 2 tests
+test tests::native_semantic_source_audit_names_concrete_rule_control_flow_offenders ... ok
+test tests::native_frozen_rule_graph_declares_known_source_audit_gaps ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 62 filtered out; finished in 0.04s
+
+=== cmz exec end 2026-05-28T16:55:07Z status=0 ===
+

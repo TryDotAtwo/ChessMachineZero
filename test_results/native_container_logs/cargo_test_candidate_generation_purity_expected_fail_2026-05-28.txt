@@ -1,0 +1,22 @@
+=== cmz exec start 2026-05-28T10:11:28Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.42s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 1 test
+
+thread 'tests::native_frozen_rule_graph_declares_known_source_audit_gaps' (5655) panicked at crates/cmz-engine-sys/src/lib.rs:1545:9:
+assertion failed: !cuda_source.contains("cmz_candidate_target_mask_value")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::native_frozen_rule_graph_declares_known_source_audit_gaps ... FAILED
+
+failures:
+
+failures:
+    tests::native_frozen_rule_graph_declares_known_source_audit_gaps
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p cmz-engine-sys --lib`
+=== cmz exec end 2026-05-28T10:11:28Z status=101 ===
+

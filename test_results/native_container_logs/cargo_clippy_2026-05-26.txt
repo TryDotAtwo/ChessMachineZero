@@ -1,0 +1,4 @@
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Checking cmz-cli v0.1.0 (/work/native/crates/cmz-cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.81s
+

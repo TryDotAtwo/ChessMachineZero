@@ -1,0 +1,22 @@
+=== cmz exec start 2026-05-28T16:16:11Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.75s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 1 test
+
+thread 'tests::candidate_pawn_slot_helpers_delegate_to_qk_condition_layers' (30606) panicked at crates/cmz-engine-sys/src/lib.rs:1967:9:
+assertion failed: single_body.contains("cmz_candidate_pawn_forward_target_slot_attention_value")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::candidate_pawn_slot_helpers_delegate_to_qk_condition_layers ... FAILED
+
+failures:
+
+failures:
+    tests::candidate_pawn_slot_helpers_delegate_to_qk_condition_layers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 61 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p cmz-engine-sys --lib`
+=== cmz exec end 2026-05-28T16:16:11Z status=101 ===
+

@@ -1,0 +1,149 @@
+=== cmz exec start 2026-05-28T18:44:37Z ===
+
+==================================== ERRORS ====================================
+______________ ERROR collecting tests/test_analytic_full_rules.py ______________
+ImportError while importing test module '/work/tests/test_analytic_full_rules.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_analytic_full_rules.py:7: in <module>
+    from chess_machine_zero.chess.rules_oracle import board_after_uci, legal_uci_set, terminal_status as oracle_terminal_status
+src/chess_machine_zero/chess/rules_oracle.py:5: in <module>
+    import chess
+E   ModuleNotFoundError: No module named 'chess'
+____________ ERROR collecting tests/test_analytic_rules_compiler.py ____________
+ImportError while importing test module '/work/tests/test_analytic_rules_compiler.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_analytic_rules_compiler.py:5: in <module>
+    from chess_machine_zero.trace.verifier import legal_trace_matches_oracle
+src/chess_machine_zero/trace/verifier.py:5: in <module>
+    from chess_machine_zero.chess.rules_oracle import board_after_uci, legal_uci_set
+src/chess_machine_zero/chess/rules_oracle.py:5: in <module>
+    import chess
+E   ModuleNotFoundError: No module named 'chess'
+_____ ERROR collecting tests/test_multi_position_transformer_hosted_vm.py ______
+ImportError while importing test module '/work/tests/test_multi_position_transformer_hosted_vm.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_multi_position_transformer_hosted_vm.py:9: in <module>
+    from chess_machine_zero.trace.verifier import legal_trace_matches_oracle
+src/chess_machine_zero/trace/verifier.py:5: in <module>
+    from chess_machine_zero.chess.rules_oracle import board_after_uci, legal_uci_set
+src/chess_machine_zero/chess/rules_oracle.py:5: in <module>
+    import chess
+E   ModuleNotFoundError: No module named 'chess'
+_____________ ERROR collecting tests/test_percepta_e2e_decoder.py ______________
+ImportError while importing test module '/work/tests/test_percepta_e2e_decoder.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_percepta_e2e_decoder.py:9: in <module>
+    from chess_machine_zero.trace.verifier import legal_trace_matches_oracle
+src/chess_machine_zero/trace/verifier.py:5: in <module>
+    from chess_machine_zero.chess.rules_oracle import board_after_uci, legal_uci_set
+src/chess_machine_zero/chess/rules_oracle.py:5: in <module>
+    import chess
+E   ModuleNotFoundError: No module named 'chess'
+___________ ERROR collecting tests/test_percepta_parametric_rules.py ___________
+ImportError while importing test module '/work/tests/test_percepta_parametric_rules.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_percepta_parametric_rules.py:9: in <module>
+    from chess_machine_zero.chess.rules_oracle import board_after_uci, legal_uci_set
+src/chess_machine_zero/chess/rules_oracle.py:5: in <module>
+    import chess
+E   ModuleNotFoundError: No module named 'chess'
+________________ ERROR collecting tests/test_trace_executor.py _________________
+ImportError while importing test module '/work/tests/test_trace_executor.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_trace_executor.py:5: in <module>
+    from chess_machine_zero.trace.verifier import legal_trace_matches_oracle
+src/chess_machine_zero/trace/verifier.py:5: in <module>
+    from chess_machine_zero.chess.rules_oracle import board_after_uci, legal_uci_set
+src/chess_machine_zero/chess/rules_oracle.py:5: in <module>
+    import chess
+E   ModuleNotFoundError: No module named 'chess'
+_____________ ERROR collecting tests/test_transformer_hosted_vm.py _____________
+ImportError while importing test module '/work/tests/test_transformer_hosted_vm.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_transformer_hosted_vm.py:12: in <module>
+    from chess_machine_zero.trace.verifier import legal_trace_matches_oracle
+src/chess_machine_zero/trace/verifier.py:5: in <module>
+    from chess_machine_zero.chess.rules_oracle import board_after_uci, legal_uci_set
+src/chess_machine_zero/chess/rules_oracle.py:5: in <module>
+    import chess
+E   ModuleNotFoundError: No module named 'chess'
+________________ ERROR collecting tests/test_vm_legal_moves.py _________________
+ImportError while importing test module '/work/tests/test_vm_legal_moves.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_vm_legal_moves.py:6: in <module>
+    from chess_machine_zero.chess.rules_oracle import legal_uci_set
+src/chess_machine_zero/chess/rules_oracle.py:5: in <module>
+    import chess
+E   ModuleNotFoundError: No module named 'chess'
+_________________ ERROR collecting tests/test_vm_make_move.py __________________
+ImportError while importing test module '/work/tests/test_vm_make_move.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_vm_make_move.py:8: in <module>
+    from chess_machine_zero.chess.rules_oracle import board_after_uci, legal_uci_set
+src/chess_machine_zero/chess/rules_oracle.py:5: in <module>
+    import chess
+E   ModuleNotFoundError: No module named 'chess'
+__________________ ERROR collecting tests/test_vm_terminal.py __________________
+ImportError while importing test module '/work/tests/test_vm_terminal.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_vm_terminal.py:4: in <module>
+    from chess_machine_zero.chess.rules_oracle import terminal_status as oracle_terminal_status
+src/chess_machine_zero/chess/rules_oracle.py:5: in <module>
+    import chess
+E   ModuleNotFoundError: No module named 'chess'
+_____________ ERROR collecting tests/test_weight_compiled_rules.py _____________
+ImportError while importing test module '/work/tests/test_weight_compiled_rules.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_weight_compiled_rules.py:9: in <module>
+    from chess_machine_zero.chess.rules_oracle import board_after_uci, legal_uci_set, terminal_status as oracle_terminal_status
+src/chess_machine_zero/chess/rules_oracle.py:5: in <module>
+    import chess
+E   ModuleNotFoundError: No module named 'chess'
+=========================== short test summary info ============================
+ERROR tests/test_analytic_full_rules.py
+ERROR tests/test_analytic_rules_compiler.py
+ERROR tests/test_multi_position_transformer_hosted_vm.py
+ERROR tests/test_percepta_e2e_decoder.py
+ERROR tests/test_percepta_parametric_rules.py
+ERROR tests/test_trace_executor.py
+ERROR tests/test_transformer_hosted_vm.py
+ERROR tests/test_vm_legal_moves.py
+ERROR tests/test_vm_make_move.py
+ERROR tests/test_vm_terminal.py
+ERROR tests/test_weight_compiled_rules.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 11 errors during collection !!!!!!!!!!!!!!!!!!!
+=== cmz exec end 2026-05-28T18:44:37Z status=2 ===
+

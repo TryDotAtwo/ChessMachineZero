@@ -1,0 +1,80 @@
+=== cmz exec start 2026-05-28T16:17:48Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+error: failed to run custom build command for `cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)`
+
+Caused by:
+  process didn't exit successfully: `/work/native/target/debug/build/cmz-engine-sys-ab42d4828e082239/build-script-build` (exit status: 101)
+  --- stdout
+  -- Found CUDAToolkit: /usr/local/cuda/include (found version "12.4.131") 
+  -- Found CUDAToolkit: /usr/local/cuda/include (found version "12.4.131") 
+  -- PyTorch: CUDA detected: 12.4
+  -- PyTorch: CUDA nvcc is: /usr/local/cuda/bin/nvcc
+  -- PyTorch: CUDA toolkit directory: /usr/local/cuda
+  -- PyTorch: Header version is: 12.4
+  -- Could NOT find nvtx3 (missing: nvtx3_dir) 
+  -- USE_CUDNN is set to 0. Compiling without cuDNN support
+  -- USE_CUSPARSELT is set to 0. Compiling without cuSPARSELt support
+  -- USE_CUDSS is set to 0. Compiling without cuDSS support
+  -- USE_CUFILE is set to 0. Compiling without cuFile support
+  -- Autodetected CUDA architecture(s):  8.6
+  -- Added CUDA NVCC flags for: -gencode;arch=compute_86,code=sm_86
+  -- Configuring done
+  -- Generating done
+  -- Build files have been written to: /work/native/target/debug/build/cmz-engine-sys-a139c4eb43bd3490/out/cmake-build
+  [1/3] Building CUDA object CMakeFiles/cmz_engine.dir/src/cmz_cuda_kernels.cu.o
+  FAILED: CMakeFiles/cmz_engine.dir/src/cmz_cuda_kernels.cu.o 
+  /usr/local/cuda/bin/nvcc -forward-unknown-to-host-compiler -DUSE_C10D_GLOO -DUSE_C10D_NCCL -DUSE_DISTRIBUTED -DUSE_RPC -DUSE_TENSORPIPE -I/work/native/cpp/include -I/opt/cutlass/include -isystem=/usr/local/cuda/include -isystem=/usr/local/lib/python3.10/dist-packages/torch/include -isystem=/usr/local/lib/python3.10/dist-packages/torch/include/torch/csrc/api/include -DONNX_NAMESPACE=onnx_c2 -gencode arch=compute_86,code=sm_86 -Xcudafe --diag_suppress=cc_clobber_ignored,--diag_suppress=field_without_dll_interface,--diag_suppress=base_class_has_different_dll_interface,--diag_suppress=dll_interface_conflict_none_assumed,--diag_suppress=dll_interface_conflict_dllexport_assumed,--diag_suppress=bad_friend_decl --expt-relaxed-constexpr --expt-extended-lambda -O3 -DNDEBUG -Xcompiler=-fPIC -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++17 -MD -MT CMakeFiles/cmz_engine.dir/src/cmz_cuda_kernels.cu.o -MF CMakeFiles/cmz_engine.dir/src/cmz_cuda_kernels.cu.o.d -x cu -c /work/native/cpp/src/cmz_cuda_kernels.cu -o CMakeFiles/cmz_engine.dir/src/cmz_cuda_kernels.cu.o
+  /work/native/cpp/src/cmz_cuda_kernels.cu(1106): error: identifier "cmz_candidate_single_offset_coordinate_table_attention_value" is undefined
+        return cmz_candidate_single_offset_coordinate_table_attention_value(from_file, from_rank + direction * step_count);
+               ^
+
+  /work/native/cpp/src/cmz_cuda_kernels.cu(1163): error: identifier "cmz_candidate_single_offset_coordinate_table_attention_value" is undefined
+        return cmz_candidate_single_offset_coordinate_table_attention_value(from_file + delta_file, from_rank + direction);
+               ^
+
+  2 errors detected in the compilation of "/work/native/cpp/src/cmz_cuda_kernels.cu".
+  [2/3] Building CXX object CMakeFiles/cmz_engine.dir/src/cmz_engine.cpp.o
+  ninja: build stopped: subcommand failed.
+
+  --- stderr
+  CMake Warning at /usr/local/lib/python3.10/dist-packages/torch/share/cmake/Caffe2/public/cuda.cmake:140 (message):
+    Failed to compute shorthash for libnvrtc.so
+  Call Stack (most recent call first):
+    /usr/local/lib/python3.10/dist-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake:86 (include)
+    /usr/local/lib/python3.10/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:68 (find_package)
+    CMakeLists.txt:5 (find_package)
+
+
+  CMake Warning (dev) at /usr/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+    The package name passed to `find_package_handle_standard_args` (nvtx3) does
+    not match the name of the calling package (Caffe2).  This can lead to
+    problems in calling code that expects `find_package` result variables
+    (e.g., `_FOUND`) to follow a certain pattern.
+  Call Stack (most recent call first):
+    /usr/local/lib/python3.10/dist-packages/torch/share/cmake/Caffe2/public/cuda.cmake:178 (find_package_handle_standard_args)
+    /usr/local/lib/python3.10/dist-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake:86 (include)
+    /usr/local/lib/python3.10/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:68 (find_package)
+    CMakeLists.txt:5 (find_package)
+  This warning is for project developers.  Use -Wno-dev to suppress it.
+
+  CMake Warning at /usr/local/lib/python3.10/dist-packages/torch/share/cmake/Caffe2/public/cuda.cmake:184 (message):
+    Cannot find NVTX3, find old NVTX instead
+  Call Stack (most recent call first):
+    /usr/local/lib/python3.10/dist-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake:86 (include)
+    /usr/local/lib/python3.10/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:68 (find_package)
+    CMakeLists.txt:5 (find_package)
+
+
+  CMake Warning at /usr/local/lib/python3.10/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:22 (message):
+    static library kineto_LIBRARY-NOTFOUND not found.
+  Call Stack (most recent call first):
+    /usr/local/lib/python3.10/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:121 (append_torchlib_if_found)
+    CMakeLists.txt:5 (find_package)
+
+
+
+  thread 'main' (30629) panicked at crates/cmz-engine-sys/build.rs:47:9:
+  build command failed with status exit status: 1
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+=== cmz exec end 2026-05-28T16:17:48Z status=101 ===
+

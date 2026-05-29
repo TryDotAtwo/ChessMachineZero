@@ -1,0 +1,57 @@
+# Native Python Attention Runtime Removed V1
+
+```text
+date=2026-05-28
+slice=native_python_attention_runtime_removed_v1
+goal=remove python_attention_runtime_not_cuda_cutlass from truthful Percepta-like native contract
+tdd_expected_fail_log=test_results/native_container_logs/cargo_test_python_attention_runtime_expected_fail_2026-05-28.txt
+targeted_pass_log=test_results/native_container_logs/cargo_test_python_attention_runtime_targeted_2026-05-28.txt
+```
+
+## Scope
+
+```text
+removed_python_attention_runtime=percepta_attention_rule_kernels.py,percepta_attention_block_stack.py,percepta_matrix_attention_runtime.py,percepta_tensor_trace_runtime.py,percepta_rule_layer_graph.py,percepta_frozen_attention_vm.py,percepta_parametric_selfplay.py
+removed_python_dashboard_runtime=dashboard/server.py,dashboard/state.py
+native_dashboard=Rust cmz-dashboard
+native_runtime=Rust+C++/CUDA
+python_hot_path=false
+fallback_allowed=false
+```
+
+## Contract Delta
+
+```text
+before_remaining_non_attention_paths=python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+after_remaining_non_attention_paths=tests_assert_metadata_not_semantics
+strict_qk_layer_split_remaining=semantic_tests
+python_attention_runtime_not_cuda_cutlass=false
+```
+
+## Verification
+
+```text
+expected_fail=passed_as_failure; reason=graph_still_declared_python_attention_runtime_and_percepta_attention_rule_kernels_py_existed
+targeted_native=cargo test -p cmz-engine-sys native_frozen_rule_graph -- --nocapture
+targeted_native_result=passed; tests=2
+targeted_pytest=passed; tests=23
+cargo_fmt_check=passed
+cargo_clippy_workspace_all_targets_D_warnings=passed
+cargo_test_workspace=passed; tests=49
+pytest_q=passed; tests=112
+pytest_werror_q=passed; tests=112
+```
+
+## Logs
+
+```text
+expected_fail=test_results/native_container_logs/cargo_test_python_attention_runtime_expected_fail_2026-05-28.txt
+targeted_native=test_results/native_container_logs/cargo_test_python_attention_runtime_targeted_2026-05-28.txt
+targeted_pytest=test_results/python_attention_runtime_targeted_pytest_2026-05-28.txt
+fmt_apply=test_results/native_container_logs/cargo_fmt_apply_python_attention_runtime_2026-05-28.txt
+fmt_check=test_results/native_container_logs/cargo_fmt_python_attention_runtime_2026-05-28.txt
+clippy=test_results/native_container_logs/cargo_clippy_python_attention_runtime_2026-05-28.txt
+cargo_test=test_results/native_container_logs/cargo_test_python_attention_runtime_2026-05-28.txt
+pytest=test_results/python_attention_runtime_pytest_2026-05-28.txt
+pytest_werror=test_results/python_attention_runtime_pytest_werror_2026-05-28.txt
+```

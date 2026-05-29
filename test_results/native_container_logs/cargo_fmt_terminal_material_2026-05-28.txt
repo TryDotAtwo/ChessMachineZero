@@ -1,0 +1,52 @@
+=== cmz exec start 2026-05-28T19:30:06Z ===
+Diff in /work/native/crates/cmz-engine-sys/src/lib.rs:1699:
+         assert!(!graph.contains("terminal_legal_presence_chess_search"));
+         assert!(!graph.contains("terminal_legal_presence_candidate_legal_control_flow"));
+         assert!(!graph.contains("terminal_material_counting_control_flow"));
+-        assert!(graph.contains(
+-            "\"terminal_material_backend\":\"qk_material_class_bitmask_attention\""
+-        ));
++        assert!(
++            graph.contains("\"terminal_material_backend\":\"qk_material_class_bitmask_attention\"")
++        );
+         assert!(graph.contains("terminal_check_state_king_scan"));
+         assert!(graph.contains("castle_target_chess_control_flow"));
+         assert!(graph.contains("legal_filter_batch_attack_chess_control_flow"));
+Diff in /work/native/crates/cmz-engine-sys/src/lib.rs:1832:
+         assert!(!graph.contains("terminal_legal_presence_chess_search"));
+         assert!(!graph.contains("terminal_legal_presence_candidate_legal_control_flow"));
+         assert!(!graph.contains("terminal_material_counting_control_flow"));
+-        assert!(graph.contains(
+-            "\"terminal_material_backend\":\"qk_material_class_bitmask_attention\""
+-        ));
++        assert!(
++            graph.contains("\"terminal_material_backend\":\"qk_material_class_bitmask_attention\"")
++        );
+         assert!(graph.contains("terminal_check_state_king_scan"));
+         assert!(graph.contains("castle_target_chess_control_flow"));
+         assert!(graph.contains("legal_filter_batch_attack_chess_control_flow"));
+Diff in /work/native/crates/cmz-engine-sys/src/lib.rs:2417:
+         let graph = engine.frozen_rule_graph_json().unwrap();
+         let source = cuda_source();
+         let terminal_body = cuda_function_body(&source, "cmz_cuda_terminal_status_attention");
+-        let material_body = cuda_function_body(&source, "cmz_terminal_material_select_attention_kernel");
++        let material_body =
++            cuda_function_body(&source, "cmz_terminal_material_select_attention_kernel");
+ 
+         assert!(!source.contains("cmz_terminal_material_qk_hardmax_select_value"));
+         assert!(source.contains("cmz_terminal_material_square_class_attention_value"));
+Diff in /work/native/crates/cmz-engine-sys/src/lib.rs:2428:
+         assert!(!material_body.contains("++non_king_count"));
+         assert!(!material_body.contains("return false"));
+ 
+-        assert!(graph.contains(
+-            "\"terminal_material_backend\":\"qk_material_class_bitmask_attention\""
+-        ));
++        assert!(
++            graph.contains("\"terminal_material_backend\":\"qk_material_class_bitmask_attention\"")
++        );
+         assert!(!graph.contains("terminal_material_counting_control_flow"));
+     }
+ 
+=== cmz exec end 2026-05-28T19:30:06Z status=1 ===
+

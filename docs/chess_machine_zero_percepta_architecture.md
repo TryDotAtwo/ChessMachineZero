@@ -6,6 +6,24 @@ Goal: build a chess transformer that learns only from self-play while using a Pe
 
 ---
 
+## 2026-05-28 native decoder correction
+
+```text
+correction_id: native_policy_only_decoder_v1
+scope: native Rust+C++/CUDA trainable decoder boundary
+VM role: frozen chess rules only
+decoder role: free policy controller over generic VM commands
+required critic: false
+required value head: false
+required actor-critic scaffold: false
+allowed training signal: self-play policy gradient from game outcome
+forbidden additions: handcrafted evaluation, engine labels, human labels, tablebase labels, MCTS wrapper, beam-search wrapper, prescribed pruning policy
+```
+
+The frozen VM returns legal/apply/terminal/status/trace results only. The trainable decoder may learn internal evaluation, memory use, and planning behavior inside its own weights, but the architecture must not provide a separately prescribed critic or value-baseline module as a required component.
+
+---
+
 ## 0. Project identity
 
 ```text
@@ -930,3 +948,300 @@ The machine learns move choice from self-play outcomes.
 The machine can later run internal deterministic lookahead as trace computation.
 The optimized executor path uses 2D hardmax/top-k attention and HullKVCache.
 ```
+
+---
+
+## 15. 2026-05-28 Contract Honesty Correction
+
+```text
+correction_id=native_contract_honesty_v1
+source_report=docs/percepta_policy_only_full_code_audit_2026-05-28.md
+previous_claim=full_frozen_attention_only=true
+corrected_claim=target_full_frozen_attention_only=true; current_full_frozen_2d_self_attention_only=false; full_frozen_attention_only=false
+contract_overclaim_fixed=true
+semantic_attention_purity=false
+full_rule_lowering_complete=false
+```
+
+Current implementation remains aligned with the architectural target, but current implementation must not claim finished semantic purity until every rule primitive is expressed as `2D QK -> hardmax/select -> V/write` without chess-specific control-flow bodies.
+
+Declared remaining gaps:
+
+```text
+candidate_pawn_target_mask_control_flow
+candidate_single_offset_bounds_control_flow
+candidate_slider_target_mask_control_flow
+candidate_record_emit_serial_loop
+terminal_legal_presence_chess_search
+terminal_material_counting_control_flow
+terminal_check_state_king_scan
+castle_target_chess_control_flow
+legal_filter_batch_attack_chess_control_flow
+legal_filter_batch_ray_scan_control_flow
+```
+
+## 16. 2026-05-28 Native Dashboard Policy Decoder Update
+
+```text
+update_id=native_dashboard_policy_decoder_v1
+default_dashboard=Rust native dashboard
+dashboard_rule_computation=false
+dashboard_policy_decoder=true
+dashboard_policy_selection_backend=native_libtorch_policy_decoder
+removed_gap=dashboard_not_policy_decoder
+remaining_non_attention_paths=candidate_pawn_target_mask_control_flow,candidate_single_offset_bounds_control_flow,candidate_slider_target_mask_control_flow,candidate_record_emit_serial_loop,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+```
+
+Native dashboard snapshots now use native policy-only decoder selection through `cmz_engine_policy_select_move`. The dashboard displays native trace-stream and policy-selected move data, but does not compute chess rules.
+
+## 17. 2026-05-28 Legacy Strategy Module Removal
+
+```text
+update_id=native_legacy_strategy_modules_removed_v1
+removed_gap=legacy_strategy_modules
+removed_modules=ranker,baseline,analytic_machine,weight_compiled_machine,selfplay_actor,train_losses,lookahead,decision_program
+policy_only_decoder=true
+external_search_wrapper=false
+handcrafted_eval=false
+required_value_baseline=false
+remaining_non_attention_paths=candidate_pawn_target_mask_control_flow,candidate_single_offset_bounds_control_flow,candidate_slider_target_mask_control_flow,candidate_record_emit_serial_loop,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+```
+
+Production Python runtime no longer exposes the legacy ranker/baseline/selfplay actor/negamax strategy path. Native policy-only decoder remains the strategy boundary.
+
+## 18. 2026-05-28 Python Attention Runtime Removal
+
+```text
+update_id=native_python_attention_runtime_removed_v1
+removed_gap=python_attention_runtime_not_cuda_cutlass
+removed_modules=percepta_attention_rule_kernels,percepta_attention_block_stack,percepta_matrix_attention_runtime,percepta_tensor_trace_runtime,percepta_rule_layer_graph,percepta_frozen_attention_vm,percepta_parametric_selfplay,python_dashboard_server,python_dashboard_state
+native_dashboard=Rust cmz-dashboard
+production_hot_path=Rust+C++/CUDA
+remaining_non_attention_paths=candidate_pawn_target_mask_control_flow,candidate_single_offset_bounds_control_flow,candidate_slider_target_mask_control_flow,candidate_record_emit_serial_loop,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+```
+
+Production source no longer contains Python/PyTorch Percepta attention runtime modules. Native Rust dashboard and native C++/CUDA rule VM are the current production runtime boundary.
+
+## 19. 2026-05-28 Semantic Source Audit Gate
+
+```text
+update_id=native_semantic_source_audit_gate_v1
+semantic_source_audit=rust_cuda_body_scan_v1
+metadata_only_tests_remaining=false
+target_full_frozen_attention_only=true
+full_frozen_attention_only=false
+semantic_attention_purity=false
+candidate_pawn_targets_backend=qk_explicit_pawn_slot_writes
+candidate_single_offset_backend=qk_bounds_slot_friendly_filter
+candidate_record_emit_backend=qk_candidate_slot_write_attention
+candidate_record_compaction_backend=parallel_qk_slot_rank_write_attention
+remaining_non_attention_paths=candidate_pawn_slot_condition_control_flow,candidate_single_offset_bounds_slot_control_flow,candidate_slider_target_mask_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+```
+
+Native Rust tests now extract CUDA function bodies and assert that concrete source-level chess-control-flow evidence is declared by the graph contract. Contract strings alone are no longer sufficient evidence for semantic attention purity. `full_frozen_attention_only=true` remains forbidden until the listed offender bodies are lowered into frozen 2D `QK -> hardmax/select -> V/write` layers.
+
+## 20. 2026-05-28 Candidate Target QK Dispatch
+
+```text
+update_id=native_candidate_target_dispatch_qk_v1
+candidate_target_dispatch_backend=qk_hardmax_piece_family_select
+removed_gap=candidate_target_mask_chess_control_flow
+new_child_gaps=candidate_pawn_target_mask_control_flow,candidate_single_offset_bounds_control_flow,candidate_slider_target_mask_control_flow
+full_frozen_attention_only=false
+```
+
+Top-level candidate target mask selection now uses a QK hardmax piece-family dispatch over child value masks. Child pawn/offset/slider mask functions still contain chess-specific control flow and therefore remain declared gaps.
+
+## 21. 2026-05-28 Candidate Offset Explicit Slots
+
+```text
+update_id=native_candidate_offset_explicit_slots_v1
+candidate_offset_targets_backend=qk_explicit_offset_slot_writes
+removed_gap=candidate_offset_target_mask_control_flow
+new_child_gap=candidate_single_offset_bounds_control_flow
+full_frozen_attention_only=false
+```
+
+Candidate offset target expansion no longer uses `cmz_add_offset_targets` or a serial offset loop. Offset expansion now writes eight explicit QK-selected slots. Single-offset bounds and friendly-square masking still contain source-level control flow and remain a declared gap.
+
+## 22. 2026-05-28 Candidate Record Slot QK Write
+
+```text
+update_id=native_candidate_record_slot_qk_v1
+candidate_record_emit_backend=qk_candidate_slot_write_attention
+removed_gap=candidate_record_emit_serial_loop
+new_child_gap=candidate_record_slot_compaction_control_flow
+full_frozen_attention_only=false
+```
+
+Candidate record emission no longer uses nested from/to/promotion loops. Each fixed candidate slot is decoded by `cmz_candidate_record_slot_qk_write_value`, selected through `cmz_qk2_select_or_write_u64`, and then compacted into the existing move-record buffer. The remaining compaction loop is explicitly named as `candidate_record_slot_compaction_control_flow`; therefore semantic attention purity remains false until compaction is lowered too.
+
+## 23. 2026-05-28 Candidate Record Parallel Compaction
+
+```text
+update_id=native_candidate_record_parallel_compaction_v1
+candidate_record_compaction_backend=parallel_qk_slot_rank_write_attention
+removed_gap=candidate_record_slot_compaction_control_flow
+new_child_gap=candidate_record_prefix_rank_control_flow
+full_frozen_attention_only=false
+```
+
+Candidate record slot validity is now emitted by `cmz_candidate_record_slot_validity_qk_write_kernel`; compacted records are written by `cmz_candidate_record_slot_rank_write_attention_kernel` using deterministic slot rank. The remaining prefix-rank loop over prior slots is explicitly named as `candidate_record_prefix_rank_control_flow`; therefore semantic attention purity remains false until prefix rank is lowered into a pure frozen attention prefix/free-slot graph.
+
+## 24. 2026-05-28 Candidate Pawn Explicit Slots
+
+```text
+update_id=native_candidate_pawn_explicit_slots_v1
+candidate_pawn_targets_backend=qk_explicit_pawn_slot_writes
+removed_gap=candidate_pawn_target_mask_control_flow
+new_child_gap=candidate_pawn_slot_condition_control_flow
+full_frozen_attention_only=false
+```
+
+Pawn target assembly now uses four explicit slots: single push, double push, left capture, and right capture. The pawn target body writes those slots through `cmz_qk2_select_or_write_u64` and no longer contains the capture `for (int delta_file...)` loop. Slot condition helpers still contain board-bound, occupancy, and en-passant control-flow, so semantic attention purity remains false.
+
+## 25. 2026-05-28 Candidate Single-Offset Bounds Slot
+
+```text
+update_id=native_candidate_single_offset_bounds_slot_v1
+candidate_single_offset_backend=qk_bounds_slot_friendly_filter
+removed_gap=candidate_single_offset_bounds_control_flow
+new_child_gap=candidate_single_offset_bounds_slot_control_flow
+full_frozen_attention_only=false
+```
+
+Single-offset target assembly now moves board-bound target creation into `cmz_candidate_single_offset_bounds_slot_attention_value`; `cmz_candidate_single_offset_target_mask_attention_value` performs top-level QK write filtering without direct `cmz_on_board` or `friendly_mask` symbols. The bounds-slot helper still contains board-bound control-flow, so semantic attention purity remains false.
+
+## 26. 2026-05-28 Candidate Slider Explicit Ray Slots
+
+```text
+update_id=native_candidate_slider_explicit_ray_slots_v1
+candidate_slider_targets_backend=qk_explicit_slider_ray_slot_writes
+removed_gap=candidate_slider_target_mask_control_flow
+new_child_gap=candidate_slider_ray_slot_control_flow
+remaining_non_attention_paths=candidate_pawn_slot_condition_control_flow,candidate_single_offset_bounds_slot_control_flow,candidate_slider_ray_slot_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+full_frozen_attention_only=false
+semantic_attention_purity=false
+```
+
+Slider target assembly now materializes eight explicit ray slots and writes diagonal or orthogonal ray values through `cmz_qk2_select_or_write_u64`. Top-level slider target code no longer contains bishop/rook/queen branch blocks. The ray-slot helper still calls blocker-aware ray expansion, so semantic attention purity remains false until `candidate_slider_ray_slot_control_flow` is lowered into a pure frozen 2D attention ray-slot graph.
+
+## 27. 2026-05-28 Candidate Slider Ray Step Slots
+
+```text
+update_id=native_candidate_slider_ray_step_slots_v1
+candidate_slider_ray_backend=qk_explicit_7_step_ray_slot_writes
+removed_gap=candidate_slider_ray_slot_control_flow
+new_child_gap=candidate_slider_ray_step_condition_control_flow
+remaining_non_attention_paths=candidate_pawn_slot_condition_control_flow,candidate_single_offset_bounds_slot_control_flow,candidate_slider_ray_step_condition_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+full_frozen_attention_only=false
+semantic_attention_purity=false
+```
+
+Slider ray-slot assembly now materializes seven explicit distance-step slots and writes selected target squares through `cmz_qk2_select_or_write_u64`. The ray-slot body no longer calls `cmz_add_ray_targets` and no longer contains a `while` ray scan. The step-condition helper still contains board-bound and prior-blocker control-flow, so semantic attention purity remains false until `candidate_slider_ray_step_condition_control_flow` is lowered into pure frozen 2D attention.
+
+## 28. 2026-05-28 Candidate Single-Offset Coordinate Slot
+
+```text
+update_id=native_candidate_single_offset_coordinate_slot_v1
+candidate_single_offset_coordinate_backend=qk_coordinate_slot_lookup
+removed_gap=candidate_single_offset_bounds_slot_control_flow
+new_child_gap=candidate_single_offset_coordinate_slot_control_flow
+remaining_non_attention_paths=candidate_pawn_slot_condition_control_flow,candidate_single_offset_coordinate_slot_control_flow,candidate_slider_ray_step_condition_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+full_frozen_attention_only=false
+semantic_attention_purity=false
+```
+
+Single-offset bounds-slot assembly now routes board-coordinate selection through `cmz_candidate_single_offset_coordinate_slot_attention_value` and writes the returned coordinate slot through `cmz_qk2_select_or_write_u64`. The bounds-slot body no longer calls `cmz_on_board` and no longer owns clamp logic. The coordinate helper still contains board-bound and clamp control-flow, so semantic attention purity remains false until `candidate_single_offset_coordinate_slot_control_flow` is lowered into pure frozen 2D coordinate lookup.
+
+## 29. 2026-05-28 Candidate Single-Offset Coordinate Table
+
+```text
+update_id=native_candidate_single_offset_coordinate_table_v1
+candidate_single_offset_coordinate_table_backend=qk_coordinate_table_slots
+removed_gap=candidate_single_offset_coordinate_slot_control_flow
+new_child_gap=candidate_single_offset_coordinate_table_control_flow
+remaining_non_attention_paths=candidate_pawn_slot_condition_control_flow,candidate_single_offset_coordinate_table_control_flow,candidate_slider_ray_step_condition_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+full_frozen_attention_only=false
+semantic_attention_purity=false
+```
+
+Single-offset coordinate-slot assembly now routes board-coordinate lookup through `cmz_candidate_single_offset_coordinate_table_attention_value` and writes the returned table slot through `cmz_qk2_select_or_write_u64`. The coordinate-slot body no longer calls `cmz_on_board` and no longer owns clamp logic. The table helper still contains board-bound and clamp control-flow, so semantic attention purity remains false until `candidate_single_offset_coordinate_table_control_flow` is lowered into a pure frozen 2D coordinate table.
+
+## 30. 2026-05-28 Candidate Single-Offset Coordinate Table Purity
+
+```text
+update_id=native_candidate_single_offset_coordinate_table_purity_v1
+candidate_single_offset_coordinate_table_backend=qk_coordinate_table_slots
+removed_gap=candidate_single_offset_coordinate_table_control_flow
+remaining_non_attention_paths=candidate_pawn_slot_condition_control_flow,candidate_slider_ray_step_condition_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+full_frozen_attention_only=false
+semantic_attention_purity=false
+```
+
+Single-offset coordinate-table lookup now uses explicit 12x12 shifted-coordinate QK hardmax entries. Query vector encodes the shifted coordinate code; key vectors encode every shifted coordinate slot; value vectors carry board-square bits for legal board coordinates and zero for offboard coordinates. The table helper body no longer contains `cmz_on_board`, clamp logic, `if`, or `for`. Semantic attention purity remains false because other source-audit gaps remain.
+
+## 31. 2026-05-28 Candidate Pawn Slot Split
+
+```text
+update_id=native_candidate_pawn_slot_split_v1
+candidate_pawn_targets_backend=qk_explicit_pawn_slot_writes
+removed_gap=candidate_pawn_slot_condition_control_flow
+new_child_gaps=candidate_pawn_push_condition_control_flow,candidate_pawn_double_push_condition_control_flow,candidate_pawn_capture_ep_condition_control_flow
+remaining_non_attention_paths=candidate_pawn_push_condition_control_flow,candidate_pawn_double_push_condition_control_flow,candidate_pawn_capture_ep_condition_control_flow,candidate_slider_ray_step_condition_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+full_frozen_attention_only=false
+semantic_attention_purity=false
+```
+
+Pawn single-push, double-push, and capture slot helpers now delegate target-slot selection to named helper layers and delegate occupancy, start-rank, first-step, enemy-capture, and en-passant checks to named QK condition helpers. The three slot helper bodies no longer contain direct `cmz_on_board` or `if` control-flow. Semantic attention purity remains false until the new child condition helpers are lowered into pure frozen 2D attention entries.
+
+## 32. 2026-05-28 Candidate Pawn Push Condition
+
+```text
+update_id=native_candidate_pawn_push_condition_v1
+removed_gap=candidate_pawn_push_condition_control_flow
+remaining_non_attention_paths=candidate_pawn_double_push_condition_control_flow,candidate_pawn_capture_ep_condition_control_flow,candidate_slider_ray_step_condition_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+full_frozen_attention_only=false
+semantic_attention_purity=false
+```
+
+Pawn single-push empty-target condition now uses explicit 64-square QK select/write entries. The condition helper body no longer computes `target_exists`, `target_empty`, or direct `occupancy_mask & target_slot`. Semantic attention purity remains false because pawn double-push, en-passant, slider, record, terminal, castle, and legal-filter source-audit gaps remain.
+
+## 33. 2026-05-28 Candidate Pawn Double-Push Condition
+
+```text
+update_id=native_candidate_pawn_double_push_condition_v1
+removed_gap=candidate_pawn_double_push_condition_control_flow
+implementation=double-push start-rank check is QK rank-pair table; first-step availability is QK nonzero single-push selector; target empty result is explicit 64-square QK select/write table
+remaining_non_attention_paths=candidate_pawn_capture_ep_condition_control_flow,candidate_slider_ray_step_condition_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+full_frozen_attention_only=false
+semantic_attention_purity=false
+```
+
+Pawn double-push condition now uses separate QK helper layers for start-rank matching and single-push availability, then writes the double-push target through explicit 64-square QK select/write entries. The double-push condition helper body no longer contains direct `from_rank`, `start_rank`, `single_push_mask`, `target_exists`, `target_empty`, or `occupancy_mask & target_slot` logic. Semantic attention purity remains false because en-passant, slider, record, terminal, castle, and legal-filter source-audit gaps remain.
+
+## 34. 2026-05-28 Candidate Pawn En-Passant Condition
+
+```text
+update_id=native_candidate_pawn_capture_ep_condition_v1
+removed_gap=candidate_pawn_capture_ep_condition_control_flow
+implementation=en-passant target match is 64-square QK table; captured square is side-token+ep-square QK table; captured enemy presence is 64-square QK table; final output is QK select/write
+remaining_non_attention_paths=candidate_slider_ray_step_condition_control_flow,candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+full_frozen_attention_only=false
+semantic_attention_purity=false
+```
+
+Pawn en-passant capture condition now uses QK helper layers for target-square match, captured-square lookup, and captured-enemy detection. The condition helper body no longer contains direct `ep_square < 64U`, `ep_target_slot`, captured-square arithmetic, `captured_valid`, or `enemy_mask & captured_slot` logic. Semantic attention purity remains false because slider, record, terminal, castle, and legal-filter source-audit gaps remain.
+
+## 35. 2026-05-28 Candidate Slider Ray-Step Condition
+
+```text
+update_id=native_candidate_slider_ray_step_condition_v1
+removed_gap=candidate_slider_ray_step_condition_control_flow
+implementation=slider target square is 22x22 QK coordinate table; prior blocker presence is QK prior-step table plus occupied-square QK table; target own-piece and target-exists checks are QK tables; final output is QK select/write
+remaining_non_attention_paths=candidate_record_prefix_rank_control_flow,terminal_legal_presence_chess_search,terminal_material_counting_control_flow,terminal_check_state_king_scan,castle_target_chess_control_flow,legal_filter_batch_attack_chess_control_flow,legal_filter_batch_ray_scan_control_flow
+full_frozen_attention_only=false
+semantic_attention_purity=false
+```
+
+Slider ray-step condition now uses QK helper layers for target lookup, prior-blocker detection, target-exists detection, own-piece rejection, and final target write. A dedicated 22x22 shifted-coordinate QK table covers the full slider ray coordinate range from -7 to 14 and returns zero for all offboard coordinates; this fixed a regression where the narrower single-offset coordinate table produced wrapped offboard slider moves. Semantic attention purity remains false because record, terminal, castle, and legal-filter source-audit gaps remain.

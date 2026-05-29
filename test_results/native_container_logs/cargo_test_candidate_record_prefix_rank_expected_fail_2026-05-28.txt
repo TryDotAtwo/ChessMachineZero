@@ -1,0 +1,22 @@
+=== cmz exec start 2026-05-28T17:46:16Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.88s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 1 test
+
+thread 'tests::candidate_record_prefix_rank_uses_qk_rank_value_without_serial_scan' (38109) panicked at crates/cmz-engine-sys/src/lib.rs:2357:9:
+assertion failed: source.contains("cmz_candidate_record_prefix_rank_attention_value")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::candidate_record_prefix_rank_uses_qk_rank_value_without_serial_scan ... FAILED
+
+failures:
+
+failures:
+    tests::candidate_record_prefix_rank_uses_qk_rank_value_without_serial_scan
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p cmz-engine-sys --lib`
+=== cmz exec end 2026-05-28T17:46:16Z status=101 ===
+

@@ -1,0 +1,7 @@
+=== cmz exec start 2026-05-26T20:13:02Z ===
+
+thread 'main' (17814) panicked at crates/cmz-dashboard/src/main.rs:22:30:
+native dashboard server failed: "Address already in use (os error 98)"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+=== cmz exec end 2026-05-26T20:13:02Z status=0 ===
+

@@ -1,0 +1,22 @@
+=== cmz exec start 2026-05-28T16:53:41Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 33.48s
+     Running unittests src/lib.rs (target/debug/deps/cmz_engine_sys-6cd64b39ee74e964)
+
+running 1 test
+
+thread 'tests::candidate_pawn_double_push_condition_uses_explicit_qk_entries' (33934) panicked at crates/cmz-engine-sys/src/lib.rs:2051:9:
+assertion failed: rank_body.contains("cmz_qk2_hardmax_select_u32")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::candidate_pawn_double_push_condition_uses_explicit_qk_entries ... FAILED
+
+failures:
+
+failures:
+    tests::candidate_pawn_double_push_condition_uses_explicit_qk_entries
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 63 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p cmz-engine-sys --lib`
+=== cmz exec end 2026-05-28T16:53:41Z status=101 ===
+

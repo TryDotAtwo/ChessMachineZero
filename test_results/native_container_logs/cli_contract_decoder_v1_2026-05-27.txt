@@ -1,0 +1,7 @@
+=== cmz exec start 2026-05-27T09:23:21Z ===
+   Compiling cmz-cli v0.1.0 (/work/native/crates/cmz-cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.85s
+     Running `target/debug/cmz-cli --contract`
+{"executor_head_dim":2,"rule_attention_backend":"hull_hardmax_2d","topk_backend":"nested_hull_topk_2d","long_context_cache":"HullKVCache","trace_streaming":true,"simple_kv_cache":false,"python_hot_path":false,"fallback_allowed":false,"decoder_shared_white_black":true,"decoder_attention":"2d_heads","decoder_backend":"libtorch_cuda_actor_critic_v1","learning_method":"policy_gradient_actor_critic","soft_surrogate_available":true,"tracepacket_backprop":false}
+=== cmz exec end 2026-05-27T09:23:21Z status=0 ===
+

@@ -1,0 +1,8 @@
+=== cmz exec start 2026-05-28T17:51:58Z ===
+error: unexpected argument 'native_frozen_rule_graph_declares_known_source_audit_gaps' found
+
+Usage: cargo test [OPTIONS] [TESTNAME] [-- [ARGS]...]
+
+For more information, try '--help'.
+=== cmz exec end 2026-05-28T17:51:58Z status=1 ===
+

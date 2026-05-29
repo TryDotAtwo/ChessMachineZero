@@ -6,7 +6,7 @@
     <title>ChessMachineZero Dashboard</title>
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/static/dashboard.css">
-    <script defer src="/static/dashboard.js?v=9.1"></script>
+    <script defer src="/static/dashboard.js?v=9.6"></script>
   </head>
   <body>
     <main class="app-shell">
@@ -62,8 +62,11 @@
           <p id="statusLine" class="status-line">loading</p>
         </section>
 
-        <section class="panel">
-          <h2>Trace VM</h2>
+        <section class="panel trace-panel">
+          <div class="panel-heading">
+            <h2>Trace VM</h2>
+            <span id="tokenMeter">tokens=0 packets=0 visible=0</span>
+          </div>
           <dl class="trace-stats">
             <div><dt>Emitter</dt><dd id="lastEmitter">-</dd></div>
             <div><dt>Verified</dt><dd id="traceVerified">-</dd></div>
@@ -72,7 +75,38 @@
             <div><dt>LEGAL_SET</dt><dd id="legalSetCount">0</dd></div>
             <div><dt>COMMIT_MOVE</dt><dd id="commitCount">0</dd></div>
           </dl>
-          <pre id="traceLog" class="trace-log" aria-label="Trace packet log"></pre>
+
+          <div class="side-journal-grid" aria-label="Side-indexed trace journals">
+            <article class="side-journal assistant-log-card white-journal" aria-label="White trace journal">
+              <header class="side-journal-header">
+                <div>
+                  <span class="assistant-label">ASSISTANT</span>
+                  <h3>White</h3>
+                </div>
+                <span id="whiteJournalMeter">0 packets</span>
+              </header>
+              <div id="whiteTraceOutput" class="trace-output readable-log" role="log" aria-live="polite" aria-label="White trace output" tabindex="0"></div>
+              <div class="journal-tabs" role="tablist" aria-label="White trace view">
+                <button id="whiteReadableTab" type="button" role="tab" data-side="white" data-mode="readable" aria-selected="true">Readable log</button>
+                <button id="whiteTokenTab" type="button" role="tab" data-side="white" data-mode="token" aria-selected="false">Token trace</button>
+              </div>
+            </article>
+
+            <article class="side-journal assistant-log-card black-journal" aria-label="Black trace journal">
+              <header class="side-journal-header">
+                <div>
+                  <span class="assistant-label">ASSISTANT</span>
+                  <h3>Black</h3>
+                </div>
+                <span id="blackJournalMeter">0 packets</span>
+              </header>
+              <div id="blackTraceOutput" class="trace-output readable-log" role="log" aria-live="polite" aria-label="Black trace output" tabindex="0"></div>
+              <div class="journal-tabs" role="tablist" aria-label="Black trace view">
+                <button id="blackReadableTab" type="button" role="tab" data-side="black" data-mode="readable" aria-selected="true">Readable log</button>
+                <button id="blackTokenTab" type="button" role="tab" data-side="black" data-mode="token" aria-selected="false">Token trace</button>
+              </div>
+            </article>
+          </div>
         </section>
 
         <section class="panel lists">

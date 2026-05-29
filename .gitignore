@@ -3,7 +3,10 @@ __pycache__/
 .playwright-mcp/
 *.py[cod]
 *.png
+*.nsys-rep
+*.sqlite
 .venv/
 dist/
 build/
 *.egg-info/
+native/target/

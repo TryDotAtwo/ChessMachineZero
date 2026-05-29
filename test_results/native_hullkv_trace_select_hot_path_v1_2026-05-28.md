@@ -1,0 +1,61 @@
+# Native HullKV Trace Select Hot Path V1 - 2026-05-28
+
+## Scope
+
+```text
+change_id=native_hullkv_trace_select_hot_path_v1
+source_gap=HullKV_not_hot_path
+goal=route native rule trace lookup through HullKV/CUTLASS QK hardmax hot path
+hot_path=frozen_attention_select_trace_packet
+cache=HullKVCache
+score_backend=CUTLASS_QK_GEMM
+select_backend=CUDA_hardmax_select
+```
+
+## Contract
+
+```text
+hullkv_rule_hot_path=true
+trace_select_long_context_cache=HullKVCache
+strict_qk_layer_split_remaining=NestedHullTopK_gpu,dashboard_policy_decoder,legacy_strategy_modules,python_attention_runtime,semantic_tests
+remaining_non_attention_paths=NestedHullTopK_CPU,dashboard_not_policy_decoder,legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+full_frozen_attention_only=false
+target_full_frozen_attention_only=true
+semantic_attention_purity=false
+```
+
+## TDD Evidence
+
+```text
+expected_fail_log=test_results/native_container_logs/cargo_test_hullkv_hot_path_expected_fail_2026-05-28.txt
+expected_fail_result=failed_before_trace_select_HullKV_edit
+expected_fail_reason=frozen rule graph lacked hullkv_rule_hot_path=true
+```
+
+## Targeted Verification
+
+```text
+contract_log=test_results/native_container_logs/cargo_test_hullkv_hot_path_contract_2026-05-28.txt
+contract_result=passed
+trace_stream_log=test_results/native_container_logs/cargo_test_hullkv_hot_path_stream_2026-05-28.txt
+trace_stream_result=passed_HullKV_CUTLASS_lookup_per_decoded_packet
+source_audit_log=test_results/native_container_logs/cargo_test_hullkv_hot_path_source_audit_2026-05-28.txt
+source_audit_result=passed
+```
+
+## Full Verification
+
+```text
+cargo_fmt_apply_log=test_results/native_container_logs/cargo_fmt_apply_hullkv_hot_path_2026-05-28.txt
+cargo_fmt_apply_result=passed
+cargo_fmt_check_log=test_results/native_container_logs/cargo_fmt_hullkv_hot_path_2026-05-28.txt
+cargo_fmt_check_result=passed
+cargo_clippy_log=test_results/native_container_logs/cargo_clippy_hullkv_hot_path_2026-05-28.txt
+cargo_clippy_result=passed
+cargo_test_workspace_log=test_results/native_container_logs/cargo_test_hullkv_hot_path_2026-05-28.txt
+cargo_test_workspace_result=passed_48_native_tests
+pytest_log=test_results/hullkv_hot_path_pytest_2026-05-28.txt
+pytest_result=passed_146_tests
+pytest_werror_log=test_results/hullkv_hot_path_pytest_werror_2026-05-28.txt
+pytest_werror_result=passed_146_tests
+```

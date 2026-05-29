@@ -1,0 +1,71 @@
+=== cmz exec start 2026-05-26T19:46:45Z ===
+   Compiling cmz-engine-sys v0.1.0 (/work/native/crates/cmz-engine-sys)
+error[E0599]: no method named `percepta_contract_json` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:524:31
+    |
+ 73 | pub struct Engine {
+    | ----------------- method `percepta_contract_json` not found for this struct
+...
+524 |         let contract = engine.percepta_contract_json().unwrap();
+    |                               ^^^^^^^^^^^^^^^^^^^^^^ method not found in `Engine`
+
+error[E0599]: no method named `hull_hardmax_2d` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:550:33
+    |
+ 73 | pub struct Engine {
+    | ----------------- method `hull_hardmax_2d` not found for this struct
+...
+550 |             let result = engine.hull_hardmax_2d(query, &keys).unwrap();
+    |                                 ^^^^^^^^^^^^^^^ method not found in `Engine`
+
+error[E0599]: no method named `nested_hull_topk_2d` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:571:20
+    |
+ 73 | pub struct Engine {
+    | ----------------- method `nested_hull_topk_2d` not found for this struct
+...
+571 |             engine.nested_hull_topk_2d((1.0, 2.0), &keys, 3).unwrap(),
+    |                    ^^^^^^^^^^^^^^^^^^^ method not found in `Engine`
+
+error[E0599]: no method named `nested_hull_topk_2d` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:575:20
+    |
+ 73 | pub struct Engine {
+    | ----------------- method `nested_hull_topk_2d` not found for this struct
+...
+575 |             engine.nested_hull_topk_2d((-3.0, 1.0), &keys, 4).unwrap(),
+    |                    ^^^^^^^^^^^^^^^^^^^ method not found in `Engine`
+
+error[E0599]: no method named `project_board_trace` found for struct `Engine` in the current scope
+   --> crates/cmz-engine-sys/src/lib.rs:584:29
+    |
+ 73 | pub struct Engine {
+    | ----------------- method `project_board_trace` not found for this struct
+...
+584 |         let hidden = engine.project_board_trace(&trace).unwrap();
+    |                             ^^^^^^^^^^^^^^^^^^^ method not found in `Engine`
+
+error[E0433]: cannot find type `PerceptaDecoderScaffold` in this scope
+   --> crates/cmz-engine-sys/src/lib.rs:593:17
+    |
+593 |         assert!(PerceptaDecoderScaffold::new(16, 8, 4).is_ok());
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^ use of undeclared type `PerceptaDecoderScaffold`
+
+error[E0433]: cannot find type `PerceptaDecoderScaffold` in this scope
+   --> crates/cmz-engine-sys/src/lib.rs:594:23
+    |
+594 |         let decoder = PerceptaDecoderScaffold::new(16, 8, 4).unwrap();
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^ use of undeclared type `PerceptaDecoderScaffold`
+
+error[E0433]: cannot find type `PerceptaDecoderScaffold` in this scope
+   --> crates/cmz-engine-sys/src/lib.rs:599:17
+    |
+599 |         assert!(PerceptaDecoderScaffold::new(12, 3, 4).is_err());
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^ use of undeclared type `PerceptaDecoderScaffold`
+
+Some errors have detailed explanations: E0433, E0599.
+For more information about an error, try `rustc --explain E0433`.
+error: could not compile `cmz-engine-sys` (lib test) due to 8 previous errors
+warning: build failed, waiting for other jobs to finish...
+=== cmz exec end 2026-05-26T19:46:45Z status=101 ===
+

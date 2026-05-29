@@ -1,0 +1,59 @@
+# Native NestedHullTopK GPU V1 - 2026-05-28
+
+## Scope
+
+```text
+change_id=native_nested_hull_topk_gpu_v1
+source_gap=NestedHullTopK_CPU
+goal=replace native CPU remaining-set top-k rebuild with CUTLASS QK scores plus CUDA top-k select
+api=cmz_engine_nested_hull_topk_2d
+new_cuda_symbol=cmz_cutlass_topk2d_values
+```
+
+## Contract
+
+```text
+nested_hull_topk_backend=cutlass_qk_cuda_topk_select
+nested_hull_topk_cpu=false
+strict_qk_layer_split_remaining=dashboard_policy_decoder,legacy_strategy_modules,python_attention_runtime,semantic_tests
+remaining_non_attention_paths=dashboard_not_policy_decoder,legacy_strategy_modules,python_attention_runtime_not_cuda_cutlass,tests_assert_metadata_not_semantics
+full_frozen_attention_only=false
+target_full_frozen_attention_only=true
+semantic_attention_purity=false
+```
+
+## TDD Evidence
+
+```text
+expected_fail_log=test_results/native_container_logs/cargo_test_nested_hull_topk_gpu_expected_fail_2026-05-28.txt
+expected_fail_result=failed_before_CUTLASS_topk_edit
+expected_fail_reason=frozen rule graph lacked nested_hull_topk_backend=cutlass_qk_cuda_topk_select
+```
+
+## Targeted Verification
+
+```text
+behavior_log=test_results/native_container_logs/cargo_test_nested_hull_topk_gpu_behavior_2026-05-28.txt
+behavior_result=passed_dense_topk_order_and_CUTLASS_call_count
+contract_log=test_results/native_container_logs/cargo_test_nested_hull_topk_gpu_contract_2026-05-28.txt
+contract_result=passed
+source_audit_log=test_results/native_container_logs/cargo_test_nested_hull_topk_gpu_source_audit_2026-05-28.txt
+source_audit_result=passed
+```
+
+## Full Verification
+
+```text
+cargo_fmt_apply_log=test_results/native_container_logs/cargo_fmt_apply_nested_hull_topk_gpu_2026-05-28.txt
+cargo_fmt_apply_result=passed
+cargo_fmt_check_log=test_results/native_container_logs/cargo_fmt_nested_hull_topk_gpu_2026-05-28.txt
+cargo_fmt_check_result=passed
+cargo_clippy_log=test_results/native_container_logs/cargo_clippy_nested_hull_topk_gpu_2026-05-28.txt
+cargo_clippy_result=passed
+cargo_test_workspace_log=test_results/native_container_logs/cargo_test_nested_hull_topk_gpu_2026-05-28.txt
+cargo_test_workspace_result=passed_48_native_tests
+pytest_log=test_results/nested_hull_topk_gpu_pytest_2026-05-28.txt
+pytest_result=passed_146_tests
+pytest_werror_log=test_results/nested_hull_topk_gpu_pytest_werror_2026-05-28.txt
+pytest_werror_result=passed_146_tests
+```

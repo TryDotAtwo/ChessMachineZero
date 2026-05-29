@@ -1,0 +1,59 @@
+# Native Trace Streaming Incremental V1 - 2026-05-28
+
+## Scope
+
+```text
+change_id=native_trace_streaming_incremental_v1
+source_gap=trace_streaming_buffered
+goal=remove full legal-trace precompute buffer from native stream API
+begin_behavior=store_fen_plus_packet_count_only
+next_behavior=emit_one_packet_for_current_cursor
+trace_packet_emit_backend=cuda_trace_packet_emit_attention
+trace_select_backend=cuda_trace_select_packet
+```
+
+## Contract
+
+```text
+trace_streaming_backend=incremental_packet_attention
+trace_streaming_buffered=false
+trace_streaming_full_trace_precompute=false
+full_frozen_attention_only=false
+target_full_frozen_attention_only=true
+```
+
+## TDD Evidence
+
+```text
+expected_fail_log=test_results/native_container_logs/cargo_test_trace_stream_incremental_expected_fail_2026-05-28.txt
+expected_fail_result=failed_before_contract_edit
+expected_fail_reason=graph lacked trace_streaming_backend=incremental_packet_attention
+```
+
+## Targeted Verification
+
+```text
+contract_log=test_results/native_container_logs/cargo_test_trace_stream_incremental_contract_2026-05-28.txt
+contract_result=passed
+source_audit_log=test_results/native_container_logs/cargo_test_trace_stream_incremental_source_audit_2026-05-28.txt
+source_audit_result=passed
+stream_equivalence_log=test_results/native_container_logs/cargo_test_trace_stream_incremental_stream_2026-05-28.txt
+stream_equivalence_result=passed; tests=2
+```
+
+## Full Verification
+
+```text
+cargo_fmt_apply_log=test_results/native_container_logs/cargo_fmt_apply_trace_stream_incremental_retry_2026-05-28.txt
+cargo_fmt_apply_result=passed
+cargo_fmt_check_log=test_results/native_container_logs/cargo_fmt_trace_stream_incremental_2026-05-28.txt
+cargo_fmt_check_result=passed
+cargo_clippy_log=test_results/native_container_logs/cargo_clippy_trace_stream_incremental_2026-05-28.txt
+cargo_clippy_result=passed
+cargo_test_workspace_log=test_results/native_container_logs/cargo_test_trace_stream_incremental_2026-05-28.txt
+cargo_test_workspace_result=passed; native_tests=48
+pytest_log=test_results/trace_stream_incremental_pytest_2026-05-28.txt
+pytest_result=passed; tests=146
+pytest_werror_log=test_results/trace_stream_incremental_pytest_werror_2026-05-28.txt
+pytest_werror_result=passed; tests=146
+```

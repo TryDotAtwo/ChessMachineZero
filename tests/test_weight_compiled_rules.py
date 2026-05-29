@@ -7,8 +7,6 @@ import pytest
 from chess_machine_zero.chess.board_io import STARTING_FEN, parse_fen
 from chess_machine_zero.chess.outcome import ResultCode, TerminalReason
 from chess_machine_zero.chess.rules_oracle import board_after_uci, legal_uci_set, terminal_status as oracle_terminal_status
-from chess_machine_zero.model.ranker import CMZMoveRanker
-from chess_machine_zero.model.weight_compiled_machine import CMZWeightCompiledMachine
 from chess_machine_zero.model.weight_compiled_rules import WeightCompiledRuleCompiler, WeightCompiledRulesTransformer
 from chess_machine_zero.trace.reconstruct import reconstruct_board_squares
 from chess_machine_zero.vm.interpreter import legal_uci_set_from_trace
@@ -49,13 +47,13 @@ def test_weight_compiled_rules_are_frozen_model_weights_not_analytic_proxy() -> 
     assert "rules_oracle" not in source
 
 
-def test_dashboard_rule_path_no_longer_uses_weight_compiled_python_executor() -> None:
-    source = Path("src/chess_machine_zero/dashboard/state.py").read_text(encoding="utf-8")
+def test_dashboard_rule_path_no_longer_uses_python_executors() -> None:
+    source = Path("docker/native/start_dashboard.ps1").read_text(encoding="utf-8")
 
-    assert "PerceptaParametricSelfPlaySession" in source
+    assert "cargo run -p cmz-dashboard" in source
     assert "WeightCompiledRuleCompiler" not in source
     assert "AnalyticRuleCompiler" not in source
-    assert "CMZAnalyticMachine" not in source
+    assert "chess_machine_zero.dashboard.server" not in source
 
 
 @pytest.mark.parametrize("fen", CRITICAL_FENS)
@@ -109,16 +107,3 @@ def test_weight_compiled_threefold_terminal_trace_is_hard_weight_rule() -> None:
     assert packet.a0 == int(ResultCode.DRAW)
     assert packet.a1 == int(TerminalReason.THREEFOLD)
     assert packet.commit == 1
-
-
-def test_weight_compiled_machine_generates_capped_game_with_weight_rules() -> None:
-    machine = CMZWeightCompiledMachine(
-        rules=_rules(),
-        ranker=CMZMoveRanker(seed=20260524),
-    )
-    game = machine.play_game_from_fen(STARTING_FEN, seed=20260524, max_plies=32, temperature=1.0)
-
-    assert game.terminal_status.is_terminal
-    assert game.decision_count == 32
-    assert game.illegal_commit_count == 0
-    assert game.terminal_status.reason is TerminalReason.ADJUDICATION_CAP

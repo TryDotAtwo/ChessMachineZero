@@ -1,0 +1,4 @@
+=== cmz exec start 2026-05-28T17:55:18Z ===
+bash: line 1: python: command not found
+=== cmz exec end 2026-05-28T17:55:18Z status=127 ===
+

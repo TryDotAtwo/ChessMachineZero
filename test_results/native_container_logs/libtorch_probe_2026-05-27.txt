@@ -1,0 +1,8 @@
+=== cmz exec start 2026-05-27T08:59:30Z ===
+torch 2.6.0+cu124
+torch_file /usr/local/lib/python3.10/dist-packages/torch/__init__.py
+cmake_prefix_path /usr/local/lib/python3.10/dist-packages/torch/share/cmake
+cuda_available True
+/usr/local/lib/python3.10/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake
+=== cmz exec end 2026-05-27T08:59:30Z status=0 ===
+
