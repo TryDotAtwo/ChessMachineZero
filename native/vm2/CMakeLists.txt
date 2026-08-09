@@ -1,0 +1,46 @@
+cmake_minimum_required(VERSION 3.22)
+project(cmz_vm2 LANGUAGES CXX)
+
+find_package(Torch REQUIRED)
+include(CTest)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+add_executable(cmz_vm2_test_compiler tests/test_compiler.cpp)
+target_include_directories(cmz_vm2_test_compiler PRIVATE include)
+target_link_libraries(cmz_vm2_test_compiler PRIVATE ${TORCH_LIBRARIES})
+target_compile_options(cmz_vm2_test_compiler PRIVATE "${TORCH_CXX_FLAGS}")
+
+add_test(NAME cmz_vm2_compiler COMMAND cmz_vm2_test_compiler)
+
+add_library(cmz_vm2_attention STATIC src/attention.cpp)
+target_include_directories(cmz_vm2_attention PUBLIC include)
+target_link_libraries(cmz_vm2_attention PUBLIC ${TORCH_LIBRARIES})
+target_compile_options(cmz_vm2_attention PRIVATE "${TORCH_CXX_FLAGS}")
+
+add_executable(cmz_vm2_test_attention tests/test_attention.cpp)
+target_include_directories(cmz_vm2_test_attention PRIVATE include)
+target_link_libraries(cmz_vm2_test_attention PRIVATE cmz_vm2_attention)
+target_compile_options(cmz_vm2_test_attention PRIVATE "${TORCH_CXX_FLAGS}")
+
+add_test(NAME cmz_vm2_attention COMMAND cmz_vm2_test_attention)
+
+add_library(cmz_vm2_compiler STATIC src/compiler.cpp)
+target_include_directories(cmz_vm2_compiler PUBLIC include)
+target_link_libraries(cmz_vm2_compiler PUBLIC cmz_vm2_attention)
+target_compile_options(cmz_vm2_compiler PRIVATE "${TORCH_CXX_FLAGS}")
+
+target_link_libraries(cmz_vm2_test_compiler PRIVATE cmz_vm2_compiler)
+
+add_library(cmz_vm2 STATIC src/machine.cpp)
+target_include_directories(cmz_vm2 PUBLIC include)
+target_link_libraries(cmz_vm2 PUBLIC cmz_vm2_attention)
+target_compile_options(cmz_vm2 PRIVATE "${TORCH_CXX_FLAGS}")
+
+add_executable(cmz_vm2_test_machine tests/test_machine.cpp)
+target_include_directories(cmz_vm2_test_machine PRIVATE include)
+target_link_libraries(cmz_vm2_test_machine PRIVATE cmz_vm2 cmz_vm2_compiler)
+target_compile_options(cmz_vm2_test_machine PRIVATE "${TORCH_CXX_FLAGS}")
+
+add_test(NAME cmz_vm2_machine COMMAND cmz_vm2_test_machine)
