@@ -129,5 +129,39 @@ int main() {
                                      static_cast<std::int64_t>(Chess1Side::White)})
                 .item<double>() == 1.0,
             "illegal selection must preserve side-to-move");
+
+    cmz::vm2::Chess1Board recurrent{};
+    recurrent.squares[8] = Chess1Piece::WhitePawn;
+    const auto recurrent_image = cmz::vm2::compile_chess1(recurrent, 8);
+    const auto first = cmz::vm2::transition(recurrent_image, recurrent_image.tokens);
+    require(first.index({cmz::vm2::chess1::kSquareTokenBegin + 8,
+                         static_cast<std::int64_t>(Chess1Piece::Empty)})
+                .item<double>() == 1.0,
+            "output board must feed the recurrent input source square");
+    require(first.index({cmz::vm2::chess1::kSquareTokenBegin + 16,
+                         static_cast<std::int64_t>(Chess1Piece::WhitePawn)})
+                .item<double>() == 1.0,
+            "output board must feed the recurrent input target square");
+    const auto second = cmz::vm2::transition(recurrent_image, first);
+    require(torch::equal(
+                first.slice(0, cmz::vm2::chess1::kSquareTokenBegin,
+                            cmz::vm2::chess1::kSquareTokenBegin + 64)
+                    .slice(1, 0, 4),
+                second.slice(0, cmz::vm2::chess1::kSquareTokenBegin,
+                             cmz::vm2::chess1::kSquareTokenBegin + 64)
+                    .slice(1, 0, 4)),
+            "repeating an exhausted selected move must preserve recurrent board bytes");
+    require(torch::equal(
+                first.index({cmz::vm2::chess1::kSideToken})
+                    .slice(0, cmz::vm2::chess1::kInputSideOffset,
+                           cmz::vm2::chess1::kInputSideOffset + 2),
+                second.index({cmz::vm2::chess1::kSideToken})
+                    .slice(0, cmz::vm2::chess1::kInputSideOffset,
+                           cmz::vm2::chess1::kInputSideOffset + 2)),
+            "repeating an exhausted selected move must preserve recurrent side bytes");
+    require(second.index({cmz::vm2::chess1::kCandidateTokenBegin + 8,
+                          cmz::vm2::chess1::kLegalOffset})
+                .item<double>() == 1.0,
+            "second inference trace must expose that the exhausted move is illegal");
     return 0;
 }

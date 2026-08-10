@@ -20,6 +20,10 @@ Total Test time (real) = 192.19 sec
 source piece, wrong side-to-move, occupied targets, every legal white and black
 source/target delta, both side flips, and illegal-selection no-op.
 
+The recurrent-state assertion runs a second transition with the exact same
+ProgramImage. Board and side bytes remain unchanged after the exhausted move,
+while the candidate trace changes to `ILLEGAL` as expected.
+
 ## Runtime purity gate
 
 ```text

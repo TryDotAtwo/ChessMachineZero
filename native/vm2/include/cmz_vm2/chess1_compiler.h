@@ -50,6 +50,8 @@ inline constexpr std::int64_t kTokenCount =
     kOutputSideToken + 1;
 
 inline constexpr std::int64_t kLegalOffset = 240;
+inline constexpr std::int64_t kInputPieceOffset = 0;
+inline constexpr std::int64_t kInputSideOffset = 8;
 inline constexpr std::int64_t kOutputPieceOffset = 200;
 inline constexpr std::int64_t kOutputSideOffset = 204;
 

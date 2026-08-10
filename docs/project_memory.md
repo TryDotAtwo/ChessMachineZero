@@ -27,5 +27,7 @@
 - Legal board application changes source, target, and side only through
   attention routing; an illegal selected candidate is an inference no-op.
 - Full chess is not yet implemented and public claims must remain slice-scoped.
-- The next architectural gate is recurrent board state and token-selected moves
-  across repeated inference without recompiling rule weights.
+- Stage 10 attention now copies emitted board/side fields into recurrent input
+  tokens; repeated transitions reuse the same ProgramImage and frozen weights.
+- The next architectural gate is inference-selected moves rather than the
+  currently compiled selected-source input.

@@ -64,11 +64,15 @@ occupancy and side-to-move are routed into candidate tokens. A frozen
 changes exactly two output-square tokens and flips the side; an illegal
 selection is an attention-computed no-op.
 
-This is deliberately **not yet full chess**. The board is not yet recurrent
-across independently selected moves. Castling, checks, captures,
+The final attention stage feeds emitted square and side tokens back into the
+next transition's input rows. Repeating an exhausted selected move preserves
+board/side bytes while its new trace correctly changes to `ILLEGAL`.
+
+This is deliberately **not yet full chess**. Move selection is still compiled
+as an input rather than inferred by a player circuit. Castling, checks, captures,
 promotion, en passant and every other piece rule remain future rule circuits.
-The accepted claim is only that this symmetric pawn slice executes in the unchanged,
-domain-agnostic inference runtime.
+The accepted claim is only that this recurrent symmetric pawn slice executes
+in the unchanged, domain-agnostic inference runtime.
 
 ## Build and test
 

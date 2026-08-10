@@ -27,3 +27,5 @@
 - Generalized the pawn circuit to both colors with side-keyed geometry,
   complete four-piece relation products, token-routed pawn color, and
   token-routed next side.
+- Closed the pawn board state recurrently: stage 10 routes output squares and
+  side back into the next inference input without recompiling weights.

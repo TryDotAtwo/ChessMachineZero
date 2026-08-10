@@ -299,6 +299,24 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
     enable_write(projections, 9, chess1::kOutputSideToken, chess1::kOutputSideToken + 1,
                  chess1::kOutputSideOffset, chess1::kOutputSideOffset + 2);
 
+    // Stage 10 closes the recurrent state: emitted board and side become the
+    // next transition's input tokens using attention routing only.
+    copy_range(weights.wv[10], chess1::kOutputPieceOffset, kSourcePieceOffset, 4);
+    copy_range(weights.wv[10], chess1::kOutputSideOffset, kSideOffset, 2);
+    for (std::int64_t square = 0; square < 64; ++square) {
+        const auto input = chess1::kSquareTokenBegin + square;
+        const auto output = chess1::kOutputSquareTokenBegin + square;
+        masks[10].index_put_({input, input}, negative_infinity);
+        masks[10].index_put_({input, output}, 0.0);
+    }
+    masks[10].index_put_({chess1::kSideToken, chess1::kSideToken}, negative_infinity);
+    masks[10].index_put_({chess1::kSideToken, chess1::kOutputSideToken}, 0.0);
+    enable_write(projections, 10, chess1::kSquareTokenBegin,
+                 chess1::kSquareTokenBegin + 64, kSourcePieceOffset,
+                 kSourcePieceOffset + 4);
+    enable_write(projections, 10, chess1::kSideToken, chess1::kSideToken + 1,
+                 kSideOffset, kSideOffset + 2);
+
     return ProgramImage{tokens, masks, projections, weights};
 }
 
