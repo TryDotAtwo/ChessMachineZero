@@ -31,7 +31,9 @@ torch::Tensor apply_stage_for_test(
         image.weights.wv[stage],
         image.attention_masks[stage]);
     const auto projected = torch::matmul(attention.output, image.weights.wo[stage]);
-    return state * (1.0 - image.write_masks[stage]) + projected * image.write_masks[stage];
+    const auto kept = torch::matmul(state.unsqueeze(1), image.keep_projections[stage]).squeeze(1);
+    const auto taken = torch::matmul(projected.unsqueeze(1), image.take_projections[stage]).squeeze(1);
+    return kept + taken;
 }
 
 std::vector<std::int64_t> pc_trace(const torch::Tensor& states) {
@@ -54,7 +56,7 @@ void require_add(std::int64_t left, std::int64_t right) {
         Instruction{Opcode::Add, 2, 0, 1},
         Instruction{Opcode::Halt, 0, 0, 0},
     };
-    const auto result = cmz::vm2::run(cmz::vm2::compile_program(program), 4);
+    const auto result = cmz::vm2::run_fixed(cmz::vm2::compile_program(program), 4);
     const auto actual = register_value(result.final_state, 2);
     if (actual != left + right) {
         const auto after_left = register_value(result.state_trace[1], 0);
@@ -127,7 +129,7 @@ void require_move(std::int64_t value) {
         Instruction{Opcode::Move, 2, 3, 0},
         Instruction{Opcode::Halt, 0, 0, 0},
     };
-    const auto result = cmz::vm2::run(cmz::vm2::compile_program(program), 4);
+    const auto result = cmz::vm2::run_fixed(cmz::vm2::compile_program(program), 4);
     if (register_value(result.final_state, 2) != value) {
         throw std::runtime_error("attention MOVE returned an incorrect value");
     }
@@ -166,9 +168,9 @@ int main() {
         if (register_value(first_state, 0) != 2) {
             throw std::runtime_error("first attention transition must load r0=2");
         }
-        const auto result = cmz::vm2::run(image, 8);
-        if (result.steps != 4) {
-            throw std::runtime_error("program must halt after four VM steps");
+        const auto result = cmz::vm2::run_fixed(image, 8);
+        if (result.steps != 8) {
+            throw std::runtime_error("runtime must execute exactly eight fixed inference steps");
         }
         if (register_value(result.final_state, 2) != 5) {
             throw std::runtime_error("ADD must produce r2=5");
@@ -176,10 +178,15 @@ int main() {
         if (result.final_state[cmz::vm2::kControlToken][cmz::vm2::kHaltOffset].item<double>() != 1.0) {
             throw std::runtime_error("HALT must set the halt token");
         }
-        if (pc_trace(result.state_trace) != std::vector<std::int64_t>({0, 1, 2, 3, 3})) {
-            throw std::runtime_error("PC trace must be exactly 0,1,2,3,3");
+        if (pc_trace(result.state_trace) != std::vector<std::int64_t>({0, 1, 2, 3, 3, 3, 3, 3, 3})) {
+            throw std::runtime_error("PC trace must remain at HALT for the full fixed unroll");
         }
-        const auto repeated = cmz::vm2::run(image, 8);
+        for (std::int64_t step = 5; step < result.state_trace.size(0); ++step) {
+            if (!torch::equal(result.state_trace[4], result.state_trace[step])) {
+                throw std::runtime_error("HALT state must be absorbing after step four");
+            }
+        }
+        const auto repeated = cmz::vm2::run_fixed(image, 8);
         if (!torch::equal(result.state_trace, repeated.state_trace)) {
             throw std::runtime_error("repeated VM runs must be byte-identical");
         }
@@ -191,13 +198,9 @@ int main() {
         for (std::int64_t value = 0; value < cmz::vm2::kValueCount; ++value) {
             require_move(value);
         }
-        try {
-            (void)cmz::vm2::run(image, 3);
-            throw std::runtime_error("step limit must fail before HALT");
-        } catch (const std::runtime_error& error) {
-            if (std::string(error.what()) != "VM step limit reached before HALT") {
-                throw;
-            }
+        const auto prefix = cmz::vm2::run_fixed(image, 3);
+        if (prefix.steps != 3 || prefix.state_trace.size(0) != 4) {
+            throw std::runtime_error("short fixed unroll must return exactly its requested prefix");
         }
         return 0;
     } catch (const std::exception& error) {

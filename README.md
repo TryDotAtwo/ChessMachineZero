@@ -27,6 +27,18 @@ The stages decode an instruction, read two operands, select an ALU relation,
 write a register, and update PC/HALT. Production runtime code has no opcode or
 chess-specific execution branches.
 
+Runtime execution is a caller-fixed unroll of the same transition. It never
+reads `HALT`, PC, opcodes, registers, or predicates on the host. `HALT` is an
+absorbing token state: remaining inference steps reproduce the same state.
+State writes use frozen batched matrix projections rather than elementwise
+write masks.
+
+The offline compiler may inspect source instructions only to produce immutable
+program tokens, relation tokens, attention masks, and frozen matrices. It is a
+separate library and is not linked into the inference runtime. Runtime tensor
+selection is limited to `QK^T`, deterministic hardmax, `AV`, fixed matrix
+projections, and tensor addition.
+
 The first accepted program is:
 
 ```text

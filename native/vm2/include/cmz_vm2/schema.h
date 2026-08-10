@@ -73,7 +73,8 @@ struct FrozenWeights {
 struct ProgramImage {
     torch::Tensor tokens;
     std::array<torch::Tensor, kStageCount> attention_masks;
-    std::array<torch::Tensor, kStageCount> write_masks;
+    std::array<torch::Tensor, kStageCount> keep_projections;
+    std::array<torch::Tensor, kStageCount> take_projections;
     FrozenWeights weights;
 };
 

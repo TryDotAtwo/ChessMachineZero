@@ -13,6 +13,6 @@ struct RunResult {
 };
 
 torch::Tensor transition(const ProgramImage& image, const torch::Tensor& state);
-RunResult run(const ProgramImage& image, std::int64_t max_steps);
+RunResult run_fixed(const ProgramImage& image, std::int64_t inference_steps);
 
 }  // namespace cmz::vm2

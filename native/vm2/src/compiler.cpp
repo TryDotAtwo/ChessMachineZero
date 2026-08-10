@@ -3,6 +3,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace cmz::vm2 {
 namespace {
@@ -216,6 +217,17 @@ TensorArray make_write_masks(const torch::TensorOptions& options) {
     return masks;
 }
 
+std::pair<TensorArray, TensorArray> make_state_projections(const torch::TensorOptions& options) {
+    const auto write_masks = make_write_masks(options);
+    TensorArray keep;
+    TensorArray take;
+    for (std::int64_t stage = 0; stage < kStageCount; ++stage) {
+        take[stage] = torch::diag_embed(write_masks[stage]).detach().set_requires_grad(false);
+        keep[stage] = torch::diag_embed(1.0 - write_masks[stage]).detach().set_requires_grad(false);
+    }
+    return {keep, take};
+}
+
 void emit_relation(
     torch::Tensor& tokens,
     std::int64_t row,
@@ -302,10 +314,12 @@ ProgramImage compile_program(const std::array<Instruction, kProgramSlots>& progr
     }
 
     tokens = tokens.detach().set_requires_grad(false);
+    auto [keep_projections, take_projections] = make_state_projections(options);
     return ProgramImage{
         tokens,
         make_attention_masks(options),
-        make_write_masks(options),
+        std::move(keep_projections),
+        std::move(take_projections),
         make_weights(options),
     };
 }
