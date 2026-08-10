@@ -56,16 +56,18 @@ three. Equality becomes a predicate token; target versus fallthrough is chosen
 by hardmax attention. An immutable `TRUE` token expresses the loop back-edge.
 The final state is `r0=3`, `p0=TRUE`, and absorbing `HALT=TRUE`.
 
-The first chess-rule slice evaluates all 64 white-pawn one-square candidates
-in parallel. Source piece, north geometry, target occupancy and side-to-move
-are routed into candidate tokens. A frozen 72-token relation table produces
+The first chess-rule slice evaluates all 64 pawn one-square candidates
+in parallel for either side. Source piece, side-keyed forward geometry, target
+occupancy and side-to-move are routed into candidate tokens. A frozen
+128-token relation table produces
 `LEGAL/ILLEGAL` through `QK^T` plus hardmax. A selected legal candidate then
 changes exactly two output-square tokens and flips the side; an illegal
 selection is an attention-computed no-op.
 
-This is deliberately **not yet full chess**. Castling, checks, captures,
+This is deliberately **not yet full chess**. The board is not yet recurrent
+across independently selected moves. Castling, checks, captures,
 promotion, en passant and every other piece rule remain future rule circuits.
-The accepted claim is only that this pawn slice executes in the unchanged,
+The accepted claim is only that this symmetric pawn slice executes in the unchanged,
 domain-agnostic inference runtime.
 
 ## Build and test

@@ -7,14 +7,15 @@ namespace cmz::vm2 {
 namespace {
 
 constexpr std::int64_t kSourcePieceOffset = 0;
-constexpr std::int64_t kTargetPieceOffset = 3;
-constexpr std::int64_t kSideOffset = 6;
-constexpr std::int64_t kSquareOffset = 8;
-constexpr std::int64_t kTargetOffset = 72;
-constexpr std::int64_t kSourceValidOffset = 137;
-constexpr std::int64_t kTargetOnboardOffset = 139;
-constexpr std::int64_t kSideBaselineFeature = 205;
-constexpr std::int64_t kSideQueryFeature = 206;
+constexpr std::int64_t kTargetPieceOffset = 4;
+constexpr std::int64_t kSideOffset = 8;
+constexpr std::int64_t kSquareOffset = 10;
+constexpr std::int64_t kTargetOffset = 74;
+constexpr std::int64_t kSourceValidOffset = 139;
+constexpr std::int64_t kTargetOnboardOffset = 141;
+constexpr std::int64_t kSideBaselineFeature = 206;
+constexpr std::int64_t kSideQueryFeature = 207;
+constexpr std::int64_t kNextSideOffset = 208;
 
 void one_hot(torch::Tensor& tokens, std::int64_t row, std::int64_t offset, std::int64_t value) {
     tokens.index_put_({row, offset + value}, 1.0);
@@ -88,23 +89,25 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
         const auto candidate_row = chess1::kCandidateTokenBegin + square;
         one_hot(tokens, candidate_row, kSquareOffset, square);
 
-        const auto geometry_row = chess1::kGeometryTokenBegin + square;
-        const bool valid = square >= 8 && square < 56;
-        one_hot(tokens, geometry_row, kSquareOffset, square);
-        one_hot(tokens, geometry_row, kTargetOffset, valid ? square + 8 : 64);
-        one_hot(tokens, geometry_row, kSourceValidOffset, valid ? 1 : 0);
-        one_hot(tokens, geometry_row, kTargetOnboardOffset, valid ? 1 : 0);
+        for (std::int64_t side = 0; side < 2; ++side) {
+            const auto geometry_row = chess1::kGeometryTokenBegin + side * 64 + square;
+            const bool valid = square >= 8 && square < 56;
+            const auto target = side == static_cast<std::int64_t>(Chess1Side::White)
+                                    ? square + 8
+                                    : square - 8;
+            one_hot(tokens, geometry_row, kSquareOffset, square);
+            one_hot(tokens, geometry_row, kSideOffset, side);
+            one_hot(tokens, geometry_row, kTargetOffset, valid ? target : 64);
+            one_hot(tokens, geometry_row, kSourceValidOffset, valid ? 1 : 0);
+            one_hot(tokens, geometry_row, kTargetOnboardOffset, valid ? 1 : 0);
+        }
     }
     one_hot(tokens, chess1::kOffboardToken, kSourcePieceOffset,
             static_cast<std::int64_t>(Chess1Piece::Other));
     one_hot(tokens, chess1::kOffboardToken, kTargetOffset, 64);
     one_hot(tokens, chess1::kSideToken, kSideBaselineFeature, 0);
-    one_hot(tokens, chess1::kSelectedToken, kSideOffset,
-            static_cast<std::int64_t>(Chess1Side::Black));
     one_hot(tokens, chess1::kSourceWriteToken, kSourcePieceOffset,
             static_cast<std::int64_t>(Chess1Piece::Empty));
-    one_hot(tokens, chess1::kTargetWriteToken, kSourcePieceOffset,
-            static_cast<std::int64_t>(Chess1Piece::WhitePawn));
     for (std::int64_t square = 0; square < 64; ++square) {
         one_hot(tokens, chess1::kOutputSquareTokenBegin + square, kSquareOffset, square);
         one_hot(tokens, chess1::kOutputSquareTokenBegin + square, chess1::kLegalOffset, 1);
@@ -112,22 +115,25 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
     one_hot(tokens, chess1::kOutputSideToken, kSideQueryFeature, 0);
 
     std::int64_t relation_row = chess1::kLegalityRelationTokenBegin;
-    for (std::int64_t source_piece = 0; source_piece < 3; ++source_piece) {
+    for (std::int64_t source_piece = 0; source_piece < 4; ++source_piece) {
         for (std::int64_t side = 0; side < 2; ++side) {
             for (std::int64_t valid = 0; valid < 2; ++valid) {
                 for (std::int64_t onboard = 0; onboard < 2; ++onboard) {
-                    for (std::int64_t target_piece = 0; target_piece < 3; ++target_piece) {
+                    for (std::int64_t target_piece = 0; target_piece < 4; ++target_piece) {
                         one_hot(tokens, relation_row, kSourcePieceOffset, source_piece);
                         one_hot(tokens, relation_row, kTargetPieceOffset, target_piece);
                         one_hot(tokens, relation_row, kSideOffset, side);
                         one_hot(tokens, relation_row, kSourceValidOffset, valid);
                         one_hot(tokens, relation_row, kTargetOnboardOffset, onboard);
-                        const bool legal =
-                            source_piece == static_cast<std::int64_t>(Chess1Piece::WhitePawn) &&
-                            side == static_cast<std::int64_t>(Chess1Side::White) && valid == 1 &&
-                            onboard == 1 &&
+                        const bool matching_pawn =
+                            (source_piece == static_cast<std::int64_t>(Chess1Piece::WhitePawn) &&
+                             side == static_cast<std::int64_t>(Chess1Side::White)) ||
+                            (source_piece == static_cast<std::int64_t>(Chess1Piece::BlackPawn) &&
+                             side == static_cast<std::int64_t>(Chess1Side::Black));
+                        const bool legal = matching_pawn && valid == 1 && onboard == 1 &&
                             target_piece == static_cast<std::int64_t>(Chess1Piece::Empty);
                         one_hot(tokens, relation_row, chess1::kLegalOffset, legal ? 1 : 0);
+                        one_hot(tokens, relation_row, kNextSideOffset, 1 - side);
                         ++relation_row;
                     }
                 }
@@ -135,36 +141,61 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
         }
     }
 
-    // Stages 0..3 route source piece, geometry, target piece and side into every candidate.
-    copy_range(weights.wv[0], kSourcePieceOffset, kSourcePieceOffset, 3);
-    copy_range(weights.wv[1], kTargetOffset, kTargetOffset, 65);
-    copy_range(weights.wv[1], kSourceValidOffset, kSourceValidOffset, 2);
-    copy_range(weights.wv[1], kTargetOnboardOffset, kTargetOnboardOffset, 2);
-    copy_range(weights.wv[2], kSourcePieceOffset, kTargetPieceOffset, 3);
-    copy_range(weights.wv[3], kSideOffset, kSideOffset, 2);
+    // Stages 0..3 route source piece, side-keyed geometry and target piece.
+    copy_range(weights.wv[0], kSourcePieceOffset, kSourcePieceOffset, 4);
+    copy_range(weights.wv[1], kSideOffset, kSideOffset, 2);
     for (std::int64_t square = 0; square < 64; ++square) {
         const auto candidate = chess1::kCandidateTokenBegin + square;
         masks[0].index_put_({candidate, candidate}, negative_infinity);
         masks[0].index_put_({candidate, chess1::kSquareTokenBegin + square}, 0.0);
         masks[1].index_put_({candidate, candidate}, negative_infinity);
-        masks[1].index_put_({candidate, chess1::kGeometryTokenBegin + square}, 0.0);
-        masks[2].index_put_({candidate, candidate}, negative_infinity);
-        const auto target = square >= 8 && square < 56 ? chess1::kSquareTokenBegin + square + 8
-                                                       : chess1::kOffboardToken;
-        masks[2].index_put_({candidate, target}, 0.0);
-        masks[3].index_put_({candidate, candidate}, negative_infinity);
-        masks[3].index_put_({candidate, chess1::kSideToken}, 0.0);
+        masks[1].index_put_({candidate, chess1::kSideToken}, 0.0);
     }
     enable_write(projections, 0, chess1::kCandidateTokenBegin,
-                 chess1::kCandidateTokenBegin + 64, kSourcePieceOffset, kSourcePieceOffset + 3);
+                 chess1::kCandidateTokenBegin + 64, kSourcePieceOffset, kSourcePieceOffset + 4);
     enable_write(projections, 1, chess1::kCandidateTokenBegin,
-                 chess1::kCandidateTokenBegin + 64, kTargetOffset, kTargetOffset + 65);
-    enable_write(projections, 1, chess1::kCandidateTokenBegin,
-                 chess1::kCandidateTokenBegin + 64, kSourceValidOffset, kTargetOnboardOffset + 2);
-    enable_write(projections, 2, chess1::kCandidateTokenBegin,
-                 chess1::kCandidateTokenBegin + 64, kTargetPieceOffset, kTargetPieceOffset + 3);
-    enable_write(projections, 3, chess1::kCandidateTokenBegin,
                  chess1::kCandidateTokenBegin + 64, kSideOffset, kSideOffset + 2);
+
+    for (std::int64_t square = 0; square < 64; ++square) {
+        weight(weights.wq[2], kSquareOffset + square, square);
+        weight(weights.wk[2], kSquareOffset + square, square);
+    }
+    for (std::int64_t side = 0; side < 2; ++side) {
+        weight(weights.wq[2], kSideOffset + side, 64 + side);
+        weight(weights.wk[2], kSideOffset + side, 64 + side);
+    }
+    copy_range(weights.wv[2], kTargetOffset, kTargetOffset, 65);
+    copy_range(weights.wv[2], kSourceValidOffset, kSourceValidOffset, 2);
+    copy_range(weights.wv[2], kTargetOnboardOffset, kTargetOnboardOffset, 2);
+    for (std::int64_t square = 0; square < 64; ++square) {
+        const auto candidate = chess1::kCandidateTokenBegin + square;
+        masks[2].index_put_({candidate, candidate}, negative_infinity);
+        for (std::int64_t relation = 0; relation < chess1::kGeometryTokenCount; ++relation) {
+            masks[2].index_put_({candidate, chess1::kGeometryTokenBegin + relation}, 0.0);
+        }
+    }
+    enable_write(projections, 2, chess1::kCandidateTokenBegin,
+                 chess1::kCandidateTokenBegin + 64, kTargetOffset, kTargetOffset + 65);
+    enable_write(projections, 2, chess1::kCandidateTokenBegin,
+                 chess1::kCandidateTokenBegin + 64, kSourceValidOffset, kTargetOnboardOffset + 2);
+
+    for (std::int64_t square = 0; square < 64; ++square) {
+        weight(weights.wq[3], kTargetOffset + square, square);
+        weight(weights.wk[3], kSquareOffset + square, square);
+    }
+    weight(weights.wq[3], kTargetOffset + 64, 64);
+    weight(weights.wk[3], kTargetOffset + 64, 64);
+    copy_range(weights.wv[3], kSourcePieceOffset, kTargetPieceOffset, 4);
+    for (std::int64_t square = 0; square < 64; ++square) {
+        const auto candidate = chess1::kCandidateTokenBegin + square;
+        masks[3].index_put_({candidate, candidate}, negative_infinity);
+        masks[3].index_put_({candidate, chess1::kOffboardToken}, 0.0);
+        for (std::int64_t target = 0; target < 64; ++target) {
+            masks[3].index_put_({candidate, chess1::kSquareTokenBegin + target}, 0.0);
+        }
+    }
+    enable_write(projections, 3, chess1::kCandidateTokenBegin,
+                 chess1::kCandidateTokenBegin + 64, kTargetPieceOffset, kTargetPieceOffset + 4);
 
     // Stage 4 performs an exact five-field relation lookup with QK^T + hardmax.
     std::int64_t score_feature = 0;
@@ -175,12 +206,13 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
         }
         score_feature += count;
     };
-    score_category(kSourcePieceOffset, 3);
-    score_category(kTargetPieceOffset, 3);
+    score_category(kSourcePieceOffset, 4);
+    score_category(kTargetPieceOffset, 4);
     score_category(kSideOffset, 2);
     score_category(kSourceValidOffset, 2);
     score_category(kTargetOnboardOffset, 2);
     copy_range(weights.wv[4], chess1::kLegalOffset, chess1::kLegalOffset, 2);
+    copy_range(weights.wv[4], kNextSideOffset, kNextSideOffset, 2);
     for (std::int64_t square = 0; square < 64; ++square) {
         const auto candidate = chess1::kCandidateTokenBegin + square;
         masks[4].index_put_({candidate, candidate}, negative_infinity);
@@ -192,11 +224,15 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
     enable_write(projections, 4, chess1::kCandidateTokenBegin,
                  chess1::kCandidateTokenBegin + 64, chess1::kLegalOffset,
                  chess1::kLegalOffset + 2);
+    enable_write(projections, 4, chess1::kCandidateTokenBegin,
+                 chess1::kCandidateTokenBegin + 64, kNextSideOffset, kNextSideOffset + 2);
 
     // Stage 5 selects one candidate token; stages 6 and 7 materialize two write tokens.
     copy_range(weights.wv[5], kSquareOffset, kSquareOffset, 64);
     copy_range(weights.wv[5], kTargetOffset, kTargetOffset, 65);
+    copy_range(weights.wv[5], kSourcePieceOffset, kSourcePieceOffset, 4);
     copy_range(weights.wv[5], chess1::kLegalOffset, chess1::kLegalOffset, 2);
+    copy_range(weights.wv[5], kNextSideOffset, kNextSideOffset, 2);
     masks[5].index_put_({chess1::kSelectedToken, chess1::kSelectedToken}, negative_infinity);
     masks[5].index_put_({chess1::kSelectedToken,
                          chess1::kCandidateTokenBegin + selected_source}, 0.0);
@@ -204,6 +240,10 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
                  kSquareOffset, kTargetOffset + 65);
     enable_write(projections, 5, chess1::kSelectedToken, chess1::kSelectedToken + 1,
                  chess1::kLegalOffset, chess1::kLegalOffset + 2);
+    enable_write(projections, 5, chess1::kSelectedToken, chess1::kSelectedToken + 1,
+                 kSourcePieceOffset, kSourcePieceOffset + 4);
+    enable_write(projections, 5, chess1::kSelectedToken, chess1::kSelectedToken + 1,
+                 kNextSideOffset, kNextSideOffset + 2);
 
     copy_range(weights.wv[6], kSquareOffset, kSquareOffset, 64);
     copy_range(weights.wv[6], chess1::kLegalOffset, chess1::kLegalOffset, 2);
@@ -216,6 +256,7 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
                  chess1::kLegalOffset, chess1::kLegalOffset + 2);
 
     copy_range(weights.wv[7], kTargetOffset, kSquareOffset, 64);
+    copy_range(weights.wv[7], kSourcePieceOffset, kSourcePieceOffset, 4);
     copy_range(weights.wv[7], chess1::kLegalOffset, chess1::kLegalOffset, 2);
     masks[7].index_put_({chess1::kTargetWriteToken, chess1::kTargetWriteToken},
                         negative_infinity);
@@ -224,6 +265,8 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
                  kSquareOffset, kSquareOffset + 64);
     enable_write(projections, 7, chess1::kTargetWriteToken, chess1::kTargetWriteToken + 1,
                  chess1::kLegalOffset, chess1::kLegalOffset + 2);
+    enable_write(projections, 7, chess1::kTargetWriteToken, chess1::kTargetWriteToken + 1,
+                 kSourcePieceOffset, kSourcePieceOffset + 4);
 
     // Stage 8: every output square hardmax-selects unchanged input or a legal write token.
     for (std::int64_t square = 0; square < 64; ++square) {
@@ -232,7 +275,7 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
     }
     weights.wq[8].index_put_({chess1::kLegalOffset + 1, 64}, 2.0);
     weights.wk[8].index_put_({chess1::kLegalOffset + 1, 64}, 2.0);
-    copy_range(weights.wv[8], kSourcePieceOffset, chess1::kOutputPieceOffset, 3);
+    copy_range(weights.wv[8], kSourcePieceOffset, chess1::kOutputPieceOffset, 4);
     for (std::int64_t square = 0; square < 64; ++square) {
         const auto output = chess1::kOutputSquareTokenBegin + square;
         masks[8].index_put_({output, output}, negative_infinity);
@@ -242,13 +285,14 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
     }
     enable_write(projections, 8, chess1::kOutputSquareTokenBegin,
                  chess1::kOutputSquareTokenBegin + 64, chess1::kOutputPieceOffset,
-                 chess1::kOutputPieceOffset + 3);
+                 chess1::kOutputPieceOffset + 4);
 
     // Stage 9 flips side only when the selected candidate carries LEGAL=TRUE.
     weights.wq[9].index_put_({kSideQueryFeature, 0}, 1.0);
     weights.wk[9].index_put_({kSideBaselineFeature, 0}, 0.5);
     weights.wk[9].index_put_({chess1::kLegalOffset + 1, 0}, 1.0);
     copy_range(weights.wv[9], kSideOffset, chess1::kOutputSideOffset, 2);
+    copy_range(weights.wv[9], kNextSideOffset, chess1::kOutputSideOffset, 2);
     masks[9].index_put_({chess1::kOutputSideToken, chess1::kOutputSideToken}, negative_infinity);
     masks[9].index_put_({chess1::kOutputSideToken, chess1::kSideToken}, 0.0);
     masks[9].index_put_({chess1::kOutputSideToken, chess1::kSelectedToken}, 0.0);

@@ -10,7 +10,8 @@ namespace cmz::vm2 {
 enum class Chess1Piece : std::int64_t {
     Empty = 0,
     WhitePawn = 1,
-    Other = 2,
+    BlackPawn = 2,
+    Other = 3,
 };
 
 enum class Chess1Side : std::int64_t {
@@ -28,8 +29,8 @@ namespace chess1 {
 inline constexpr std::int64_t kSquareTokenCount = 64;
 inline constexpr std::int64_t kCandidateTokenCount = 64;
 inline constexpr std::int64_t kOutputSquareTokenCount = 64;
-inline constexpr std::int64_t kGeometryTokenCount = 64;
-inline constexpr std::int64_t kLegalityRelationTokenCount = 72;
+inline constexpr std::int64_t kGeometryTokenCount = 128;
+inline constexpr std::int64_t kLegalityRelationTokenCount = 128;
 inline constexpr std::int64_t kSideToken = 0;
 inline constexpr std::int64_t kSquareTokenBegin = 1;
 inline constexpr std::int64_t kOffboardToken = kSquareTokenBegin + kSquareTokenCount;
@@ -50,7 +51,7 @@ inline constexpr std::int64_t kTokenCount =
 
 inline constexpr std::int64_t kLegalOffset = 240;
 inline constexpr std::int64_t kOutputPieceOffset = 200;
-inline constexpr std::int64_t kOutputSideOffset = 203;
+inline constexpr std::int64_t kOutputSideOffset = 204;
 
 }  // namespace chess1
 

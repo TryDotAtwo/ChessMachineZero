@@ -24,3 +24,6 @@
   no-op behavior without changing the generic runtime.
 - Extended purity mutations to reject chess vocabulary in runtime and any
   runtime linkage to the chess compiler.
+- Generalized the pawn circuit to both colors with side-keyed geometry,
+  complete four-piece relation products, token-routed pawn color, and
+  token-routed next side.

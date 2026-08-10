@@ -72,7 +72,7 @@ int main() {
             const auto actual = state
                                     .index({cmz::vm2::chess1::kOutputSquareTokenBegin + square})
                                     .slice(0, cmz::vm2::chess1::kOutputPieceOffset,
-                                           cmz::vm2::chess1::kOutputPieceOffset + 3)
+                                           cmz::vm2::chess1::kOutputPieceOffset + 4)
                                     .argmax()
                                     .item<std::int64_t>();
             require(actual == static_cast<std::int64_t>(expected),
@@ -83,6 +83,36 @@ int main() {
                                  static_cast<std::int64_t>(Chess1Side::Black)})
                     .item<double>() == 1.0,
                 "legal move must emit black side-to-move");
+    }
+
+    for (std::int64_t source = 8; source < 56; ++source) {
+        cmz::vm2::Chess1Board position{};
+        position.side = Chess1Side::Black;
+        position.squares[source] = Chess1Piece::BlackPawn;
+        require(candidate_legal(position, source),
+                "black pawn single push must be legal on interior ranks");
+
+        const auto compiled = cmz::vm2::compile_chess1(position, source);
+        const auto state = cmz::vm2::transition(compiled, compiled.tokens);
+        for (std::int64_t square = 0; square < 64; ++square) {
+            const auto expected = square == source
+                                      ? Chess1Piece::Empty
+                                      : (square == source - 8 ? Chess1Piece::BlackPawn
+                                                              : position.squares[square]);
+            const auto actual = state
+                                    .index({cmz::vm2::chess1::kOutputSquareTokenBegin + square})
+                                    .slice(0, cmz::vm2::chess1::kOutputPieceOffset,
+                                           cmz::vm2::chess1::kOutputPieceOffset + 4)
+                                    .argmax()
+                                    .item<std::int64_t>();
+            require(actual == static_cast<std::int64_t>(expected),
+                    "black move must alter exactly source and south target");
+        }
+        require(state.index({cmz::vm2::chess1::kOutputSideToken,
+                             cmz::vm2::chess1::kOutputSideOffset +
+                                 static_cast<std::int64_t>(Chess1Side::White)})
+                    .item<double>() == 1.0,
+                "black legal move must emit white side-to-move");
     }
 
     cmz::vm2::Chess1Board illegal{};
