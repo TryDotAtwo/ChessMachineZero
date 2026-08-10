@@ -12,3 +12,10 @@
   target must not link `cmz_vm2_compiler`.
 - Purity acceptance requires functional CTest plus mutation-tested source and
   graph-operation audits.
+- The VM now has sixteen instruction slots, four predicate slots, and eleven
+  fixed attention stages.
+- `CMP_EQ` emits `FALSE/TRUE` through frozen equality relation tokens.
+- `JUMP_IF` builds target/fallthrough scratch tokens and selects one through
+  predicate-keyed hardmax attention.
+- Runtime write routing uses compact row and feature matrices with
+  `X + R @ (Y-X) @ C`; it does not use per-token 3D projection banks.

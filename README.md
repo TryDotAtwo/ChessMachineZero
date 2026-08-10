@@ -11,7 +11,7 @@ This orphan branch contains a clean, standalone implementation of a minimal
 token-native virtual machine.
 
 Program instructions, registers, constants, ALU relations, the program counter,
-and the halt state are tokens. A VM step consists of six frozen classical
+predicate slots, and the halt state are tokens. A VM step consists of eleven frozen classical
 self-attention stages:
 
 ```text
@@ -23,8 +23,9 @@ A = deterministic_hardmax(scores)
 output = AV
 ```
 
-The stages decode an instruction, read two operands, select an ALU relation,
-write a register, and update PC/HALT. Production runtime code has no opcode or
+The stages decode an instruction, read operands, select ALU/equality relations,
+write registers or predicates, build branch candidates, select the next PC,
+and update PC/HALT. Production runtime code has no opcode, predicate, PC, or
 chess-specific execution branches.
 
 Runtime execution is a caller-fixed unroll of the same transition. It never
@@ -49,6 +50,11 @@ HALT
 ```
 
 It produces `r2=5` with PC trace `0,1,2,3,3`.
+
+The second accepted program uses `CMP_EQ` and `JUMP_IF` to count from zero to
+three. Equality becomes a predicate token; target versus fallthrough is chosen
+by hardmax attention. An immutable `TRUE` token expresses the loop back-edge.
+The final state is `r0=3`, `p0=TRUE`, and absorbing `HALT=TRUE`.
 
 ## Build and test
 

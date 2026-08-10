@@ -15,9 +15,12 @@ torch::Tensor transition(const ProgramImage& image, const torch::Tensor& initial
             image.weights.wv[stage],
             image.attention_masks[stage]);
         const auto projected = torch::matmul(attention.output, image.weights.wo[stage]);
-        const auto kept = torch::matmul(state.unsqueeze(1), image.keep_projections[stage]).squeeze(1);
-        const auto taken = torch::matmul(projected.unsqueeze(1), image.take_projections[stage]).squeeze(1);
-        state = kept + taken;
+        for (std::int64_t component = 0; component < kWriteProjectionComponents; ++component) {
+            const auto delta = projected - state;
+            state = state + torch::matmul(
+                                torch::matmul(image.write_projections.row[stage][component], delta),
+                                image.write_projections.feature[stage][component]);
+        }
     }
     return state;
 }

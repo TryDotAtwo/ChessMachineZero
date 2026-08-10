@@ -41,9 +41,9 @@ A = deterministic_hardmax(scores)
 Y = A V
 ```
 
-Fixed projections, residual routing, and elementwise masks may combine stage
-outputs, but all data-dependent selection must occur through attention and
-hardmax.
+Fixed row/feature matrix projections and tensor addition combine stage outputs.
+Elementwise write masks are forbidden at runtime. All data-dependent selection
+occurs through attention and hardmax.
 
 ## Token schema
 
@@ -65,12 +65,14 @@ does not validate them by inspecting token values.
 
 ## Attention stages
 
-The existing fixed transition is extended with three generic stages, for nine
-stages total:
+The existing transition is extended to eleven fixed stages:
 
-1. Read the second comparison operand using attention.
-2. Select the equality relation and write a predicate token.
-3. Select and write the next PC from predicate, target, and fallthrough tokens.
+1. Decode instruction and read both operands.
+2. Select the ALU/equality relation and perform register writeback.
+3. Write the equality result into a predicate token.
+4. Read the branch predicate.
+5. Build target and fallthrough candidate tokens.
+6. Select the candidate PC and write PC/HALT.
 
 Stages run for every instruction. Opcode and type tokens make inactive writes
 route the previous state back unchanged. The native executor does not skip

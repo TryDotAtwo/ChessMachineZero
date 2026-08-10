@@ -10,3 +10,5 @@
   matrix/self-attention inference.
 - Audit the architecture for hidden procedural semantics and fix every detected
   boundary violation before adding predicates.
+- Implement predicate-token comparison and branching entirely through frozen
+  attention inference.

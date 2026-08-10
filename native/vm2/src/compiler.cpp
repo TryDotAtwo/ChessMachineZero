@@ -22,10 +22,6 @@ void allow(torch::Tensor& mask, std::int64_t query, std::int64_t key) {
     mask.index_put_({query, key}, 0.0);
 }
 
-void enable_write(torch::Tensor& mask, std::int64_t row, std::int64_t offset, std::int64_t width) {
-    mask.index_put_({row, torch::indexing::Slice(offset, offset + width)}, 1.0);
-}
-
 void require_register(std::int64_t value, const char* field) {
     if (value < 0 || value >= kRegisterCount) {
         throw std::invalid_argument(std::string(field) + " register is outside 0..3");
@@ -35,6 +31,19 @@ void require_register(std::int64_t value, const char* field) {
 void require_value(std::int64_t value) {
     if (value < 0 || value >= kValueCount) {
         throw std::invalid_argument("constant is outside 0..15");
+    }
+}
+
+void require_predicate(std::int64_t value, bool allow_true_literal = false) {
+    const auto limit = kPredicateCount + (allow_true_literal ? 1 : 0);
+    if (value < 0 || value >= limit) {
+        throw std::invalid_argument("predicate is outside the compiled domain");
+    }
+}
+
+void require_target(std::int64_t value) {
+    if (value < 0 || value >= kProgramSlots) {
+        throw std::invalid_argument("branch target is outside the program");
     }
 }
 
@@ -53,10 +62,16 @@ void validate_instruction(const Instruction& instruction, std::int64_t slot) {
             require_register(instruction.lhs, "left");
             require_register(instruction.rhs, "right");
             break;
+        case Opcode::CmpEq:
+            require_predicate(instruction.dst);
+            require_register(instruction.lhs, "left");
+            require_register(instruction.rhs, "right");
+            break;
+        case Opcode::JumpIf:
+            require_predicate(instruction.lhs, true);
+            require_target(instruction.rhs);
+            break;
         case Opcode::Halt:
-            if (slot != kProgramSlots - 1) {
-                throw std::invalid_argument("HALT must occupy the final program slot");
-            }
             break;
         default:
             throw std::invalid_argument("unknown opcode");
@@ -83,6 +98,7 @@ FrozenWeights make_weights(const torch::TensorOptions& options) {
     set_weight(weights.wq[1], kOpcodeOffset + static_cast<std::int64_t>(Opcode::LoadConst), 0, 2.0);
     set_weight(weights.wq[1], kOpcodeOffset + static_cast<std::int64_t>(Opcode::Move), 1, 2.0);
     set_weight(weights.wq[1], kOpcodeOffset + static_cast<std::int64_t>(Opcode::Add), 1, 2.0);
+    set_weight(weights.wq[1], kOpcodeOffset + static_cast<std::int64_t>(Opcode::CmpEq), 1, 2.0);
     set_weight(weights.wk[1], kRoleOffset + static_cast<std::int64_t>(TokenRole::Constant), 0, 2.0);
     set_weight(weights.wk[1], kRoleOffset + static_cast<std::int64_t>(TokenRole::Register), 1, 2.0);
     for (std::int64_t value = 0; value < kValueCount; ++value) {
@@ -98,6 +114,7 @@ FrozenWeights make_weights(const torch::TensorOptions& options) {
 
     // Stage 2: route the ADD right register.
     set_weight(weights.wq[2], kOpcodeOffset + static_cast<std::int64_t>(Opcode::Add), 0, 2.0);
+    set_weight(weights.wq[2], kOpcodeOffset + static_cast<std::int64_t>(Opcode::CmpEq), 0, 2.0);
     set_weight(weights.wk[2], kRoleOffset + static_cast<std::int64_t>(TokenRole::Register), 0, 2.0);
     for (std::int64_t reg = 0; reg < kRegisterCount; ++reg) {
         set_weight(weights.wq[2], kRightRegisterOffset + reg, 1 + reg);
@@ -108,16 +125,19 @@ FrozenWeights make_weights(const torch::TensorOptions& options) {
     }
 
     // Stage 3: select the universal ALU relation by opcode and operand values.
-    for (std::int64_t opcode = 0; opcode < 4; ++opcode) {
+    for (std::int64_t opcode = 0; opcode < 6; ++opcode) {
         set_weight(weights.wq[3], kOpcodeOffset + opcode, opcode, 4.0);
         set_weight(weights.wk[3], kOpcodeOffset + opcode, opcode, 4.0);
     }
     for (std::int64_t value = 0; value < kValueCount; ++value) {
-        set_weight(weights.wq[3], kLeftValueOffset + value, 4 + value);
-        set_weight(weights.wk[3], kLeftValueOffset + value, 4 + value);
-        set_weight(weights.wq[3], kRightValueOffset + value, 20 + value);
-        set_weight(weights.wk[3], kRightValueOffset + value, 20 + value);
+        set_weight(weights.wq[3], kLeftValueOffset + value, 6 + value);
+        set_weight(weights.wk[3], kLeftValueOffset + value, 6 + value);
+        set_weight(weights.wq[3], kRightValueOffset + value, 22 + value);
+        set_weight(weights.wk[3], kRightValueOffset + value, 22 + value);
         set_weight(weights.wv[3], kResultValueOffset + value, kResultValueOffset + value);
+    }
+    for (std::int64_t predicate = 0; predicate < 2; ++predicate) {
+        set_weight(weights.wv[3], kResultPredicateOffset + predicate, kResultPredicateOffset + predicate);
     }
 
     // Stage 4: each register selects itself, except the destination selects execution.
@@ -132,14 +152,67 @@ FrozenWeights make_weights(const torch::TensorOptions& options) {
         set_weight(weights.wv[4], kResultValueOffset + value, kRegisterValueOffset + value);
     }
 
-    // Stage 5: control and execution tokens copy next-PC/HALT from execution.
-    set_weight(weights.wq[5], kRoleOffset + static_cast<std::int64_t>(TokenRole::Control), 0);
-    set_weight(weights.wq[5], kRoleOffset + static_cast<std::int64_t>(TokenRole::Execution), 0);
-    set_weight(weights.wk[5], kRoleOffset + static_cast<std::int64_t>(TokenRole::Execution), 0);
-    for (std::int64_t pc = 0; pc < kProgramSlots; ++pc) {
-        set_weight(weights.wv[5], kNextProgramCounterOffset + pc, kProgramCounterOffset + pc);
+    // Stage 5: predicate slots preserve themselves or accept CMP_EQ output.
+    set_weight(weights.wq[5], kRoleOffset + static_cast<std::int64_t>(TokenRole::Predicate), 0);
+    set_weight(weights.wk[5], kRoleOffset + static_cast<std::int64_t>(TokenRole::Predicate), 0);
+    set_weight(weights.wq[5], kRoleOffset + static_cast<std::int64_t>(TokenRole::Predicate), 10, 2.0);
+    set_weight(weights.wk[5], kOpcodeOffset + static_cast<std::int64_t>(Opcode::CmpEq), 10, 2.0);
+    for (std::int64_t predicate = 0; predicate < kPredicateCount; ++predicate) {
+        set_weight(weights.wq[5], kPredicateDestinationOffset + predicate, 1 + predicate, 2.0);
+        set_weight(weights.wk[5], kPredicateDestinationOffset + predicate, 1 + predicate, 2.0);
     }
-    set_weight(weights.wv[5], kHaltOffset, kHaltOffset);
+    for (std::int64_t value = 0; value < 2; ++value) {
+        set_weight(weights.wv[5], kPredicateValueOffset + value, kPredicateValueOffset + value);
+        set_weight(weights.wv[5], kResultPredicateOffset + value, kPredicateValueOffset + value);
+    }
+
+    // Stage 6: JUMP_IF reads a predicate slot or the immutable TRUE token.
+    set_weight(weights.wq[6], kOpcodeOffset + static_cast<std::int64_t>(Opcode::JumpIf), 0, 2.0);
+    set_weight(weights.wk[6], kRoleOffset + static_cast<std::int64_t>(TokenRole::Predicate), 0, 2.0);
+    set_weight(weights.wk[6], kRoleOffset + static_cast<std::int64_t>(TokenRole::PredicateConstant), 0, 2.0);
+    for (std::int64_t predicate = 0; predicate < kPredicateCount + 1; ++predicate) {
+        set_weight(weights.wq[6], kPredicateSourceOffset + predicate, 1 + predicate);
+        set_weight(weights.wk[6], kPredicateSourceOffset + predicate, 1 + predicate, 2.0);
+    }
+    for (std::int64_t value = 0; value < 2; ++value) {
+        set_weight(weights.wv[6], kPredicateValueOffset + value, kResultPredicateOffset + value);
+    }
+
+    // Stages 7 and 8 build target and fallthrough branch candidates.
+    set_weight(weights.wq[7], kRoleOffset + static_cast<std::int64_t>(TokenRole::BranchTarget), 0);
+    set_weight(weights.wk[7], kOpcodeOffset + static_cast<std::int64_t>(Opcode::JumpIf), 0);
+    set_weight(weights.wv[7], kOpcodeOffset + static_cast<std::int64_t>(Opcode::JumpIf),
+               kCandidatePredicateOffset + 1);
+    set_weight(weights.wq[8], kRoleOffset + static_cast<std::int64_t>(TokenRole::BranchFallthrough), 0);
+    set_weight(weights.wk[8], kOpcodeOffset + static_cast<std::int64_t>(Opcode::JumpIf), 0);
+    set_weight(weights.wv[8], kOpcodeOffset + static_cast<std::int64_t>(Opcode::JumpIf),
+               kCandidatePredicateOffset);
+    for (std::int64_t pc = 0; pc < kProgramSlots; ++pc) {
+        set_weight(weights.wv[7], kTargetProgramCounterOffset + pc, kCandidateProgramCounterOffset + pc);
+        set_weight(weights.wv[8], kNextProgramCounterOffset + pc, kCandidateProgramCounterOffset + pc);
+    }
+
+    // Stage 9 selects target/fallthrough through predicate-keyed attention.
+    set_weight(weights.wq[9], kOpcodeOffset + static_cast<std::int64_t>(Opcode::JumpIf), 0, 2.0);
+    set_weight(weights.wk[9], kRoleOffset + static_cast<std::int64_t>(TokenRole::BranchTarget), 0, 2.0);
+    set_weight(weights.wk[9], kRoleOffset + static_cast<std::int64_t>(TokenRole::BranchFallthrough), 0, 2.0);
+    for (std::int64_t value = 0; value < 2; ++value) {
+        set_weight(weights.wq[9], kResultPredicateOffset + value, 1 + value);
+        set_weight(weights.wk[9], kCandidatePredicateOffset + value, 1 + value);
+    }
+    for (std::int64_t pc = 0; pc < kProgramSlots; ++pc) {
+        set_weight(weights.wv[9], kNextProgramCounterOffset + pc, kNextProgramCounterOffset + pc);
+        set_weight(weights.wv[9], kCandidateProgramCounterOffset + pc, kNextProgramCounterOffset + pc);
+    }
+
+    // Stage 10: control and execution tokens copy next-PC/HALT from execution.
+    set_weight(weights.wq[10], kRoleOffset + static_cast<std::int64_t>(TokenRole::Control), 0);
+    set_weight(weights.wq[10], kRoleOffset + static_cast<std::int64_t>(TokenRole::Execution), 0);
+    set_weight(weights.wk[10], kRoleOffset + static_cast<std::int64_t>(TokenRole::Execution), 0);
+    for (std::int64_t pc = 0; pc < kProgramSlots; ++pc) {
+        set_weight(weights.wv[10], kNextProgramCounterOffset + pc, kProgramCounterOffset + pc);
+    }
+    set_weight(weights.wv[10], kHaltOffset, kHaltOffset);
 
     for (std::int64_t stage = 0; stage < kStageCount; ++stage) {
         weights.wq[stage] = weights.wq[stage].detach().set_requires_grad(false);
@@ -177,55 +250,82 @@ TensorArray make_attention_masks(const torch::TensorOptions& options) {
         allow(masks[4], row, row);
         allow(masks[4], row, kExecutionToken);
     }
-    allow(masks[5], kControlToken, kExecutionToken);
-    allow(masks[5], kExecutionToken, kExecutionToken);
+    for (std::int64_t predicate = 0; predicate < kPredicateCount; ++predicate) {
+        const auto row = kPredicateTokenBegin + predicate;
+        allow(masks[5], row, row);
+        allow(masks[5], row, kExecutionToken);
+        allow(masks[6], kExecutionToken, row);
+    }
+    allow(masks[6], kExecutionToken, kPredicateConstantTokenBegin);
+    allow(masks[6], kExecutionToken, kPredicateConstantTokenBegin + 1);
+    allow(masks[7], kBranchTargetToken, kExecutionToken);
+    allow(masks[8], kBranchFallthroughToken, kExecutionToken);
+    masks[9].index_put_({kExecutionToken, kControlToken}, negative_infinity);
+    allow(masks[9], kExecutionToken, kExecutionToken);
+    allow(masks[9], kExecutionToken, kBranchTargetToken);
+    allow(masks[9], kExecutionToken, kBranchFallthroughToken);
+    allow(masks[10], kControlToken, kExecutionToken);
+    allow(masks[10], kExecutionToken, kExecutionToken);
     for (auto& mask : masks) {
         mask = mask.detach().set_requires_grad(false);
     }
     return masks;
 }
 
-TensorArray make_write_masks(const torch::TensorOptions& options) {
-    TensorArray masks;
-    for (auto& mask : masks) {
-        mask = torch::zeros({kTokenCount, kModelDim}, options);
-    }
-    enable_write(masks[0], kExecutionToken, kOpcodeOffset, 4);
-    enable_write(masks[0], kExecutionToken, kDestinationOffset, 4);
-    enable_write(masks[0], kExecutionToken, kLeftRegisterOffset, 4);
-    enable_write(masks[0], kExecutionToken, kRightRegisterOffset, 4);
-    enable_write(masks[0], kExecutionToken, kValueOffset, kValueCount);
-    enable_write(masks[0], kExecutionToken, kNextProgramCounterOffset, kProgramSlots);
-    enable_write(masks[0], kExecutionToken, kHaltOffset, 1);
-    enable_write(masks[1], kExecutionToken, kLeftValueOffset, kValueCount);
-    enable_write(masks[2], kExecutionToken, kRightValueOffset, kValueCount);
-    enable_write(masks[3], kExecutionToken, kResultValueOffset, kValueCount);
-    for (std::int64_t reg = 0; reg < kRegisterCount; ++reg) {
-        enable_write(masks[4], kRegisterTokenBegin + reg, kRegisterValueOffset, kValueCount);
-    }
-    enable_write(masks[5], kControlToken, kProgramCounterOffset, kProgramSlots);
-    enable_write(masks[5], kControlToken, kHaltOffset, 1);
-    enable_write(masks[5], kExecutionToken, kProgramCounterOffset, kProgramSlots);
-    enable_write(masks[5], kExecutionToken, kOpcodeOffset, 4);
-    enable_write(masks[5], kExecutionToken, kDestinationOffset, 12);
-    enable_write(masks[5], kExecutionToken, kValueOffset, 64);
-    enable_write(masks[5], kExecutionToken, kNextProgramCounterOffset, kProgramSlots);
-    enable_write(masks[5], kExecutionToken, kHaltOffset, 1);
-    for (auto& mask : masks) {
-        mask = mask.detach().set_requires_grad(false);
-    }
-    return masks;
-}
-
-std::pair<TensorArray, TensorArray> make_state_projections(const torch::TensorOptions& options) {
-    const auto write_masks = make_write_masks(options);
-    TensorArray keep;
-    TensorArray take;
+WriteProjections make_write_projections(const torch::TensorOptions& options) {
+    WriteProjections projections;
     for (std::int64_t stage = 0; stage < kStageCount; ++stage) {
-        take[stage] = torch::diag_embed(write_masks[stage]).detach().set_requires_grad(false);
-        keep[stage] = torch::diag_embed(1.0 - write_masks[stage]).detach().set_requires_grad(false);
+        for (std::int64_t component = 0; component < kWriteProjectionComponents; ++component) {
+            projections.row[stage][component] = torch::zeros({kTokenCount, kTokenCount}, options);
+            projections.feature[stage][component] = torch::zeros({kModelDim, kModelDim}, options);
+        }
     }
-    return {keep, take};
+    const auto enable = [&](std::int64_t stage,
+                            std::int64_t component,
+                            std::int64_t row_begin,
+                            std::int64_t row_end,
+                            std::int64_t feature_begin,
+                            std::int64_t feature_end) {
+        for (std::int64_t row = row_begin; row < row_end; ++row) {
+            projections.row[stage][component].index_put_({row, row}, 1.0);
+        }
+        for (std::int64_t feature = feature_begin; feature < feature_end; ++feature) {
+            projections.feature[stage][component].index_put_({feature, feature}, 1.0);
+        }
+    };
+    enable(0, 0, kExecutionToken, kExecutionToken + 1, kOpcodeOffset, kHaltOffset);
+    enable(0, 1, kExecutionToken, kExecutionToken + 1, kHaltOffset, kHaltOffset + 1);
+    enable(0, 2, kExecutionToken, kExecutionToken + 1, kPredicateDestinationOffset,
+           kPredicateSourceOffset + kPredicateCount + 1);
+    enable(1, 0, kExecutionToken, kExecutionToken + 1, kLeftValueOffset, kLeftValueOffset + kValueCount);
+    enable(2, 0, kExecutionToken, kExecutionToken + 1, kRightValueOffset, kRightValueOffset + kValueCount);
+    enable(3, 0, kExecutionToken, kExecutionToken + 1, kResultValueOffset, kResultValueOffset + kValueCount);
+    enable(3, 1, kExecutionToken, kExecutionToken + 1, kResultPredicateOffset, kResultPredicateOffset + 2);
+    enable(4, 0, kRegisterTokenBegin, kRegisterTokenBegin + kRegisterCount, kRegisterValueOffset,
+           kRegisterValueOffset + kValueCount);
+    enable(5, 0, kPredicateTokenBegin, kPredicateTokenBegin + kPredicateCount, kPredicateValueOffset,
+           kPredicateValueOffset + 2);
+    enable(6, 0, kExecutionToken, kExecutionToken + 1, kResultPredicateOffset, kResultPredicateOffset + 2);
+    enable(7, 0, kBranchTargetToken, kBranchTargetToken + 1, kCandidatePredicateOffset,
+           kCandidateProgramCounterOffset + kProgramSlots);
+    enable(8, 0, kBranchFallthroughToken, kBranchFallthroughToken + 1, kCandidatePredicateOffset,
+           kCandidateProgramCounterOffset + kProgramSlots);
+    enable(9, 0, kExecutionToken, kExecutionToken + 1, kNextProgramCounterOffset,
+           kNextProgramCounterOffset + kProgramSlots);
+    enable(10, 0, kControlToken, kControlToken + 1, kProgramCounterOffset,
+           kProgramCounterOffset + kProgramSlots);
+    enable(10, 1, kControlToken, kControlToken + 1, kHaltOffset, kHaltOffset + 1);
+    enable(10, 2, kExecutionToken, kExecutionToken + 1, kOpcodeOffset,
+           kCandidateProgramCounterOffset + kProgramSlots);
+    for (std::int64_t stage = 0; stage < kStageCount; ++stage) {
+        for (std::int64_t component = 0; component < kWriteProjectionComponents; ++component) {
+            projections.row[stage][component] =
+                projections.row[stage][component].detach().set_requires_grad(false);
+            projections.feature[stage][component] =
+                projections.feature[stage][component].detach().set_requires_grad(false);
+        }
+    }
+    return projections;
 }
 
 void emit_relation(
@@ -243,6 +343,15 @@ void emit_relation(
         set_one_hot(tokens, row, kRightValueOffset, right);
     }
     set_one_hot(tokens, row, kResultValueOffset, result);
+}
+
+void emit_predicate_relation(
+    torch::Tensor& tokens, std::int64_t row, std::int64_t left, std::int64_t right) {
+    set_one_hot(tokens, row, kRoleOffset, static_cast<std::int64_t>(TokenRole::Relation));
+    set_one_hot(tokens, row, kOpcodeOffset, static_cast<std::int64_t>(Opcode::CmpEq));
+    set_one_hot(tokens, row, kLeftValueOffset, left);
+    set_one_hot(tokens, row, kRightValueOffset, right);
+    set_one_hot(tokens, row, kResultPredicateOffset, left == right ? 1 : 0);
 }
 
 }  // namespace
@@ -268,19 +377,31 @@ ProgramImage compile_program(const std::array<Instruction, kProgramSlots>& progr
         set_one_hot(tokens, row, kRoleOffset, static_cast<std::int64_t>(TokenRole::Instruction));
         set_one_hot(tokens, row, kOpcodeOffset, static_cast<std::int64_t>(instruction.opcode));
         set_one_hot(tokens, row, kProgramCounterOffset, slot);
-        set_one_hot(tokens, row, kNextProgramCounterOffset, slot == kProgramSlots - 1 ? slot : slot + 1);
+        set_one_hot(
+            tokens,
+            row,
+            kNextProgramCounterOffset,
+            instruction.opcode == Opcode::Halt || slot == kProgramSlots - 1 ? slot : slot + 1);
         if (instruction.opcode == Opcode::Halt) {
             tokens.index_put_({row, kHaltOffset}, 1.0);
-        } else {
+        } else if (instruction.opcode == Opcode::LoadConst || instruction.opcode == Opcode::Move ||
+                   instruction.opcode == Opcode::Add) {
             set_one_hot(tokens, row, kDestinationOffset, instruction.dst);
         }
         if (instruction.opcode == Opcode::LoadConst) {
             set_one_hot(tokens, row, kValueOffset, instruction.lhs);
-        } else if (instruction.opcode == Opcode::Move || instruction.opcode == Opcode::Add) {
+        } else if (instruction.opcode == Opcode::Move || instruction.opcode == Opcode::Add ||
+                   instruction.opcode == Opcode::CmpEq) {
             set_one_hot(tokens, row, kLeftRegisterOffset, instruction.lhs);
-            if (instruction.opcode == Opcode::Add) {
+            if (instruction.opcode == Opcode::Add || instruction.opcode == Opcode::CmpEq) {
                 set_one_hot(tokens, row, kRightRegisterOffset, instruction.rhs);
             }
+        }
+        if (instruction.opcode == Opcode::CmpEq) {
+            set_one_hot(tokens, row, kPredicateDestinationOffset, instruction.dst);
+        } else if (instruction.opcode == Opcode::JumpIf) {
+            set_one_hot(tokens, row, kPredicateSourceOffset, instruction.lhs);
+            set_one_hot(tokens, row, kTargetProgramCounterOffset, instruction.rhs);
         }
     }
 
@@ -290,6 +411,24 @@ ProgramImage compile_program(const std::array<Instruction, kProgramSlots>& progr
         set_one_hot(tokens, row, kDestinationOffset, reg);
         set_one_hot(tokens, row, kRegisterValueOffset, 0);
     }
+    for (std::int64_t predicate = 0; predicate < kPredicateCount; ++predicate) {
+        const auto row = kPredicateTokenBegin + predicate;
+        set_one_hot(tokens, row, kRoleOffset, static_cast<std::int64_t>(TokenRole::Predicate));
+        set_one_hot(tokens, row, kPredicateDestinationOffset, predicate);
+        set_one_hot(tokens, row, kPredicateSourceOffset, predicate);
+        set_one_hot(tokens, row, kPredicateValueOffset, 0);
+    }
+    for (std::int64_t value = 0; value < 2; ++value) {
+        const auto row = kPredicateConstantTokenBegin + value;
+        set_one_hot(tokens, row, kRoleOffset, static_cast<std::int64_t>(TokenRole::PredicateConstant));
+        set_one_hot(tokens, row, kPredicateValueOffset, value);
+        if (value == 1) {
+            set_one_hot(tokens, row, kPredicateSourceOffset, kPredicateCount);
+        }
+    }
+    set_one_hot(tokens, kBranchTargetToken, kRoleOffset, static_cast<std::int64_t>(TokenRole::BranchTarget));
+    set_one_hot(tokens, kBranchFallthroughToken, kRoleOffset,
+                static_cast<std::int64_t>(TokenRole::BranchFallthrough));
     for (std::int64_t value = 0; value < kValueCount; ++value) {
         const auto row = kConstantTokenBegin + value;
         set_one_hot(tokens, row, kRoleOffset, static_cast<std::int64_t>(TokenRole::Constant));
@@ -309,17 +448,21 @@ ProgramImage compile_program(const std::array<Instruction, kProgramSlots>& progr
         }
     }
     emit_relation(tokens, row++, Opcode::Halt, 0, 0, 0, false);
+    for (std::int64_t left = 0; left < kValueCount; ++left) {
+        for (std::int64_t right = 0; right < kValueCount; ++right) {
+            emit_predicate_relation(tokens, row++, left, right);
+        }
+    }
+    emit_relation(tokens, row++, Opcode::JumpIf, 0, 0, 0, false);
     if (row != kTokenCount) {
         throw std::logic_error("relation token count mismatch");
     }
 
     tokens = tokens.detach().set_requires_grad(false);
-    auto [keep_projections, take_projections] = make_state_projections(options);
     return ProgramImage{
         tokens,
         make_attention_masks(options),
-        std::move(keep_projections),
-        std::move(take_projections),
+        make_write_projections(options),
         make_weights(options),
     };
 }

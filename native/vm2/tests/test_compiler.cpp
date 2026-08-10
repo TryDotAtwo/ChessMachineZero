@@ -22,8 +22,8 @@ void require_invalid_argument(Function&& function, const char* message) {
 int main() {
     static_assert(cmz::vm2::kRegisterCount == 4);
     static_assert(cmz::vm2::kValueCount == 16);
-    static_assert(cmz::vm2::kProgramSlots == 4);
-    static_assert(cmz::vm2::kStageCount == 6);
+    static_assert(cmz::vm2::kProgramSlots == 16);
+    static_assert(cmz::vm2::kStageCount == 11);
     if (static_cast<int>(cmz::vm2::Opcode::Add) != 3) {
         return 1;
     }
@@ -39,6 +39,16 @@ int main() {
     const auto image = cmz::vm2::compile_program(program);
     if (image.tokens.dim() != 2 || image.tokens.scalar_type() != torch::kFloat64) {
         throw std::runtime_error("compiler must emit a float64 token matrix");
+    }
+    for (std::int64_t stage = 0; stage < cmz::vm2::kStageCount; ++stage) {
+        for (std::int64_t component = 0; component < cmz::vm2::kWriteProjectionComponents; ++component) {
+            const auto& row = image.write_projections.row[stage][component];
+            const auto& feature = image.write_projections.feature[stage][component];
+            if (row.sizes() != torch::IntArrayRef({cmz::vm2::kTokenCount, cmz::vm2::kTokenCount}) ||
+                feature.sizes() != torch::IntArrayRef({cmz::vm2::kModelDim, cmz::vm2::kModelDim})) {
+                throw std::runtime_error("write routing must use compact row/feature matrices");
+            }
+        }
     }
     for (const auto& weight : image.weights.wq) {
         if (weight.requires_grad()) {
@@ -71,10 +81,27 @@ int main() {
     require_invalid_argument(
         [&] { (void)cmz::vm2::compile_program(invalid_constant); },
         "constant outside 0..15 must be rejected");
-    auto missing_halt = program;
-    missing_halt[3] = Instruction{Opcode::Move, 0, 1, 0};
+    std::array<Instruction, cmz::vm2::kProgramSlots> missing_halt;
+    missing_halt.fill(Instruction{Opcode::Move, 0, 1, 0});
     require_invalid_argument(
         [&] { (void)cmz::vm2::compile_program(missing_halt); },
         "program without HALT must be rejected");
+    const std::array predicate_program{
+        Instruction{Opcode::CmpEq, 0, 0, 1},
+        Instruction{Opcode::JumpIf, 0, 0, 3},
+        Instruction{Opcode::JumpIf, 0, cmz::vm2::kPredicateCount, 0},
+        Instruction{Opcode::Halt, 0, 0, 0},
+    };
+    (void)cmz::vm2::compile_program(predicate_program);
+    auto invalid_predicate = predicate_program;
+    invalid_predicate[0].dst = cmz::vm2::kPredicateCount;
+    require_invalid_argument(
+        [&] { (void)cmz::vm2::compile_program(invalid_predicate); },
+        "invalid predicate destination must be rejected");
+    auto invalid_target = predicate_program;
+    invalid_target[1].rhs = cmz::vm2::kProgramSlots;
+    require_invalid_argument(
+        [&] { (void)cmz::vm2::compile_program(invalid_target); },
+        "invalid branch target must be rejected");
     return 0;
 }

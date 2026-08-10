@@ -31,9 +31,20 @@ torch::Tensor apply_stage_for_test(
         image.weights.wv[stage],
         image.attention_masks[stage]);
     const auto projected = torch::matmul(attention.output, image.weights.wo[stage]);
-    const auto kept = torch::matmul(state.unsqueeze(1), image.keep_projections[stage]).squeeze(1);
-    const auto taken = torch::matmul(projected.unsqueeze(1), image.take_projections[stage]).squeeze(1);
-    return kept + taken;
+    for (std::int64_t component = 0; component < cmz::vm2::kWriteProjectionComponents; ++component) {
+        const auto delta = projected - state;
+        state = state + torch::matmul(
+                            torch::matmul(image.write_projections.row[stage][component], delta),
+                            image.write_projections.feature[stage][component]);
+    }
+    return state;
+}
+
+std::int64_t predicate_value(const torch::Tensor& state, std::int64_t predicate) {
+    return one_hot_index(
+        state[cmz::vm2::kPredicateTokenBegin + predicate],
+        cmz::vm2::kPredicateValueOffset,
+        2);
 }
 
 std::vector<std::int64_t> pc_trace(const torch::Tensor& states) {
@@ -135,6 +146,26 @@ void require_move(std::int64_t value) {
     }
 }
 
+void require_cmp_eq(std::int64_t left, std::int64_t right) {
+    using cmz::vm2::Instruction;
+    using cmz::vm2::Opcode;
+    const std::array program{
+        Instruction{Opcode::LoadConst, 0, left, 0},
+        Instruction{Opcode::LoadConst, 1, right, 0},
+        Instruction{Opcode::CmpEq, 0, 0, 1},
+        Instruction{Opcode::Halt, 0, 0, 0},
+    };
+    const auto result = cmz::vm2::run_fixed(cmz::vm2::compile_program(program), 4);
+    const auto actual = predicate_value(result.final_state, 0);
+    if (actual != (left == right ? 1 : 0)) {
+        throw std::runtime_error(
+            "CMP_EQ attention result mismatch for " + std::to_string(left) + "," +
+            std::to_string(right) + ": " + std::to_string(actual) + ", regs=" +
+            std::to_string(register_value(result.state_trace[2], 0)) + "," +
+            std::to_string(register_value(result.state_trace[2], 1)));
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -178,8 +209,13 @@ int main() {
         if (result.final_state[cmz::vm2::kControlToken][cmz::vm2::kHaltOffset].item<double>() != 1.0) {
             throw std::runtime_error("HALT must set the halt token");
         }
-        if (pc_trace(result.state_trace) != std::vector<std::int64_t>({0, 1, 2, 3, 3, 3, 3, 3, 3})) {
-            throw std::runtime_error("PC trace must remain at HALT for the full fixed unroll");
+        const auto actual_pc_trace = pc_trace(result.state_trace);
+        if (actual_pc_trace != std::vector<std::int64_t>({0, 1, 2, 3, 3, 3, 3, 3, 3})) {
+            std::string trace;
+            for (const auto pc : actual_pc_trace) {
+                trace += std::to_string(pc) + ",";
+            }
+            throw std::runtime_error("PC trace must remain at HALT for the full fixed unroll: " + trace);
         }
         for (std::int64_t step = 5; step < result.state_trace.size(0); ++step) {
             if (!torch::equal(result.state_trace[4], result.state_trace[step])) {
@@ -197,6 +233,50 @@ int main() {
         }
         for (std::int64_t value = 0; value < cmz::vm2::kValueCount; ++value) {
             require_move(value);
+        }
+        for (std::int64_t left = 0; left < cmz::vm2::kValueCount; ++left) {
+            for (std::int64_t right = 0; right < cmz::vm2::kValueCount; ++right) {
+                require_cmp_eq(left, right);
+            }
+        }
+        for (std::int64_t truth = 0; truth < 2; ++truth) {
+            for (std::int64_t target = 0; target < cmz::vm2::kProgramSlots; ++target) {
+                const std::array branch_program{
+                    Instruction{Opcode::LoadConst, 0, 0, 0},
+                    Instruction{Opcode::LoadConst, 1, truth == 1 ? 0 : 1, 0},
+                    Instruction{Opcode::CmpEq, 0, 0, 1},
+                    Instruction{Opcode::JumpIf, 0, 0, target},
+                    Instruction{Opcode::Halt, 0, 0, 0},
+                };
+                const auto branch = cmz::vm2::run_fixed(cmz::vm2::compile_program(branch_program), 4);
+                const auto actual_pc = one_hot_index(
+                    branch.final_state[cmz::vm2::kControlToken],
+                    cmz::vm2::kProgramCounterOffset,
+                    cmz::vm2::kProgramSlots);
+                const auto expected_pc = truth == 1 ? target : 4;
+                if (actual_pc != expected_pc) {
+                    throw std::runtime_error("JUMP_IF attention result mismatch");
+                }
+            }
+        }
+        const std::array loop_program{
+            Instruction{Opcode::LoadConst, 0, 0, 0},
+            Instruction{Opcode::LoadConst, 1, 3, 0},
+            Instruction{Opcode::LoadConst, 2, 1, 0},
+            Instruction{Opcode::Add, 0, 0, 2},
+            Instruction{Opcode::CmpEq, 0, 0, 1},
+            Instruction{Opcode::JumpIf, 0, 0, 7},
+            Instruction{Opcode::JumpIf, 0, cmz::vm2::kPredicateCount, 3},
+            Instruction{Opcode::Halt, 0, 0, 0},
+        };
+        const auto loop = cmz::vm2::run_fixed(cmz::vm2::compile_program(loop_program), 20);
+        if (register_value(loop.final_state, 0) != 3 || predicate_value(loop.final_state, 0) != 1) {
+            throw std::runtime_error("predicate-token loop must finish with r0=3 and p0=TRUE");
+        }
+        for (std::int64_t step = 16; step < loop.state_trace.size(0); ++step) {
+            if (!torch::equal(loop.state_trace[15], loop.state_trace[step])) {
+                throw std::runtime_error("loop HALT state must remain absorbing");
+            }
         }
         const auto prefix = cmz::vm2::run_fixed(image, 3);
         if (prefix.steps != 3 || prefix.state_trace.size(0) != 4) {
