@@ -1,5 +1,12 @@
 # Percepta-style Transformer VM
 
+> **Public correction:** the previous ChessMachineZero implementation was
+> incorrectly presented as fully frozen-attention-only. Its production C++/CUDA
+> path still contained chess-specific procedural control flow. Function names
+> and metadata that called those kernels "attention" did not prove that chess
+> semantics were executed solely by self-attention. See
+> [CORRECTION.md](CORRECTION.md) for the exact reasons.
+
 This orphan branch contains a clean, standalone implementation of a minimal
 token-native virtual machine.
 
