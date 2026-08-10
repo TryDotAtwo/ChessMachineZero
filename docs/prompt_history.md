@@ -12,3 +12,5 @@
   boundary violation before adding predicates.
 - Implement predicate-token comparison and branching entirely through frozen
   attention inference.
+- Begin real chess semantics with a white-pawn single-push rule whose legality
+  set and board transition are both emitted solely by fixed attention inference.
