@@ -44,3 +44,15 @@ target_link_libraries(cmz_vm2_test_machine PRIVATE cmz_vm2 cmz_vm2_compiler)
 target_compile_options(cmz_vm2_test_machine PRIVATE "${TORCH_CXX_FLAGS}")
 
 add_test(NAME cmz_vm2_machine COMMAND cmz_vm2_test_machine)
+
+add_library(cmz_vm2_chess1_compiler STATIC src/chess1_compiler.cpp)
+target_include_directories(cmz_vm2_chess1_compiler PUBLIC include)
+target_link_libraries(cmz_vm2_chess1_compiler PUBLIC cmz_vm2_attention)
+target_compile_options(cmz_vm2_chess1_compiler PRIVATE "${TORCH_CXX_FLAGS}")
+
+add_executable(cmz_vm2_test_chess1 tests/test_chess1.cpp)
+target_include_directories(cmz_vm2_test_chess1 PRIVATE include)
+target_link_libraries(cmz_vm2_test_chess1 PRIVATE cmz_vm2 cmz_vm2_chess1_compiler)
+target_compile_options(cmz_vm2_test_chess1 PRIVATE "${TORCH_CXX_FLAGS}")
+
+add_test(NAME cmz_vm2_chess1 COMMAND cmz_vm2_test_chess1)

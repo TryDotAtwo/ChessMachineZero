@@ -30,9 +30,16 @@ def main() -> int:
     legacy_link = "cmz_engine" in cmake or "native/cpp" in cmake
     compiler_linked = bool(
         re.search(
-            r"target_link_libraries\s*\(\s*cmz_vm2\b[^)]*cmz_vm2_compiler",
+            r"target_link_libraries\s*\(\s*cmz_vm2\b[^)]*cmz_vm2(?:_[a-z0-9]+)*_compiler",
             cmake,
             re.IGNORECASE | re.DOTALL,
+        )
+    )
+    chess_runtime = bool(
+        re.search(
+            r"\b(?:chess|board|square|occupancy|legal_?move|white_?pawn)\b",
+            runtime,
+            re.IGNORECASE,
         )
     )
     semantic_scalar_read = bool(re.search(r"\.item\s*<", runtime))
@@ -78,6 +85,9 @@ def main() -> int:
     if opcode_runtime:
         print("opcode-specific runtime semantics detected", file=sys.stderr)
         return 1
+    if chess_runtime:
+        print("chess-specific runtime semantics detected", file=sys.stderr)
+        return 1
     if semantic_branching:
         print("semantic host branching detected", file=sys.stderr)
         return 1
@@ -106,6 +116,7 @@ def main() -> int:
                 "allowed_tensor_graph": allowed_tensor_graph,
                 "attention_matmul": attention_matmul,
                 "compiler_linked": compiler_linked,
+                "chess_runtime": chess_runtime,
                 "forbidden_routing": forbidden_routing,
                 "legacy_link": legacy_link,
                 "opcode_runtime": opcode_runtime,

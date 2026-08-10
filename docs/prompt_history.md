@@ -14,3 +14,5 @@
   attention inference.
 - Begin real chess semantics with a white-pawn single-push rule whose legality
   set and board transition are both emitted solely by fixed attention inference.
+- Create a separate GitHub Pages site that visualizes real tokens, Q/K/V,
+  `QK^T`, hardmax and `AV`, with claims gated by implemented evidence.

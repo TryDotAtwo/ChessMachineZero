@@ -19,3 +19,8 @@
   predicate-keyed hardmax attention.
 - Runtime write routing uses compact row and feature matrices with
   `X + R @ (Y-X) @ C`; it does not use per-token 3D projection banks.
+- The first chess slice compiles 64 white-pawn single-push candidates, fixed
+  geometry tokens, and 72 legality relation tokens into a generic ProgramImage.
+- Legal board application changes source, target, and side only through
+  attention routing; an illegal selected candidate is an inference no-op.
+- Full chess is not yet implemented and public claims must remain slice-scoped.

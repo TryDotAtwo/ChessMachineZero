@@ -18,3 +18,9 @@
   projections.
 - Added exhaustive equality and conditional-target tests plus an exact
   token-native counter loop.
+- Added an offline-only first chess compiler with 64 parallel white-pawn
+  single-push candidates and 72 frozen legality relation tokens.
+- Added attention-only source/target board writes, legal side flip, and illegal
+  no-op behavior without changing the generic runtime.
+- Extended purity mutations to reject chess vocabulary in runtime and any
+  runtime linkage to the chess compiler.

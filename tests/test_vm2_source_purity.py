@@ -29,6 +29,7 @@ def test_vm2_runtime_is_attention_only(tmp_path: Path) -> None:
     assert report == {
         "allowed_tensor_graph": True,
         "attention_matmul": True,
+        "chess_runtime": False,
         "compiler_linked": False,
         "forbidden_routing": False,
         "legacy_link": False,
@@ -74,6 +75,10 @@ def test_vm2_runtime_is_attention_only(tmp_path: Path) -> None:
             "void forbidden(torch::Tensor state) { auto x = state.relu(); }",
             "unapproved runtime tensor operation",
         ),
+        (
+            "void forbidden(torch::Tensor board) { auto square = board; }",
+            "chess-specific runtime semantics",
+        ),
     ],
 )
 def test_audit_rejects_semantic_runtime_mutations(
@@ -100,6 +105,22 @@ def test_audit_rejects_runtime_link_to_offline_compiler(tmp_path: Path) -> None:
         cmake.read_text(encoding="utf-8").replace(
             "target_link_libraries(cmz_vm2 PUBLIC cmz_vm2_attention)",
             "target_link_libraries(cmz_vm2 PUBLIC cmz_vm2_attention cmz_vm2_compiler)",
+        ),
+        encoding="utf-8",
+    )
+    broken = run_audit(broken_root)
+    assert broken.returncode == 1
+    assert "offline compiler linked into runtime" in broken.stderr
+
+
+def test_audit_rejects_runtime_link_to_chess_compiler(tmp_path: Path) -> None:
+    broken_root = tmp_path / "repo"
+    shutil.copytree(ROOT / "native/vm2", broken_root / "native/vm2")
+    cmake = broken_root / "native/vm2/CMakeLists.txt"
+    cmake.write_text(
+        cmake.read_text(encoding="utf-8").replace(
+            "target_link_libraries(cmz_vm2 PUBLIC cmz_vm2_attention)",
+            "target_link_libraries(cmz_vm2 PUBLIC cmz_vm2_attention cmz_vm2_chess1_compiler)",
         ),
         encoding="utf-8",
     )
