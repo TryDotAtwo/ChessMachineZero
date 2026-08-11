@@ -29,3 +29,18 @@
   token-routed next side.
 - Closed the pawn board state recurrently: stage 10 routes output squares and
   side back into the next inference input without recompiling weights.
+
+## 2026-08-11
+
+- Added a React/Vite GitHub Pages site with animated board, token stream,
+  Q/K/V projections, QK^T heatmap, hardmax winner, AV, matrix-write, and
+  recurrent-state stages.
+- Added pause, single-step, stage selection, token-table and sparse-QK^T trace
+  controls based on the implemented pawn circuit.
+- Added an honest evidence section that distinguishes the proven recurrent
+  pawn slice from unfinished full chess.
+- Added inference-selected pawn self-play: hardmax chooses the lowest-index
+  legal candidate and three recurrent transitions alternate both sides.
+- Fixed a matrix-score bug where the legal gate could overpower square
+  identity and erase unrelated occupied squares; exact square+legal now scores
+  1.25, unmatched legal writes 0.25, and unchanged input 1.0.

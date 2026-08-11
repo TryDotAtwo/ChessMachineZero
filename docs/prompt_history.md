@@ -16,3 +16,10 @@
   set and board transition are both emitted solely by fixed attention inference.
 - Create a separate GitHub Pages site that visualizes real tokens, Q/K/V,
   `QK^T`, hardmax and `AV`, with claims gated by implemented evidence.
+
+## 2026-08-11
+
+- Publish the visual site inside the current ChessMachineZero repository using
+  GitHub Pages.
+- Keep the approved scientific dark design, add meaningful animations, and
+  expose Percepta-style token traces.

@@ -51,7 +51,7 @@ void enable_write(WriteProjections& projections,
 }  // namespace
 
 ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_source) {
-    if (selected_source < 0 || selected_source >= chess1::kCandidateTokenCount) {
+    if (selected_source < -1 || selected_source >= chess1::kCandidateTokenCount) {
         throw std::invalid_argument("selected source is outside 0..63");
     }
 
@@ -106,6 +106,9 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
             static_cast<std::int64_t>(Chess1Piece::Other));
     one_hot(tokens, chess1::kOffboardToken, kTargetOffset, 64);
     one_hot(tokens, chess1::kSideToken, kSideBaselineFeature, 0);
+    if (selected_source == -1) {
+        one_hot(tokens, chess1::kSelectedToken, chess1::kLegalOffset, 1);
+    }
     one_hot(tokens, chess1::kSourceWriteToken, kSourcePieceOffset,
             static_cast<std::int64_t>(Chess1Piece::Empty));
     for (std::int64_t square = 0; square < 64; ++square) {
@@ -234,8 +237,17 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
     copy_range(weights.wv[5], chess1::kLegalOffset, chess1::kLegalOffset, 2);
     copy_range(weights.wv[5], kNextSideOffset, kNextSideOffset, 2);
     masks[5].index_put_({chess1::kSelectedToken, chess1::kSelectedToken}, negative_infinity);
-    masks[5].index_put_({chess1::kSelectedToken,
-                         chess1::kCandidateTokenBegin + selected_source}, 0.0);
+    if (selected_source == -1) {
+        weights.wq[5].index_put_({chess1::kLegalOffset + 1, 0}, 1.0);
+        weights.wk[5].index_put_({chess1::kLegalOffset + 1, 0}, 1.0);
+        for (std::int64_t candidate = 0; candidate < 64; ++candidate) {
+            masks[5].index_put_({chess1::kSelectedToken,
+                                 chess1::kCandidateTokenBegin + candidate}, 0.0);
+        }
+    } else {
+        masks[5].index_put_({chess1::kSelectedToken,
+                             chess1::kCandidateTokenBegin + selected_source}, 0.0);
+    }
     enable_write(projections, 5, chess1::kSelectedToken, chess1::kSelectedToken + 1,
                  kSquareOffset, kTargetOffset + 65);
     enable_write(projections, 5, chess1::kSelectedToken, chess1::kSelectedToken + 1,
@@ -273,8 +285,11 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
         weight(weights.wq[8], kSquareOffset + square, square);
         weight(weights.wk[8], kSquareOffset + square, square);
     }
-    weights.wq[8].index_put_({chess1::kLegalOffset + 1, 64}, 2.0);
-    weights.wk[8].index_put_({chess1::kLegalOffset + 1, 64}, 2.0);
+    // Square equality contributes 1.0. The legal gate contributes 0.25, so
+    // exact square+legal writes beat the matching input (1.25 > 1.0), while a
+    // legal write for another square cannot overwrite it (0.25 < 1.0).
+    weights.wq[8].index_put_({chess1::kLegalOffset + 1, 64}, 0.5);
+    weights.wk[8].index_put_({chess1::kLegalOffset + 1, 64}, 0.5);
     copy_range(weights.wv[8], kSourcePieceOffset, chess1::kOutputPieceOffset, 4);
     for (std::int64_t square = 0; square < 64; ++square) {
         const auto output = chess1::kOutputSquareTokenBegin + square;
@@ -318,6 +333,10 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_sour
                  kSideOffset, kSideOffset + 2);
 
     return ProgramImage{tokens, masks, projections, weights};
+}
+
+ProgramImage compile_chess1_auto(const Chess1Board& board) {
+    return compile_chess1(board, -1);
 }
 
 }  // namespace cmz::vm2

@@ -29,5 +29,16 @@
 - Full chess is not yet implemented and public claims must remain slice-scoped.
 - Stage 10 attention now copies emitted board/side fields into recurrent input
   tokens; repeated transitions reuse the same ProgramImage and frozen weights.
-- The next architectural gate is inference-selected moves rather than the
-  currently compiled selected-source input.
+- `compile_chess1_auto` enables an inference player: selected-token hardmax
+  chooses the lowest-index legal candidate, and a three-ply recurrent test
+  alternates white/black/white with unchanged weights.
+- Exact-square write score is 1.0 and the legal gate contributes 0.25; this
+  makes matching legal writes win at 1.25 while preventing unrelated legal
+  writes from erasing other squares.
+- The next architectural gate is expanding piece/check rule circuits beyond
+  single pawn pushes.
+- The approved visual site lives in `site/` and deploys from the orphan branch
+  through `.github/workflows/pages.yml` to the repository GitHub Pages URL.
+- Site claims must be driven by implemented evidence: symmetric pawn circuit,
+  recurrent board state, current CTest and purity counts; full chess remains
+  explicitly pending.

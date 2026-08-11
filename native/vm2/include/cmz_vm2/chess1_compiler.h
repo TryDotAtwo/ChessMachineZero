@@ -58,5 +58,6 @@ inline constexpr std::int64_t kOutputSideOffset = 204;
 }  // namespace chess1
 
 ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_source);
+ProgramImage compile_chess1_auto(const Chess1Board& board);
 
 }  // namespace cmz::vm2

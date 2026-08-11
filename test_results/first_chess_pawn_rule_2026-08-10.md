@@ -13,7 +13,7 @@ cmz_vm2_attention  Passed
 cmz_vm2_machine    Passed
 cmz_vm2_chess1     Passed
 100% tests passed, 0 tests failed out of 4
-Total Test time (real) = 192.19 sec
+Total Test time (real) = 357.97 sec
 ```
 
 `cmz_vm2_chess1` asserts all 64 white source squares, offboard ranks, wrong
@@ -23,6 +23,11 @@ source/target delta, both side flips, and illegal-selection no-op.
 The recurrent-state assertion runs a second transition with the exact same
 ProgramImage. Board and side bytes remain unchanged after the exhausted move,
 while the candidate trace changes to `ILLEGAL` as expected.
+
+The automatic-player assertion uses one frozen ProgramImage for three
+transitions: white `8→16`, black `48→40`, white `16→24`. Selection is the
+hardmax winner among all 64 candidate rows. This test also preserves the
+opponent pawn and guards against unrelated-square write leakage.
 
 ## Runtime purity gate
 

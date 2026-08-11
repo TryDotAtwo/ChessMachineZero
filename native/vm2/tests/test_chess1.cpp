@@ -163,5 +163,29 @@ int main() {
                           cmz::vm2::chess1::kLegalOffset})
                 .item<double>() == 1.0,
             "second inference trace must expose that the exhausted move is illegal");
+
+    cmz::vm2::Chess1Board self_play{};
+    self_play.squares[8] = Chess1Piece::WhitePawn;
+    self_play.squares[48] = Chess1Piece::BlackPawn;
+    const auto auto_image = cmz::vm2::compile_chess1_auto(self_play);
+    const auto auto_white = cmz::vm2::transition(auto_image, auto_image.tokens);
+    require(auto_white.index({cmz::vm2::chess1::kSquareTokenBegin + 16,
+                              static_cast<std::int64_t>(Chess1Piece::WhitePawn)})
+                .item<double>() == 1.0,
+            "auto hardmax player must choose the lowest-index legal white pawn");
+    const auto auto_black = cmz::vm2::transition(auto_image, auto_white);
+    require(auto_black.index({cmz::vm2::chess1::kCandidateTokenBegin + 48,
+                              cmz::vm2::chess1::kLegalOffset + 1})
+                .item<double>() == 1.0,
+            "black recurrent candidate must be legal before auto selection");
+    require(auto_black.index({cmz::vm2::chess1::kSquareTokenBegin + 40,
+                              static_cast<std::int64_t>(Chess1Piece::BlackPawn)})
+                .item<double>() == 1.0,
+            "next inference must choose a legal black pawn from recurrent state");
+    const auto auto_white_again = cmz::vm2::transition(auto_image, auto_black);
+    require(auto_white_again.index({cmz::vm2::chess1::kSquareTokenBegin + 24,
+                                    static_cast<std::int64_t>(Chess1Piece::WhitePawn)})
+                .item<double>() == 1.0,
+            "third inference must continue token-selected recurrent self-play");
     return 0;
 }
