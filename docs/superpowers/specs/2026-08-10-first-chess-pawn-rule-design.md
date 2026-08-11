@@ -1,146 +1,107 @@
-# First chess rule: white pawn single push
+# First recurrent chess circuit: symmetric pawn single push
 
-## Goal
+## Proven scope
 
-Compile the first real chess rule into immutable tokens and frozen attention
-weights: a white pawn may move one square forward into an empty square when
-White is to move. The same fixed inference graph must emit legality tokens and
-the resulting board state without chess-specific runtime code.
+The compiler emits a generic `ProgramImage` in which one frozen inference
+transition evaluates all 64 one-square pawn candidates for the current side,
+hardmax-selects a legal candidate when automatic mode is enabled, applies the
+move, flips side, and feeds the emitted board back into recurrent input tokens.
 
-This slice is intentionally not full chess. Passing it proves one chess rule is
-executed inside the token/attention machine; it does not justify a claim that
-the branch already plays complete chess.
+This is a complete circuit for the stated pawn slice, not complete chess.
+Pawn double push, captures, promotion, en passant, other pieces, check,
+castling, draw rules and a strategic policy remain unimplemented.
 
-## Semantic boundary
+## Runtime boundary
 
-Runtime remains the existing universal fixed-unroll graph:
+The unchanged domain-agnostic runtime executes only:
 
 ```text
 Q = X Wq
 K = X Wk
 V = X Wv
-scores = Q K^T + mask
-A = deterministic_hardmax(scores)
-Y = A V
+S = Q K^T + mask
+H = one_hot(argmax(S))
+Y = H V
 X_next = X + R @ (Y - X) @ C
 ```
 
-The runtime may not contain chess vocabulary, square arithmetic, board loops,
-piece dispatch, occupancy tests, move generation, or board mutation. It may not
-read semantic tokens on the host. The offline compiler may generate immutable
-chess relation tokens and frozen matrices.
+It has no chess vocabulary, square arithmetic, move loops, piece dispatch,
+occupancy branch, semantic scalar read, gather/scatter or board mutation. The
+offline-only compiler constructs tokens, masks and frozen matrices and is not
+linked into `cmz_vm2`.
 
 ## Token schema
 
-The compiled context contains:
+- 64 recurrent square tokens with `EMPTY`, `WHITE_PAWN`, `BLACK_PAWN`, `OTHER`;
+- one recurrent `SIDE_TO_MOVE` token;
+- 64 candidate tokens, one per source square;
+- 128 immutable side-keyed geometry tokens: `square × side`;
+- 128 immutable legality relations:
+  `source_piece × side × source_valid × target_onboard × target_piece`;
+- one selected token, source/target write tokens, 64 output-square tokens and
+  one output-side token.
 
-- 64 square-state tokens, one for each fixed square id `0..63`;
-- piece-state fields `EMPTY`, `WHITE_PAWN`, and `OTHER`;
-- a `SIDE_TO_MOVE` token with values `WHITE` and `BLACK`;
-- 64 single-push candidate tokens, one per possible source square;
-- immutable geometry relation tokens mapping each source square to its
-  north-adjacent target or `OFFBOARD`;
-- immutable source-domain tokens distinguishing pawn-valid ranks 2 through 7
-  from ranks 1 and 8;
-- legality result tokens `LEGAL` and `ILLEGAL`;
-- one selected-move token used only after legality has been produced;
-- board-output tokens for all 64 squares.
+Coordinates and chess predicates exist only as compiler-emitted token data.
 
-Square coordinates are data in relation tokens. Runtime code sees only token
-indices and tensor shapes.
+## Fixed inference stages
 
-## Legality inference
+1. Candidate attends to its source-square piece.
+2. Candidate attends to recurrent side-to-move.
+3. Candidate selects a side-keyed geometry token and receives target id,
+   source-valid and target-onboard fields.
+4. Candidate attends to the target square or offboard sentinel.
+5. Candidate selects one exact legality relation using `QK^T + hardmax`.
+6. Selected token either reads the compiled candidate or hardmax-selects the
+   lowest-index `LEGAL=true` candidate in automatic-player mode.
+7. Source-write token receives selected source and legal gate.
+8. Target-write token receives selected target, moving piece and legal gate.
+9. Every output square selects unchanged input, exact legal source write or
+   exact legal target write.
+10. Output side selects unchanged side or relation-emitted opposite side.
+11. Output board and side attend back into recurrent input rows.
 
-Every candidate runs through the same fixed stages:
+## Score separation invariant
 
-1. Attend from candidate to its source square.
-2. Attend through the frozen geometry relation to obtain its target square or
-   `OFFBOARD`.
-3. Attend to the target square state.
-4. Attend to `SIDE_TO_MOVE`.
-5. Select a frozen legality relation keyed by source piece, side, target
-  occupancy, on-board status, and pawn-valid source-rank status.
-6. Write `LEGAL/ILLEGAL` into the candidate token.
-
-The only relation yielding `LEGAL` is:
+At board-write stage, matching input-square identity scores `1.0`. A legal
+gate contributes `0.25`. Therefore:
 
 ```text
-source_piece=WHITE_PAWN
-side_to_move=WHITE
-source_status=PAWN_RANK
-target_status=ONBOARD
-target_piece=EMPTY
+matching legal write = 1.25 > unchanged input = 1.0
+unrelated legal write = 0.25 < unchanged input = 1.0
 ```
 
-This condition is represented as attention-key matching, not a native boolean
-expression.
+This prevents a legal write token from erasing unrelated occupied squares.
+The separation is encoded in fixed `Wq/Wk` coefficients, not host logic.
 
-## Move application inference
+## Recurrent and automatic execution
 
-The selected-move token contains a candidate id. The compiler or caller may set
-that token only to a candidate already emitted as `LEGAL`; selection policy is
-outside this slice.
+`compile_chess1_auto` initializes the selected-token query for legal
+candidates. Hardmax across all 64 candidate rows chooses the lowest-index legal
+move deterministically. Stage 11 makes emitted board/side fields the next
+transition input, so repeated calls use the same `ProgramImage` and weights.
 
-For every output-square token, attention selects exactly one value source:
+The accepted three-ply trace is:
 
-- `EMPTY` when its square id matches the selected source;
-- `WHITE_PAWN` when its square id matches the selected target;
-- otherwise the corresponding input-square piece state.
+```text
+WHITE: 8 -> 16
+BLACK: 48 -> 40
+WHITE: 16 -> 24
+```
 
-The selection is performed by frozen relation tokens and hardmax attention.
-Runtime C++ must not gather, scatter, index, copy, clear, or write board squares
-according to the selected move.
+No host move generator or host legality check participates in these
+transitions.
 
-The final side-to-move token becomes `BLACK` through the same frozen transition.
+## Acceptance evidence
 
-## Compiler boundary
+1. All 64 sources cover interior and offboard geometry for both sides.
+2. Wrong side, wrong piece, occupied target and offboard target emit illegal.
+3. Every legal white and black source changes exactly source/target and side.
+4. Illegal selection preserves board and side.
+5. A second exhausted fixed-selection inference preserves recurrent board/side
+   bytes and changes its trace to illegal.
+6. Three automatic transitions alternate both sides using unchanged weights.
+7. An unrelated opponent pawn survives a legal move, proving score separation.
+8. Full CTest, mutation purity and runtime audit remain green.
 
-The offline compiler may:
-
-- encode square ids and north-neighbor relations;
-- validate the three-state board input and selected candidate id;
-- reject application of a candidate not marked legal by a tests-only result
-  validator;
-- construct immutable attention masks, relation tokens, and matrices.
-
-The compiler must remain a separate library and must not be linked into the
-runtime target. No compiled table may enumerate complete board positions or
-complete program continuations.
-
-## Acceptance tests
-
-Acceptance requires:
-
-1. Exhaustive empty-board geometry for all 64 source squares: ranks 1 through 7
-   map north by eight; rank 8 maps to `OFFBOARD`.
-2. For every source on ranks 2 through 7 with an on-board target, a white pawn
-   with White to move and an empty target emits `LEGAL`.
-3. The same candidates emit `ILLEGAL` when the source is empty or `OTHER`, the
-   target is occupied, the side is Black, the source is on rank 1 or 8, or the
-   target is off-board.
-4. All 64 candidate legality tokens are produced in one fixed inference run;
-   runtime does not loop over moves.
-5. Applying every legal single push produces exactly two changed squares and
-   flips side to move to Black.
-6. Repeated runs are byte-identical.
-7. Changing board, side, or selected-candidate tokens changes inference without
-   rebuilding runtime code.
-8. Mutation gates reject injected square arithmetic, chess vocabulary,
-   occupancy branches, move loops, gather/scatter, board indexing, and host
-   board writes in runtime sources.
-9. The graph-operation allowlist and compiler/runtime linkage gate remain green.
-
-## Failure behavior
-
-Invalid board encodings and invalid selected candidate ids are rejected before
-runtime. Runtime has no fallback or procedural interpreter. A fixed inference
-run that does not emit the required one-hot result is invalid evidence and must
-fail the tests rather than substitute a result.
-
-## Deferred chess scope
-
-Pawn double push, captures, en passant, promotion, Black movement, sliders,
-knights, kings, check, castling, repetition, fifty-move rule, move choice, and
-complete game play are separate reviewed slices. Full-chess claims remain
-forbidden until every rule and state transition has exact attention-only
-evidence.
+Exact command evidence is stored in
+`test_results/first_chess_pawn_rule_2026-08-10.md`.
