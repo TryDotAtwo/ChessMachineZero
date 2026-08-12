@@ -49,6 +49,9 @@
 - Sparse-attention scaling must use offline-compiled sparse selection matrices;
   runtime gather/index-select/nonzero or state-dependent block construction is
   explicitly rejected as hidden host routing.
+- `block_self_attention` now executes a frozen selection-matrix block plan and
+  is byte-exact with dense attention for outputs and global hardmax ties; the
+  production transition still uses the dense reference path.
 - The approved visual site lives in `site/` and deploys from the orphan branch
   through `.github/workflows/pages.yml` to the repository GitHub Pages URL.
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,

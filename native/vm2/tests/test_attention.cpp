@@ -1,4 +1,6 @@
 #include <iostream>
+#include <limits>
+#include <vector>
 #include <torch/torch.h>
 
 #include "cmz_vm2/attention.h"
@@ -31,6 +33,33 @@ int main() {
             torch::equal(out.winners, torch::tensor({0, 1, 2}, torch::kInt64)),
             "hardmax must use lowest-index tie break");
         require(torch::equal(out.output, x), "AV must route the hardmax-selected values");
+
+        cmz::vm2::AttentionBlock first{
+            torch::tensor({{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}}, options),
+            torch::tensor({{1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}}, options),
+            torch::zeros({2, 2}, options),
+            torch::tensor({{0.0}, {2.0}}, options),
+        };
+        cmz::vm2::AttentionBlock second{
+            torch::tensor({{0.0, 0.0, 1.0}}, options),
+            torch::tensor({{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}}, options),
+            torch::zeros({1, 2}, options),
+            torch::tensor({{1.0}, {2.0}}, options),
+        };
+        const std::vector<cmz::vm2::AttentionBlock> blocks{first, second};
+        auto block_mask = torch::full({3, 3}, -std::numeric_limits<double>::infinity(), options);
+        block_mask.index_put_({0, 0}, 0.0);
+        block_mask.index_put_({0, 2}, 0.0);
+        block_mask.index_put_({1, 0}, 0.0);
+        block_mask.index_put_({1, 2}, 0.0);
+        block_mask.index_put_({2, 1}, 0.0);
+        block_mask.index_put_({2, 2}, 0.0);
+        const auto dense_block_oracle = cmz::vm2::self_attention(x, eye, eye, eye, block_mask);
+        const auto sparse = cmz::vm2::block_self_attention(x, eye, eye, eye, blocks);
+        require(torch::equal(sparse.output, dense_block_oracle.output),
+                "frozen block attention output must equal dense attention byte-for-byte");
+        require(torch::equal(sparse.winners, dense_block_oracle.winners),
+                "frozen block attention must preserve global lowest-index hardmax ties");
 
         return 0;
     } catch (const std::exception& error) {

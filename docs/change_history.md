@@ -69,3 +69,6 @@
 - Specified an exact structurally sparse attention graph based only on frozen
   sparse selection matrices; rejected gather/index-select shortcuts that would
   reintroduce semantic host routing.
+- Added a generic frozen block-attention primitive using only matrix
+  selections, local QK^T/hardmax/AV and transpose-matrix routing; exact tests
+  preserve dense outputs and global lowest-index ties.

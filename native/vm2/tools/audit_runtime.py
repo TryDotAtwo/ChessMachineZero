@@ -73,6 +73,7 @@ def main() -> int:
     member_calls = set(re.findall(r"\.\s*([A-Za-z_]\w*)\s*\(", runtime))
     allowed_tensor_graph = tensor_calls <= {"matmul", "one_hot", "stack"} and member_calls <= {
         "clone",
+        "front",
         "max",
         "push_back",
         "scalar_type",
