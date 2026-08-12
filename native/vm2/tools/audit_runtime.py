@@ -52,7 +52,8 @@ def main() -> int:
     )
     forbidden_routing = bool(
         re.search(
-            r"index_put_|\bgather\s*\(|\bscatter\w*\s*\(|torch::where\s*\(|"
+            r"index_put_|\bindex_select\s*\(|\bgather\s*\(|\bscatter\w*\s*\(|"
+            r"(?:torch|at)::nonzero\s*\(|torch::where\s*\(|"
             r"\bstate\s*\*|\bprojected\s*\*",
             runtime,
             re.IGNORECASE,

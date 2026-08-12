@@ -62,6 +62,14 @@ def test_vm2_runtime_is_attention_only(tmp_path: Path) -> None:
             "forbidden runtime tensor routing",
         ),
         (
+            "void forbidden(torch::Tensor state) { auto x = torch::nonzero(state); }",
+            "forbidden runtime tensor routing",
+        ),
+        (
+            "void forbidden(torch::Tensor state) { auto x = state.index_select(0, torch::tensor({0})); }",
+            "forbidden runtime tensor routing",
+        ),
+        (
             "void forbidden(torch::Tensor state) { auto x = state * state; }",
             "forbidden runtime tensor routing",
         ),

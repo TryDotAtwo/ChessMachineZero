@@ -66,3 +66,6 @@
 - Added a Pages evidence job and claim gate that derives candidate/stage counts
   from C++ headers, enforces an explicit incomplete-full-chess label, and
   blocks deployment unless the mutation-tested runtime purity suite passes.
+- Specified an exact structurally sparse attention graph based only on frozen
+  sparse selection matrices; rejected gather/index-select shortcuts that would
+  reintroduce semantic host routing.

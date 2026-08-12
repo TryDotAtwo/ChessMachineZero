@@ -46,6 +46,9 @@
   storage byte-for-byte with the circuit template.
 - Pages deployment now depends on a source-aware evidence job: runtime purity
   and public-claim/schema consistency must pass before deploy.
+- Sparse-attention scaling must use offline-compiled sparse selection matrices;
+  runtime gather/index-select/nonzero or state-dependent block construction is
+  explicitly rejected as hidden host routing.
 - The approved visual site lives in `site/` and deploys from the orphan branch
   through `.github/workflows/pages.yml` to the repository GitHub Pages URL.
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,
