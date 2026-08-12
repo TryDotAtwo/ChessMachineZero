@@ -23,3 +23,5 @@
   GitHub Pages.
 - Keep the approved scientific dark design, add meaningful animations, and
   expose Percepta-style token traces.
+- Continue after interrupted connectivity and extend the attention-only chess
+  system without introducing host chess logic.

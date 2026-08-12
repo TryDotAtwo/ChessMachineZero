@@ -24,7 +24,7 @@ function Board({ moved, active }: { moved: boolean; active: boolean }) {
 }
 
 function MiniMatrix({ name, stage, offset }: { name: string; stage: number; offset: number }) {
-  return <div className={`matrix-block ${stage === 1 ? "active" : ""}`}>
+  return <div className="matrix-block active">
     <div className="matrix-title"><span>{name}</span><small>64 × d</small></div>
     <div className="mini-matrix">
       {Array.from({ length: 48 }, (_, i) => <i key={i} style={{
@@ -37,7 +37,7 @@ function MiniMatrix({ name, stage, offset }: { name: string; stage: number; offs
 
 function ScoreMatrix({ stage }: { stage: number }) {
   const winner = 27;
-  return <div className={`score-block ${stage === 2 || stage === 3 ? "active" : ""}`}>
+  return <div className="score-block active">
     <div className="matrix-title"><span>QKᵀ</span><small>N × N</small></div>
     <div className="score-matrix">
       {Array.from({ length: 64 }, (_, i) => <i key={i} className={i === winner ? "winner" : ""}
@@ -61,11 +61,11 @@ function InferenceCanvas({ stage }: { stage: number }) {
     </div>
     <div className="flow-arrow"><span /></div>
     <ScoreMatrix stage={stage} />
-    <div className={`hardmax ${stage === 3 ? "active" : ""}`}>
+    <div className="hardmax active">
       <small>hardmax</small>{Array.from({ length: 8 }, (_, i) => <i className={i === 3 ? "on" : ""} key={i} />)}
     </div>
-    <div className={`av-node ${stage === 4 || stage === 5 ? "active" : ""}`}>AV</div>
-    <Board moved={stage >= 5} active={stage >= 5} />
+    <div className="av-node active">AV</div>
+    <Board moved={stage >= 12} active={stage >= 12} />
   </div>;
 }
 
@@ -128,7 +128,7 @@ function App() {
 
       <section className="proof" id="proof">
         <div><h2>Что доказано сейчас</h2><p>Сайт намеренно не выдаёт текущий rule-slice за готовые шахматы.</p></div>
-        <ul><li><strong>✓</strong><span>White/black pawn single-push</span><small>64 кандидата параллельно</small></li><li><strong>✓</strong><span>Hardmax player circuit</span><small>3 recurrent inference-хода</small></li><li><strong>✓</strong><span>Recurrent board state</span><small>те же frozen weights</small></li><li><strong>✓</strong><span>Runtime purity</span><small>CTest 4/4 · mutation 14/14</small></li><li className="pending"><strong>→</strong><span>Полные шахматы</span><small>piece/check circuits впереди</small></li></ul>
+        <ul><li><strong>✓</strong><span>White/black pawn single + double</span><small>128 кандидатов · 15 стадий</small></li><li><strong>✓</strong><span>Predicate-token legality</span><small>5 предикатов → hardmax AND</small></li><li><strong>✓</strong><span>Hardmax player circuit</span><small>3 recurrent inference-хода</small></li><li><strong>✓</strong><span>Recurrent board state</span><small>те же frozen weights</small></li><li><strong>✓</strong><span>Runtime purity</span><small>CTest 4/4 · mutation 14/14</small></li><li className="pending"><strong>→</strong><span>Полные шахматы</span><small>captures/pieces/check впереди</small></li></ul>
       </section>
     </main>
     <footer><span>Percepta Chess · эксперимент с transformer-native вычислением</span><button onClick={() => { setStage(0); setPlaying(true); }}><RotateCcw/> Повторить трассу</button></footer>

@@ -44,3 +44,12 @@
 - Fixed a matrix-score bug where the legal gate could overpower square
   identity and erase unrelated occupied squares; exact square+legal now scores
   1.25, unmatched legal writes 0.25, and unchanged input 1.0.
+- Expanded the chess trace to 128 single/double pawn candidates and 256
+  side/kind/source-keyed geometry tokens.
+- Added frozen predicate lookups for matching pawn, empty target, clear
+  intermediate path, valid geometry and start rank, followed by an exact
+  five-predicate hardmax conjunction.
+- Increased the generic tensor width to 320 and fixed inference depth to 15;
+  runtime sources remain unchanged and domain-agnostic.
+- Added exact white/black double-push tests covering start ranks, occupied
+  intermediate/target squares and source/target matrix writes.

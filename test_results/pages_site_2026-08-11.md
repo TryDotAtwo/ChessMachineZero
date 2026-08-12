@@ -8,8 +8,8 @@ vite v8.2.1
 1795 modules transformed
 dist/index.html                  0.75 kB
 dist/assets/index-IoNQkSPf.css 11.74 kB
-dist/assets/index-D3tgrqoh.js 205.07 kB
-built in 954ms
+dist/assets/index-Bvba-d-8.js 207.57 kB
+built in 767ms
 ```
 
 ## Browser verification
@@ -24,6 +24,6 @@ built in 954ms
 
 ## Claim boundary
 
-The site visualizes the currently implemented symmetric single-pawn circuit,
-recurrent board/side state, fixed attention stages and purity evidence. It
-labels complete chess as unfinished.
+The site now visualizes the implemented 15-stage symmetric pawn single/double
+circuit, including intermediate-square routing and the predicate-token
+legality conjunction. It still labels complete chess as unfinished.

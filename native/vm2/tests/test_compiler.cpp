@@ -23,7 +23,7 @@ int main() {
     static_assert(cmz::vm2::kRegisterCount == 4);
     static_assert(cmz::vm2::kValueCount == 16);
     static_assert(cmz::vm2::kProgramSlots == 16);
-    static_assert(cmz::vm2::kStageCount == 11);
+    static_assert(cmz::vm2::kStageCount == 15);
     if (static_cast<int>(cmz::vm2::Opcode::Add) != 3) {
         return 1;
     }

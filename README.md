@@ -11,7 +11,7 @@ This orphan branch contains a clean, standalone implementation of a minimal
 token-native virtual machine.
 
 Program instructions, registers, constants, ALU relations, the program counter,
-predicate slots, and the halt state are tokens. A VM step consists of eleven frozen classical
+predicate slots, and the halt state are tokens. A VM step consists of fifteen frozen classical
 self-attention stages:
 
 ```text
@@ -56,11 +56,13 @@ three. Equality becomes a predicate token; target versus fallthrough is chosen
 by hardmax attention. An immutable `TRUE` token expresses the loop back-edge.
 The final state is `r0=3`, `p0=TRUE`, and absorbing `HALT=TRUE`.
 
-The first chess-rule slice evaluates all 64 pawn one-square candidates
-in parallel for either side. Source piece, side-keyed forward geometry, target
-occupancy and side-to-move are routed into candidate tokens. A frozen
-128-token relation table produces
-`LEGAL/ILLEGAL` through `QK^T` plus hardmax. A selected legal candidate then
+The current chess-rule slice evaluates 128 pawn candidates in parallel: one-
+and two-square pushes for every source square and either side. Source piece,
+side-keyed geometry, target occupancy, intermediate occupancy, move kind,
+start rank and side-to-move are routed into candidate tokens. Frozen relation
+tokens produce `MATCHING_PAWN`, `TARGET_EMPTY`, `PATH_CLEAR`,
+`GEOMETRY_VALID`, `START_RANK`, and finally `LEGAL/ILLEGAL` through exact
+`QK^T` lookups plus hardmax. A selected legal candidate then
 changes exactly two output-square tokens and flips the side; an illegal
 selection is an attention-computed no-op.
 
@@ -74,7 +76,7 @@ using the same recurrent token state and frozen weights.
 
 This is deliberately **not yet full chess**. The current player policy is only
 deterministic legal-first selection. Castling, checks, captures,
-promotion, en passant and every other piece rule remain future rule circuits.
+promotion, en passant and every non-pawn piece rule remain future rule circuits.
 The accepted claim is only that this recurrent symmetric pawn slice executes
 in the unchanged, domain-agnostic inference runtime.
 

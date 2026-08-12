@@ -27,10 +27,16 @@ struct Chess1Board {
 namespace chess1 {
 
 inline constexpr std::int64_t kSquareTokenCount = 64;
-inline constexpr std::int64_t kCandidateTokenCount = 64;
+inline constexpr std::int64_t kCandidateTokenCount = 128;
 inline constexpr std::int64_t kOutputSquareTokenCount = 64;
-inline constexpr std::int64_t kGeometryTokenCount = 128;
-inline constexpr std::int64_t kLegalityRelationTokenCount = 128;
+inline constexpr std::int64_t kGeometryTokenCount = 256;
+inline constexpr std::int64_t kMatchingRelationTokenCount = 8;
+inline constexpr std::int64_t kTargetEmptyRelationTokenCount = 4;
+inline constexpr std::int64_t kPathRelationTokenCount = 8;
+inline constexpr std::int64_t kConjunctionRelationTokenCount = 32;
+inline constexpr std::int64_t kLegalityRelationTokenCount =
+    kMatchingRelationTokenCount + kTargetEmptyRelationTokenCount +
+    kPathRelationTokenCount + kConjunctionRelationTokenCount;
 inline constexpr std::int64_t kSideToken = 0;
 inline constexpr std::int64_t kSquareTokenBegin = 1;
 inline constexpr std::int64_t kOffboardToken = kSquareTokenBegin + kSquareTokenCount;
@@ -49,7 +55,7 @@ inline constexpr std::int64_t kOutputSideToken =
 inline constexpr std::int64_t kTokenCount =
     kOutputSideToken + 1;
 
-inline constexpr std::int64_t kLegalOffset = 240;
+inline constexpr std::int64_t kLegalOffset = 310;
 inline constexpr std::int64_t kInputPieceOffset = 0;
 inline constexpr std::int64_t kInputSideOffset = 8;
 inline constexpr std::int64_t kOutputPieceOffset = 200;

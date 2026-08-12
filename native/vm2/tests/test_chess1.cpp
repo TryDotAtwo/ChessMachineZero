@@ -24,8 +24,8 @@ int main() {
             "chess image must contain the fixed token schema");
     require(cmz::vm2::chess1::kSquareTokenCount == 64,
             "chess image must contain 64 input squares");
-    require(cmz::vm2::chess1::kCandidateTokenCount == 64,
-            "chess image must contain 64 pawn candidates");
+    require(cmz::vm2::chess1::kCandidateTokenCount == 128,
+            "chess image must contain single and double pawn candidates");
     require(cmz::vm2::chess1::kOutputSquareTokenCount == 64,
             "chess image must contain 64 output squares");
 
@@ -37,6 +37,66 @@ int main() {
                             cmz::vm2::chess1::kLegalOffset + 1})
                    .item<double>() == 1.0;
     };
+
+    const auto double_candidate_legal = [](const cmz::vm2::Chess1Board& position,
+                                           std::int64_t source) {
+        const auto candidate = 64 + source;
+        const auto compiled = cmz::vm2::compile_chess1(position, candidate);
+        const auto state = cmz::vm2::transition(compiled, compiled.tokens);
+        return state.index({cmz::vm2::chess1::kCandidateTokenBegin + candidate,
+                            cmz::vm2::chess1::kLegalOffset + 1})
+                   .item<double>() == 1.0;
+    };
+
+    {
+        cmz::vm2::Chess1Board position{};
+        position.squares[8] = Chess1Piece::WhitePawn;
+        require(double_candidate_legal(position, 8),
+                "white pawn double push must be legal from its start rank");
+        const auto compiled = cmz::vm2::compile_chess1(position, 64 + 8);
+        const auto moved = cmz::vm2::transition(compiled, compiled.tokens);
+        require(moved.index({cmz::vm2::chess1::kSquareTokenBegin + 8,
+                             static_cast<std::int64_t>(Chess1Piece::Empty)})
+                    .item<double>() == 1.0,
+                "white double push must clear its source through matrix writes");
+        require(moved.index({cmz::vm2::chess1::kSquareTokenBegin + 24,
+                             static_cast<std::int64_t>(Chess1Piece::WhitePawn)})
+                    .item<double>() == 1.0,
+                "white double push must write its two-rank target through matrix writes");
+        position.squares[16] = Chess1Piece::Other;
+        require(!double_candidate_legal(position, 8),
+                "occupied intermediate square must reject white double push");
+        position.squares[16] = Chess1Piece::Empty;
+        position.squares[24] = Chess1Piece::Other;
+        require(!double_candidate_legal(position, 8),
+                "occupied target square must reject white double push");
+        position.squares[8] = Chess1Piece::Empty;
+        position.squares[16] = Chess1Piece::WhitePawn;
+        position.squares[24] = Chess1Piece::Empty;
+        require(!double_candidate_legal(position, 16),
+                "white double push must be illegal outside its start rank");
+    }
+
+    {
+        cmz::vm2::Chess1Board position{};
+        position.side = Chess1Side::Black;
+        position.squares[48] = Chess1Piece::BlackPawn;
+        require(double_candidate_legal(position, 48),
+                "black pawn double push must be legal from its start rank");
+        const auto compiled = cmz::vm2::compile_chess1(position, 64 + 48);
+        const auto moved = cmz::vm2::transition(compiled, compiled.tokens);
+        require(moved.index({cmz::vm2::chess1::kSquareTokenBegin + 32,
+                             static_cast<std::int64_t>(Chess1Piece::BlackPawn)})
+                    .item<double>() == 1.0,
+                "black double push must write its two-rank target through matrix writes");
+        position.squares[40] = Chess1Piece::Other;
+        require(!double_candidate_legal(position, 48),
+                "occupied intermediate square must reject black double push");
+        position.squares[40] = Chess1Piece::Empty;
+        position.squares[32] = Chess1Piece::Other;
+        require(!double_candidate_legal(position, 48),
+                "occupied target square must reject black double push");
+    }
 
     for (std::int64_t source = 0; source < 64; ++source) {
         cmz::vm2::Chess1Board position{};

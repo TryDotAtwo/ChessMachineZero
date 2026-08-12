@@ -12,16 +12,18 @@
   target must not link `cmz_vm2_compiler`.
 - Purity acceptance requires functional CTest plus mutation-tested source and
   graph-operation audits.
-- The VM now has sixteen instruction slots, four predicate slots, and eleven
+- The VM now has sixteen instruction slots, four predicate slots, and fifteen
   fixed attention stages.
 - `CMP_EQ` emits `FALSE/TRUE` through frozen equality relation tokens.
 - `JUMP_IF` builds target/fallthrough scratch tokens and selects one through
   predicate-keyed hardmax attention.
 - Runtime write routing uses compact row and feature matrices with
   `X + R @ (Y-X) @ C`; it does not use per-token 3D projection banks.
-- The first chess slice compiles 64 side-relative pawn single-push candidates,
-  128 side-keyed geometry tokens, and 128 legality relation tokens into a
+- The chess slice compiles 128 side-relative pawn single/double candidates,
+  256 side-keyed geometry tokens, and small predicate relation tables into a
   generic ProgramImage.
+- Double-push legality is the attention-computed conjunction of matching pawn,
+  empty target, clear intermediate path, valid geometry, and start rank.
 - White and black pawn color, direction, legality and next side are all routed
   from tokens; no color branch was added to the runtime.
 - Legal board application changes source, target, and side only through
@@ -35,8 +37,8 @@
 - Exact-square write score is 1.0 and the legal gate contributes 0.25; this
   makes matching legal writes win at 1.25 while preventing unrelated legal
   writes from erasing other squares.
-- The next architectural gate is expanding piece/check rule circuits beyond
-  single pawn pushes.
+- The next architectural gate is pawn captures, followed by non-pawn
+  movement and attacked-square/check circuits.
 - The approved visual site lives in `site/` and deploys from the orphan branch
   through `.github/workflows/pages.yml` to the repository GitHub Pages URL.
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,
