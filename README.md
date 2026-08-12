@@ -1,5 +1,7 @@
 # Percepta-style Transformer VM
 
+Interactive trace: <https://trydotatwo.github.io/ChessMachineZero/>
+
 > **Public correction:** the previous ChessMachineZero implementation was
 > incorrectly presented as fully frozen-attention-only. Its production C++/CUDA
 > path still contained chess-specific procedural control flow. Function names

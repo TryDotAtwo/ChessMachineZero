@@ -1,5 +1,18 @@
 # Percepta Chess Pages evidence — 2026-08-11
 
+Public URL: <https://trydotatwo.github.io/ChessMachineZero/>
+
+## Deployment verification — 2026-08-12
+
+- Workflow run `31568575699`: build and deploy succeeded.
+- Deployment branch policy allows only `main` and
+  `codex/percepta-transformer-vm`.
+- Obsolete account-level `яндекс.рф` CNAME was removed from
+  `TryDotAtwo.github.io` by commit `2367bbc` with explicit user approval.
+- Public HTML returned HTTP 200 and the expected Percepta title.
+- `assets/index-Bvba-d-8.js` returned HTTP 200, 207576 bytes.
+- `assets/index-IoNQkSPf.css` returned HTTP 200, 11740 bytes.
+
 ## Build
 
 ```text

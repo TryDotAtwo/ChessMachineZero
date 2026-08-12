@@ -53,3 +53,6 @@
   runtime sources remain unchanged and domain-agnostic.
 - Added exact white/black double-push tests covering start ranks, occupied
   intermediate/target squares and source/target matrix writes.
+- Published the interactive trace at
+  `https://trydotatwo.github.io/ChessMachineZero/`; verified HTML, JS and CSS
+  with independent HTTP 200 responses.
