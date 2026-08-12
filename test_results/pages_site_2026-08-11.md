@@ -12,6 +12,9 @@ Public URL: <https://trydotatwo.github.io/ChessMachineZero/>
 - Public HTML returned HTTP 200 and the expected Percepta title.
 - `assets/index-Bvba-d-8.js` returned HTTP 200, 207576 bytes.
 - `assets/index-IoNQkSPf.css` returned HTTP 200, 11740 bytes.
+- Subsequent deployments require `test_vm2_source_purity.py` and
+  `test_public_evidence_gate.py`; site candidate/stage claims are checked
+  against C++ schema constants before publication.
 
 ## Build
 

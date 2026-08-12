@@ -63,3 +63,6 @@
 - Split offline chess preparation into reusable immutable circuit compilation
   and board-token binding; bound tokens equal fresh compilation byte-for-byte
   while weights and masks share the same tensor storage.
+- Added a Pages evidence job and claim gate that derives candidate/stage counts
+  from C++ headers, enforces an explicit incomplete-full-chess label, and
+  blocks deployment unless the mutation-tested runtime purity suite passes.

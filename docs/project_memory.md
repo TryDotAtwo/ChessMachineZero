@@ -44,6 +44,8 @@
 - `compile_chess1_circuit` materializes immutable tensors once;
   `bind_chess1_board` clones only the token matrix and shares weight/mask
   storage byte-for-byte with the circuit template.
+- Pages deployment now depends on a source-aware evidence job: runtime purity
+  and public-claim/schema consistency must pass before deploy.
 - The approved visual site lives in `site/` and deploys from the orphan branch
   through `.github/workflows/pages.yml` to the repository GitHub Pages URL.
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,
