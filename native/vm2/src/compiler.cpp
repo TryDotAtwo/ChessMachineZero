@@ -1,11 +1,63 @@
 #include "cmz_vm2/compiler.h"
 
 #include <limits>
+#include <cmath>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <utility>
 
 namespace cmz::vm2 {
+
+std::vector<AttentionBlock> compile_attention_blocks(const torch::Tensor& mask) {
+    if (mask.dim() != 2 || mask.size(0) != mask.size(1)) {
+        throw std::invalid_argument("attention mask must be square");
+    }
+    const auto token_count = mask.size(0);
+    std::map<std::vector<std::int64_t>, std::vector<std::int64_t>> grouped_queries;
+    const auto cpu_mask = mask.to(torch::kCPU).contiguous();
+    for (std::int64_t query = 0; query < token_count; ++query) {
+        std::vector<std::int64_t> keys;
+        for (std::int64_t key = 0; key < token_count; ++key) {
+            if (std::isfinite(cpu_mask.index({query, key}).item<double>())) {
+                keys.push_back(key);
+            }
+        }
+        if (keys.empty()) {
+            throw std::invalid_argument("every attention query must have a finite key");
+        }
+        grouped_queries[keys].push_back(query);
+    }
+
+    std::vector<AttentionBlock> blocks;
+    blocks.reserve(grouped_queries.size());
+    const auto options = mask.options();
+    for (const auto& [keys, queries] : grouped_queries) {
+        auto query_selection = torch::zeros(
+            {static_cast<std::int64_t>(queries.size()), token_count}, options);
+        auto key_selection = torch::zeros(
+            {static_cast<std::int64_t>(keys.size()), token_count}, options);
+        auto local_mask = torch::zeros(
+            {static_cast<std::int64_t>(queries.size()), static_cast<std::int64_t>(keys.size())}, options);
+        auto global_key_ids = torch::zeros(
+            {static_cast<std::int64_t>(keys.size()), 1}, options);
+        for (std::size_t local = 0; local < queries.size(); ++local) {
+            query_selection.index_put_({static_cast<std::int64_t>(local), queries[local]}, 1.0);
+        }
+        for (std::size_t local = 0; local < keys.size(); ++local) {
+            key_selection.index_put_({static_cast<std::int64_t>(local), keys[local]}, 1.0);
+            global_key_ids.index_put_({static_cast<std::int64_t>(local), 0}, keys[local]);
+        }
+        blocks.push_back(AttentionBlock{
+            query_selection.detach().set_requires_grad(false),
+            key_selection.detach().set_requires_grad(false),
+            local_mask.detach().set_requires_grad(false),
+            global_key_ids.detach().set_requires_grad(false),
+        });
+    }
+    return blocks;
+}
+
 namespace {
 
 using TensorArray = std::array<torch::Tensor, kStageCount>;

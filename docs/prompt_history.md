@@ -25,5 +25,7 @@
   expose Percepta-style token traces.
 - Continue after interrupted connectivity and extend the attention-only chess
   system without introducing host chess logic.
+- Continue the persistent implementation goal after connectivity interruption;
+  preserve the rule that runtime semantics are only frozen attention inference.
 - Continue toward complete chess after publishing Pages; add the next rule
   circuit with exact checks and no chess-aware runtime path.

@@ -52,6 +52,9 @@
 - `block_self_attention` now executes a frozen selection-matrix block plan and
   is byte-exact with dense attention for outputs and global hardmax ties; the
   production transition still uses the dense reference path.
+- `compile_attention_blocks` now compiles a square frozen mask offline by
+  grouping queries with identical finite key sets; compiled plans are frozen
+  and byte-exact with dense output and global hardmax winners.
 - The approved visual site lives in `site/` and deploys from the orphan branch
   through `.github/workflows/pages.yml` to the repository GitHub Pages URL.
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,

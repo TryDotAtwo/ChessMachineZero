@@ -1,12 +1,15 @@
 #pragma once
 
 #include <array>
+#include <vector>
 
+#include "cmz_vm2/attention.h"
 #include "cmz_vm2/schema.h"
 
 namespace cmz::vm2 {
 
 ProgramImage compile_program(const std::array<Instruction, kProgramSlots>& program);
+std::vector<AttentionBlock> compile_attention_blocks(const torch::Tensor& mask);
 
 template <std::size_t N>
 ProgramImage compile_program(const std::array<Instruction, N>& source) {

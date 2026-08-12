@@ -1,9 +1,11 @@
 #include <array>
+#include <limits>
 #include <stdexcept>
 
 #include <torch/torch.h>
 
 #include "cmz_vm2/compiler.h"
+#include "cmz_vm2/attention.h"
 
 namespace {
 
@@ -53,6 +55,37 @@ int main() {
     for (const auto& weight : image.weights.wq) {
         if (weight.requires_grad()) {
             throw std::runtime_error("compiled VM weights must be frozen");
+        }
+    }
+
+    {
+        const auto options = torch::TensorOptions().dtype(torch::kFloat64);
+        const auto negative = -std::numeric_limits<double>::infinity();
+        auto mask = torch::full({4, 4}, negative, options);
+        mask.index_put_({0, 0}, 0.0);
+        mask.index_put_({0, 2}, 0.0);
+        mask.index_put_({1, 1}, 0.0);
+        mask.index_put_({2, 0}, 0.0);
+        mask.index_put_({2, 2}, 0.0);
+        mask.index_put_({3, 1}, 0.0);
+        const auto blocks = cmz::vm2::compile_attention_blocks(mask);
+        if (blocks.size() != 2) {
+            throw std::runtime_error("identical frozen key sets must compile into two blocks");
+        }
+        const auto x = torch::tensor(
+            {{1.0, 0.0}, {0.0, 1.0}, {1.0, 1.0}, {2.0, 0.0}}, options);
+        const auto eye = torch::eye(2, options);
+        const auto dense = cmz::vm2::self_attention(x, eye, eye, eye, mask);
+        const auto sparse = cmz::vm2::block_self_attention(x, eye, eye, eye, blocks);
+        if (!torch::equal(dense.output, sparse.output) ||
+            !torch::equal(dense.winners, sparse.winners)) {
+            throw std::runtime_error("compiled attention blocks must equal dense mask semantics");
+        }
+        for (const auto& block : blocks) {
+            if (block.query_selection.requires_grad() || block.key_selection.requires_grad() ||
+                block.mask.requires_grad() || block.global_key_ids.requires_grad()) {
+                throw std::runtime_error("compiled block plan tensors must be frozen");
+            }
         }
     }
 
