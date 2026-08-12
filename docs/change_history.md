@@ -60,3 +60,6 @@
   opponent-target predicate lookup and file-a/file-h boundary geometry.
 - Added a focused exact capture gate plus full CTest 5/5; the dense CPU
   regression took 1140.26 seconds and is not presented as a speed result.
+- Split offline chess preparation into reusable immutable circuit compilation
+  and board-token binding; bound tokens equal fresh compilation byte-for-byte
+  while weights and masks share the same tensor storage.

@@ -41,3 +41,11 @@ Purity:
 
 Runtime source diff was empty. The 19-minute CPU regression demonstrates that
 the current dense reference graph is not yet a performance implementation.
+
+## Immutable circuit reuse
+
+`compile_chess1_circuit` builds frozen weights, masks and projections once.
+`bind_chess1_board` changes only side/piece input tokens. The focused gate
+asserts byte-exact token equality against fresh compilation and identical
+Tensor storage for every weight and attention mask. Capture semantics remained
+green; purity remained 14/14.

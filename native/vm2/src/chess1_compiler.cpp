@@ -474,4 +474,31 @@ ProgramImage compile_chess1_auto(const Chess1Board& board) {
     return compile_chess1(board, -1);
 }
 
+ProgramImage compile_chess1_circuit(std::int64_t selected_candidate) {
+    return compile_chess1(Chess1Board{}, selected_candidate);
+}
+
+ProgramImage bind_chess1_board(const ProgramImage& circuit, const Chess1Board& board) {
+    if (circuit.tokens.dim() != 2 || circuit.tokens.size(0) != chess1::kTokenCount ||
+        circuit.tokens.size(1) != kModelDim) {
+        throw std::invalid_argument("circuit has incompatible chess token schema");
+    }
+    auto tokens = circuit.tokens.clone();
+    tokens.index_put_({chess1::kSideToken,
+                       torch::indexing::Slice(kSideOffset, kSideOffset + 2)}, 0.0);
+    one_hot(tokens, chess1::kSideToken, kSideOffset,
+            static_cast<std::int64_t>(board.side));
+    for (std::int64_t square = 0; square < 64; ++square) {
+        const auto row = chess1::kSquareTokenBegin + square;
+        tokens.index_put_({row,
+                           torch::indexing::Slice(kSourcePieceOffset,
+                                                  kSourcePieceOffset + kPieceCount)}, 0.0);
+        one_hot(tokens, row, kSourcePieceOffset,
+                static_cast<std::int64_t>(board.squares[square]));
+    }
+    tokens = tokens.detach().set_requires_grad(false);
+    return ProgramImage{tokens, circuit.attention_masks, circuit.write_projections,
+                        circuit.weights};
+}
+
 }  // namespace cmz::vm2

@@ -41,6 +41,9 @@
   color-aware target tokens and file-boundary geometry.
 - The next architectural gate is compact geometry factorization, followed by
   non-pawn movement and attacked-square/check circuits.
+- `compile_chess1_circuit` materializes immutable tensors once;
+  `bind_chess1_board` clones only the token matrix and shares weight/mask
+  storage byte-for-byte with the circuit template.
 - The approved visual site lives in `site/` and deploys from the orphan branch
   through `.github/workflows/pages.yml` to the repository GitHub Pages URL.
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,
