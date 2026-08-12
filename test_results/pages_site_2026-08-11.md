@@ -21,8 +21,8 @@ vite v8.2.1
 1795 modules transformed
 dist/index.html                  0.75 kB
 dist/assets/index-IoNQkSPf.css 11.74 kB
-dist/assets/index-Bvba-d-8.js 207.57 kB
-built in 767ms
+dist/assets/index-Bpkc4ZLs.js 207.69 kB
+built in 1.41s
 ```
 
 ## Browser verification
@@ -37,6 +37,7 @@ built in 767ms
 
 ## Claim boundary
 
-The site now visualizes the implemented 15-stage symmetric pawn single/double
-circuit, including intermediate-square routing and the predicate-token
-legality conjunction. It still labels complete chess as unfinished.
+The site now visualizes the implemented 15-stage symmetric ordinary pawn
+push/capture circuit, including color-aware target routing, intermediate-square
+routing and the predicate-token legality conjunction. It still labels complete
+chess as unfinished.

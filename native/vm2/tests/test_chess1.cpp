@@ -24,8 +24,8 @@ int main() {
             "chess image must contain the fixed token schema");
     require(cmz::vm2::chess1::kSquareTokenCount == 64,
             "chess image must contain 64 input squares");
-    require(cmz::vm2::chess1::kCandidateTokenCount == 128,
-            "chess image must contain single and double pawn candidates");
+    require(cmz::vm2::chess1::kCandidateTokenCount == 256,
+            "chess image must contain pawn pushes and diagonal captures");
     require(cmz::vm2::chess1::kOutputSquareTokenCount == 64,
             "chess image must contain 64 output squares");
 
@@ -47,6 +47,56 @@ int main() {
                             cmz::vm2::chess1::kLegalOffset + 1})
                    .item<double>() == 1.0;
     };
+
+    const auto capture_candidate_legal = [](const cmz::vm2::Chess1Board& position,
+                                            std::int64_t source,
+                                            bool right) {
+        const auto candidate = (right ? 3 : 2) * 64 + source;
+        const auto compiled = cmz::vm2::compile_chess1(position, candidate);
+        const auto state = cmz::vm2::transition(compiled, compiled.tokens);
+        return state.index({cmz::vm2::chess1::kCandidateTokenBegin + candidate,
+                            cmz::vm2::chess1::kLegalOffset + 1})
+                   .item<double>() == 1.0;
+    };
+
+    {
+        cmz::vm2::Chess1Board position{};
+        position.squares[27] = Chess1Piece::WhitePawn;
+        position.squares[34] = Chess1Piece::BlackPawn;
+        position.squares[36] = Chess1Piece::BlackOther;
+        require(capture_candidate_legal(position, 27, false),
+                "white pawn must capture black piece forward-left");
+        require(capture_candidate_legal(position, 27, true),
+                "white pawn must capture black piece forward-right");
+        position.squares[34] = Chess1Piece::Empty;
+        require(!capture_candidate_legal(position, 27, false),
+                "white pawn must not capture an empty target");
+        position.squares[34] = Chess1Piece::WhiteOther;
+        require(!capture_candidate_legal(position, 27, false),
+                "white pawn must not capture its own piece");
+    }
+
+    {
+        cmz::vm2::Chess1Board position{};
+        position.side = Chess1Side::Black;
+        position.squares[36] = Chess1Piece::BlackPawn;
+        position.squares[27] = Chess1Piece::WhitePawn;
+        position.squares[29] = Chess1Piece::WhiteOther;
+        require(capture_candidate_legal(position, 36, false),
+                "black pawn must capture white piece forward-left");
+        require(capture_candidate_legal(position, 36, true),
+                "black pawn must capture white piece forward-right");
+    }
+
+    {
+        cmz::vm2::Chess1Board position{};
+        position.squares[24] = Chess1Piece::WhitePawn;
+        position.squares[31] = Chess1Piece::BlackPawn;
+        require(!capture_candidate_legal(position, 24, false),
+                "capture must not wrap left from file a");
+        require(!capture_candidate_legal(position, 31, true),
+                "capture must not wrap right from file h");
+    }
 
     {
         cmz::vm2::Chess1Board position{};
@@ -132,7 +182,7 @@ int main() {
             const auto actual = state
                                     .index({cmz::vm2::chess1::kOutputSquareTokenBegin + square})
                                     .slice(0, cmz::vm2::chess1::kOutputPieceOffset,
-                                           cmz::vm2::chess1::kOutputPieceOffset + 4)
+                                           cmz::vm2::chess1::kOutputPieceOffset + 5)
                                     .argmax()
                                     .item<std::int64_t>();
             require(actual == static_cast<std::int64_t>(expected),
@@ -162,7 +212,7 @@ int main() {
             const auto actual = state
                                     .index({cmz::vm2::chess1::kOutputSquareTokenBegin + square})
                                     .slice(0, cmz::vm2::chess1::kOutputPieceOffset,
-                                           cmz::vm2::chess1::kOutputPieceOffset + 4)
+                                           cmz::vm2::chess1::kOutputPieceOffset + 5)
                                     .argmax()
                                     .item<std::int64_t>();
             require(actual == static_cast<std::int64_t>(expected),
@@ -206,10 +256,10 @@ int main() {
     require(torch::equal(
                 first.slice(0, cmz::vm2::chess1::kSquareTokenBegin,
                             cmz::vm2::chess1::kSquareTokenBegin + 64)
-                    .slice(1, 0, 4),
+                    .slice(1, 0, 5),
                 second.slice(0, cmz::vm2::chess1::kSquareTokenBegin,
                              cmz::vm2::chess1::kSquareTokenBegin + 64)
-                    .slice(1, 0, 4)),
+                    .slice(1, 0, 5)),
             "repeating an exhausted selected move must preserve recurrent board bytes");
     require(torch::equal(
                 first.index({cmz::vm2::chess1::kSideToken})

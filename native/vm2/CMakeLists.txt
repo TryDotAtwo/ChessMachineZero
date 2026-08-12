@@ -56,3 +56,10 @@ target_link_libraries(cmz_vm2_test_chess1 PRIVATE cmz_vm2 cmz_vm2_chess1_compile
 target_compile_options(cmz_vm2_test_chess1 PRIVATE "${TORCH_CXX_FLAGS}")
 
 add_test(NAME cmz_vm2_chess1 COMMAND cmz_vm2_test_chess1)
+
+add_executable(cmz_vm2_test_chess1_capture tests/test_chess1_capture.cpp)
+target_include_directories(cmz_vm2_test_chess1_capture PRIVATE include)
+target_link_libraries(cmz_vm2_test_chess1_capture PRIVATE cmz_vm2 cmz_vm2_chess1_compiler)
+target_compile_options(cmz_vm2_test_chess1_capture PRIVATE "${TORCH_CXX_FLAGS}")
+
+add_test(NAME cmz_vm2_chess1_capture COMMAND cmz_vm2_test_chess1_capture)

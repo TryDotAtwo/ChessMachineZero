@@ -30,8 +30,9 @@ frozen geometry/relation tokens and matrices.
 
 ## Current chess circuit
 
-The current image contains 128 candidates: every source square paired with a
-single or double pawn-push kind. Fifteen inference stages route:
+The current image contains 256 candidates: every source square paired with
+single push, double push, capture-left or capture-right. Fifteen inference
+stages route:
 
 1. source piece;
 2. current side;
@@ -39,7 +40,7 @@ single or double pawn-push kind. Fifteen inference stages route:
 4. target occupancy;
 5. intermediate occupancy;
 6. `MATCHING_PAWN`;
-7. `TARGET_EMPTY`;
+7. `TARGET_ALLOWED` (empty for pushes, opposite color for captures);
 8. `PATH_CLEAR`;
 9. exact conjunction with `GEOMETRY_VALID` and `START_RANK`;
 10. deterministic legal-candidate selection;
@@ -54,8 +55,8 @@ not applied by a chess-aware host function.
 
 ## Claim boundary
 
-This proves a recurrent, symmetric pawn single/double-push slice. It does not
-yet prove captures, promotion, en passant, other pieces, attacked squares,
+This proves recurrent symmetric ordinary pawn pushes and captures. It does not
+yet prove promotion, en passant, other pieces, attacked squares,
 check legality, castling, terminal states or a complete game of chess. Public
 claims must remain at this boundary until corresponding circuits and exact
 oracle comparisons exist.
@@ -67,3 +68,8 @@ oracle comparisons exist.
 - mutation tests that must reject semantic branches, scalar reads, forbidden
   routing, chess vocabulary and compiler linkage;
 - GitHub Pages text must match the latest evidence file under `test_results/`.
+
+The current implementation intentionally uses dense reference attention. The
+19-minute CPU regression is semantic evidence, not a performance result;
+geometry factorization or structural sparse attention is required before
+scaling to complete chess.

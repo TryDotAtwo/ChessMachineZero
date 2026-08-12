@@ -19,8 +19,8 @@
   predicate-keyed hardmax attention.
 - Runtime write routing uses compact row and feature matrices with
   `X + R @ (Y-X) @ C`; it does not use per-token 3D projection banks.
-- The chess slice compiles 128 side-relative pawn single/double candidates,
-  256 side-keyed geometry tokens, and small predicate relation tables into a
+- The chess slice compiles 256 pawn push/capture candidates, 512 side-keyed
+  geometry tokens, and small predicate relation tables into a
   generic ProgramImage.
 - Double-push legality is the attention-computed conjunction of matching pawn,
   empty target, clear intermediate path, valid geometry, and start rank.
@@ -37,8 +37,10 @@
 - Exact-square write score is 1.0 and the legal gate contributes 0.25; this
   makes matching legal writes win at 1.25 while preventing unrelated legal
   writes from erasing other squares.
-- The next architectural gate is pawn captures, followed by non-pawn
-  movement and attacked-square/check circuits.
+- Ordinary diagonal pawn captures are implemented for both sides with
+  color-aware target tokens and file-boundary geometry.
+- The next architectural gate is compact geometry factorization, followed by
+  non-pawn movement and attacked-square/check circuits.
 - The approved visual site lives in `site/` and deploys from the orphan branch
   through `.github/workflows/pages.yml` to the repository GitHub Pages URL.
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,

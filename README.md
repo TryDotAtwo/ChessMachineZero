@@ -58,11 +58,12 @@ three. Equality becomes a predicate token; target versus fallthrough is chosen
 by hardmax attention. An immutable `TRUE` token expresses the loop back-edge.
 The final state is `r0=3`, `p0=TRUE`, and absorbing `HALT=TRUE`.
 
-The current chess-rule slice evaluates 128 pawn candidates in parallel: one-
-and two-square pushes for every source square and either side. Source piece,
+The current chess-rule slice evaluates 256 pawn candidates in parallel: one-
+and two-square pushes plus both diagonal captures for every source square and
+either side. Source piece,
 side-keyed geometry, target occupancy, intermediate occupancy, move kind,
 start rank and side-to-move are routed into candidate tokens. Frozen relation
-tokens produce `MATCHING_PAWN`, `TARGET_EMPTY`, `PATH_CLEAR`,
+tokens produce `MATCHING_PAWN`, `TARGET_ALLOWED`, `PATH_CLEAR`,
 `GEOMETRY_VALID`, `START_RANK`, and finally `LEGAL/ILLEGAL` through exact
 `QK^T` lookups plus hardmax. A selected legal candidate then
 changes exactly two output-square tokens and flips the side; an illegal
@@ -77,8 +78,9 @@ candidate. A three-transition test alternates white, black, then white again
 using the same recurrent token state and frozen weights.
 
 This is deliberately **not yet full chess**. The current player policy is only
-deterministic legal-first selection. Castling, checks, captures,
-promotion, en passant and every non-pawn piece rule remain future rule circuits.
+deterministic legal-first selection. Castling, checks, promotion, en passant
+and every non-pawn piece rule remain future rule circuits. The current dense
+reference implementation proves semantics; it is not a speed claim.
 The accepted claim is only that this recurrent symmetric pawn slice executes
 in the unchanged, domain-agnostic inference runtime.
 

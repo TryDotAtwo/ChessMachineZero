@@ -25,3 +25,5 @@
   expose Percepta-style token traces.
 - Continue after interrupted connectivity and extend the attention-only chess
   system without introducing host chess logic.
+- Continue toward complete chess after publishing Pages; add the next rule
+  circuit with exact checks and no chess-aware runtime path.

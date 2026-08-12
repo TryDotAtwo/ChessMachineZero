@@ -56,3 +56,7 @@
 - Published the interactive trace at
   `https://trydotatwo.github.io/ChessMachineZero/`; verified HTML, JS and CSS
   with independent HTTP 200 responses.
+- Added both diagonal pawn-capture kinds, color-aware non-pawn tokens,
+  opponent-target predicate lookup and file-a/file-h boundary geometry.
+- Added a focused exact capture gate plus full CTest 5/5; the dense CPU
+  regression took 1140.26 seconds and is not presented as a speed result.

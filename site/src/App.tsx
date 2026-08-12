@@ -128,7 +128,7 @@ function App() {
 
       <section className="proof" id="proof">
         <div><h2>Что доказано сейчас</h2><p>Сайт намеренно не выдаёт текущий rule-slice за готовые шахматы.</p></div>
-        <ul><li><strong>✓</strong><span>White/black pawn single + double</span><small>128 кандидатов · 15 стадий</small></li><li><strong>✓</strong><span>Predicate-token legality</span><small>5 предикатов → hardmax AND</small></li><li><strong>✓</strong><span>Hardmax player circuit</span><small>3 recurrent inference-хода</small></li><li><strong>✓</strong><span>Recurrent board state</span><small>те же frozen weights</small></li><li><strong>✓</strong><span>Runtime purity</span><small>CTest 4/4 · mutation 14/14</small></li><li className="pending"><strong>→</strong><span>Полные шахматы</span><small>captures/pieces/check впереди</small></li></ul>
+        <ul><li><strong>✓</strong><span>Pawn push + diagonal capture</span><small>256 кандидатов · 15 стадий</small></li><li><strong>✓</strong><span>Color-aware target predicate</span><small>side × kind × piece → allowed</small></li><li><strong>✓</strong><span>Predicate-token legality</span><small>5 предикатов → hardmax AND</small></li><li><strong>✓</strong><span>Hardmax player circuit</span><small>recurrent inference-ходы</small></li><li><strong>✓</strong><span>Runtime purity</span><small>CTest 5/5 · mutation 14/14</small></li><li className="pending"><strong>→</strong><span>Полные шахматы</span><small>pieces/check/promotion впереди</small></li></ul>
       </section>
     </main>
     <footer><span>Percepta Chess · эксперимент с transformer-native вычислением</span><button onClick={() => { setStage(0); setPlaying(true); }}><RotateCcw/> Повторить трассу</button></footer>

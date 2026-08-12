@@ -11,7 +11,9 @@ enum class Chess1Piece : std::int64_t {
     Empty = 0,
     WhitePawn = 1,
     BlackPawn = 2,
-    Other = 3,
+    WhiteOther = 3,
+    BlackOther = 4,
+    Other = WhiteOther,
 };
 
 enum class Chess1Side : std::int64_t {
@@ -27,12 +29,12 @@ struct Chess1Board {
 namespace chess1 {
 
 inline constexpr std::int64_t kSquareTokenCount = 64;
-inline constexpr std::int64_t kCandidateTokenCount = 128;
+inline constexpr std::int64_t kCandidateTokenCount = 256;
 inline constexpr std::int64_t kOutputSquareTokenCount = 64;
-inline constexpr std::int64_t kGeometryTokenCount = 256;
-inline constexpr std::int64_t kMatchingRelationTokenCount = 8;
-inline constexpr std::int64_t kTargetEmptyRelationTokenCount = 4;
-inline constexpr std::int64_t kPathRelationTokenCount = 8;
+inline constexpr std::int64_t kGeometryTokenCount = 512;
+inline constexpr std::int64_t kMatchingRelationTokenCount = 10;
+inline constexpr std::int64_t kTargetEmptyRelationTokenCount = 40;
+inline constexpr std::int64_t kPathRelationTokenCount = 20;
 inline constexpr std::int64_t kConjunctionRelationTokenCount = 32;
 inline constexpr std::int64_t kLegalityRelationTokenCount =
     kMatchingRelationTokenCount + kTargetEmptyRelationTokenCount +
@@ -57,9 +59,9 @@ inline constexpr std::int64_t kTokenCount =
 
 inline constexpr std::int64_t kLegalOffset = 310;
 inline constexpr std::int64_t kInputPieceOffset = 0;
-inline constexpr std::int64_t kInputSideOffset = 8;
+inline constexpr std::int64_t kInputSideOffset = 10;
 inline constexpr std::int64_t kOutputPieceOffset = 200;
-inline constexpr std::int64_t kOutputSideOffset = 204;
+inline constexpr std::int64_t kOutputSideOffset = 205;
 
 }  // namespace chess1
 
