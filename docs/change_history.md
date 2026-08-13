@@ -1,5 +1,13 @@
 # Change history
 
+## 2026-08-13 — clickable knight board
+
+- Replaced numeric source/target controls with a clickable chessboard and
+  matrix-derived reachable-square highlights.
+- Reworked the matrix panel into four narrated steps from pair token to
+  hardmax; retained ChessMachineZero as the product brand and Percepta only as
+  concept attribution.
+
 ## 2026-08-13 — interactive knight matrix lab
 
 - Added a Pages laboratory for selecting source/target squares and inspecting

@@ -1,5 +1,8 @@
 # Prompt history
 
+- 2026-08-13: User preferred the earlier landing-page style and requested a
+  clickable knight board plus a clearer explanation of the matrices.
+
 - 2026-08-13: User requested continuing implementation and updating the site
   to show the current state beautifully and accurately.
 

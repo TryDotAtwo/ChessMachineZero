@@ -1,6 +1,9 @@
 export const WQ = [[0, 0], [1, 0], [0, 1]] as const;
 export const WK = [[1, 0], [0, 1]] as const;
 export const CLASS_KEYS = [[1, 0], [0, 1]] as const;
+export const squareName = (square: number) => `${"abcdefgh"[square % 8]}${Math.floor(square / 8) + 1}`;
+export const knightTargets = (source: number) => Array.from({length:64},(_,target)=>target)
+  .filter(target => knightTrace(source, target).winner === 1);
 
 const matVec = (x: readonly number[], w: readonly (readonly number[])[]) =>
   Array.from({ length: w[0].length }, (_, c) => x.reduce((sum, v, r) => sum + v * w[r][c], 0));
