@@ -1,5 +1,8 @@
 # Prompt history
 
+- 2026-08-13: User requested continuing implementation and updating the site
+  to show the current state beautifully and accurately.
+
 - 2026-08-13: User requested continuing from pawn rules toward full chess.
 
 - 2026-08-13: User said "Делай" to continue computational optimization.

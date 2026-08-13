@@ -24,5 +24,6 @@ int main() {
         circuit.wk.requires_grad() || circuit.wv.requires_grad()) {
         throw std::runtime_error("knight circuit must be frozen");
     }
+
     return 0;
 }

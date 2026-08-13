@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { parseInferenceTrace, REQUIRED_MATRICES, type InferenceTrace, type MatrixName } from "./trace-schema";
 import { multiplyCell, scoreCell, valueAt } from "./matrix";
+import { knightTrace, WQ, WK, CLASS_KEYS } from "./knight";
 
 const operations: MatrixName[] = [...REQUIRED_MATRICES];
 const fmt = (v: number | "-inf") => v === "-inf" ? "−∞" : Number.isInteger(v) ? String(v) : v.toPrecision(5);
+
+function TinyMatrix({label, rows}:{label:string;rows:readonly (readonly number[])[]}) { return <div className="tiny-matrix"><b>{label}</b><div>{rows.map((r,i)=><span key={i}>{r.map((v,j)=><i key={j}>{v}</i>)}</span>)}</div></div>; }
+function KnightLab(){ const [source,setSource]=useState(1),[target,setTarget]=useState(18); const t=knightTrace(source,target); const square=(n:number)=>`${"abcdefgh"[n%8]}${Math.floor(n/8)+1}`; return <section className="knight-lab"><div className="lab-copy"><small>НОВЫЙ ДОКАЗАННЫЙ GATE</small><h2>Геометрия коня — одна факторизованная матрица</h2><p>Не 8 банков направлений и не C++-проверка. Все 4096 пар source×target проходят <code>X·Wq</code>, <code>Q·Kᵀ</code> и hardmax.</p><div className="lab-controls"><label>source <input min="0" max="63" type="number" value={source} onChange={e=>setSource(Math.max(0,Math.min(63,+e.target.value)))}/><b>{square(source)}</b></label><label>target <input min="0" max="63" type="number" value={target} onChange={e=>setTarget(Math.max(0,Math.min(63,+e.target.value)))}/><b>{square(target)}</b></label></div><div className={`verdict ${t.winner===1?"legal":"illegal"}`}><span>Δfile={t.delta[0]}, Δrank={t.delta[1]}</span><strong>hardmax → {t.winner===1?"KNIGHT_GEOMETRY":"NOT_KNIGHT"}</strong></div><p className="boundary">Доказана геометрия. Цвет, занятость цели и запись хода в общий production-контур ещё не подключены.</p></div><div className="matrix-flow"><TinyMatrix label="X pair token" rows={[t.token]}/><em>×</em><TinyMatrix label="Wq" rows={WQ}/><em>=</em><TinyMatrix label="Q" rows={[t.q]}/><em>×</em><TinyMatrix label="Kᵀ" rows={CLASS_KEYS}/><em>=</em><TinyMatrix label="scores" rows={[t.scores]}/><div className="hardmax-pulse">hardmax [{t.scores.join(", ")}] → {t.winner}</div><TinyMatrix label="Wk" rows={WK}/></div></section>; }
 
 function MatrixGrid({ trace, stage, name, row, col, onCell }: { trace: InferenceTrace; stage: number; name: MatrixName; row: number; col: number; onCell(r:number,c:number):void }) {
   const m = trace.stages[stage].matrices[name];
@@ -45,5 +49,6 @@ export default function App(){
  <section className="status"><div><small>STAGE</small><b>{stage} / 14</b></div><div><small>MATRIX</small><b>{name}</b></div><div><small>SELECTED CELL</small><b>[{row},{col}] = {fmt(valueAt(current!.matrices[name],Math.min(row,current!.matrices[name].rows-1),Math.min(col,current!.matrices[name].cols-1)))}</b></div><div><small>CHANGED CELLS</small><b>{changed}</b></div></section>
  <section className="main-grid"><MatrixGrid trace={trace} stage={stage} name={name} row={row} col={col} onCell={(r,c)=>{setRow(r);setCol(c)}}/><Inspector trace={trace} stage={stage} name={name} row={row} col={col}/></section>
  <section className="writes"><h2>Последовательная matrix-write трасса</h2>{current!.writes.map(w=><div key={w.component}><b>component {w.component}</b><code>X{w.component+1} = X{w.component} + R{w.component}(Y − X{w.component})C{w.component}</code><span>R {w.R.rows}×{w.R.cols}</span><span>C {w.C.rows}×{w.C.cols}</span></div>)}</section>
+ <KnightLab/>
  </main>
 }

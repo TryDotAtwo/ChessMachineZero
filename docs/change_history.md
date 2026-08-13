@@ -1,5 +1,12 @@
 # Change history
 
+## 2026-08-13 — interactive knight matrix lab
+
+- Added a Pages laboratory for selecting source/target squares and inspecting
+  the exact pair token, Wq/Wk matrices, scores and hardmax class.
+- Public copy explicitly limits the result to knight geometry; board legality
+  and production move application remain pending.
+
 ## 2026-08-13 — factorized knight geometry gate
 
 - Added a frozen matrix/hardmax circuit for the 64x64 knight relation.

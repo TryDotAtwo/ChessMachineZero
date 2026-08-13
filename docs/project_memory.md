@@ -1,5 +1,9 @@
 # Project memory
 
+- 2026-08-13: Pages includes an interactive knight matrix lab backed by the
+  same 3-to-2 frozen classification construction as the exhaustive native
+  gate. It must remain labelled geometry-only until board writes are wired.
+
 - 2026-08-13: knight geometry gate factorizes source/target pairs instead of
   adding eight direction-specific candidate banks. A frozen matrix/hardmax
   circuit exhaustively classifies all 4096 square pairs. It is not yet wired
