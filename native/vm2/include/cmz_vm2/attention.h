@@ -30,6 +30,19 @@ struct BlockAttentionResult {
     torch::Tensor output;
 };
 
+struct CompactAttentionProjection {
+    torch::Tensor wq;
+    torch::Tensor wk;
+    torch::Tensor wv;
+    torch::Tensor wo;
+    std::int64_t score_width;
+};
+
+struct CompactBlockAttentionResult {
+    torch::Tensor winners;
+    torch::Tensor output;
+};
+
 AttentionResult self_attention(
     const torch::Tensor& x,
     const torch::Tensor& wq,
@@ -42,6 +55,11 @@ BlockAttentionResult block_self_attention(
     const torch::Tensor& wq,
     const torch::Tensor& wk,
     const torch::Tensor& wv,
+    const std::vector<AttentionBlock>& blocks);
+
+CompactBlockAttentionResult compact_block_self_attention(
+    const torch::Tensor& x,
+    const CompactAttentionProjection& projection,
     const std::vector<AttentionBlock>& blocks);
 
 }  // namespace cmz::vm2

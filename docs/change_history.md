@@ -1,5 +1,10 @@
 # Change history
 
+## 2026-08-13 — exact compact projection experiment
+
+- Proved an offline-compiled, matrix-only compact Q/K path exactly equivalent.
+- Rejected its production switch after two 900-second native gate timeouts.
+
 ## 2026-08-10
 
 - Replaced host early-exit on the `HALT` tensor with caller-fixed inference

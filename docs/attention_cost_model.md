@@ -34,3 +34,11 @@ All 15 frozen plans are now embedded in `ProgramImage`, and production
 with the independent dense trace oracle. Three-run warm single-thread CPU
 median is 1346.7 ms dense versus 1007.3 ms production block (1.33694x). GPU
 performance remains unmeasured.
+
+## Compact projection experiment
+
+Unused shared Q/K score columns can be removed offline while preserving every
+hardmax winner and projected output exactly. A production trial was rejected:
+the full native gate did not finish within 900 seconds on the current CPU
+LibTorch backend. The compact implementation remains an exact prototype;
+production keeps the measured block-sparse score path.

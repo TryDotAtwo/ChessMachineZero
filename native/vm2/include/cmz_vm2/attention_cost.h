@@ -44,4 +44,10 @@ std::vector<AttentionBlock> materialize_attention_blocks(
     const PaddedAttentionPlan& plan, std::int64_t token_count,
     const torch::TensorOptions& options);
 
+CompactAttentionProjection compile_compact_attention_projection(
+    const torch::Tensor& wq,
+    const torch::Tensor& wk,
+    const torch::Tensor& wv,
+    const torch::Tensor& wo);
+
 }  // namespace cmz::vm2

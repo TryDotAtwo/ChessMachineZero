@@ -65,6 +65,20 @@ int main() {
         !torch::equal(dense.winners, block.winners)) {
         throw std::runtime_error("padded block execution must equal dense attention exactly");
     }
+    const auto projection = cmz::vm2::compile_compact_attention_projection(
+        image.weights.wq[2], image.weights.wk[2], image.weights.wv[2], image.weights.wo[2]);
+    if (projection.score_width >= cmz::vm2::kModelDim) {
+        throw std::runtime_error("compact projection must remove unused score columns");
+    }
+    const auto compact = cmz::vm2::compact_block_self_attention(
+        image.tokens, projection, blocks);
+    if (!torch::equal(block.winners, compact.winners)) {
+        throw std::runtime_error("compact projection must preserve hardmax winners exactly");
+    }
+    if (!torch::equal(torch::matmul(block.output, image.weights.wo[2]),
+                      torch::matmul(compact.output, projection.wo))) {
+        throw std::runtime_error("compact attention output must be exactly equivalent");
+    }
     (void)cmz::vm2::self_attention(
         image.tokens, image.weights.wq[2], image.weights.wk[2], image.weights.wv[2],
         image.attention_masks[2]);

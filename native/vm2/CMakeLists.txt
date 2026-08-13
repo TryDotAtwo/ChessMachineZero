@@ -26,6 +26,11 @@ target_compile_options(cmz_vm2_test_attention PRIVATE "${TORCH_CXX_FLAGS}")
 
 add_test(NAME cmz_vm2_attention COMMAND cmz_vm2_test_attention)
 
+add_library(cmz_vm2_attention_cost STATIC src/attention_cost.cpp)
+target_include_directories(cmz_vm2_attention_cost PUBLIC include)
+target_link_libraries(cmz_vm2_attention_cost PUBLIC cmz_vm2_attention)
+target_compile_options(cmz_vm2_attention_cost PRIVATE "${TORCH_CXX_FLAGS}")
+
 add_library(cmz_vm2_compiler STATIC src/compiler.cpp)
 target_include_directories(cmz_vm2_compiler PUBLIC include)
 target_link_libraries(cmz_vm2_compiler PUBLIC cmz_vm2_attention)
@@ -83,10 +88,6 @@ target_compile_options(cmz_vm2_export_chess1_trace PRIVATE "${TORCH_CXX_FLAGS}")
 
 add_executable(cmz_vm2_test_attention_cost tests/test_attention_cost.cpp)
 target_include_directories(cmz_vm2_test_attention_cost PRIVATE include)
-add_library(cmz_vm2_attention_cost STATIC src/attention_cost.cpp)
-target_include_directories(cmz_vm2_attention_cost PUBLIC include)
-target_link_libraries(cmz_vm2_attention_cost PUBLIC cmz_vm2_attention)
-target_compile_options(cmz_vm2_attention_cost PRIVATE "${TORCH_CXX_FLAGS}")
 target_link_libraries(cmz_vm2_test_attention_cost PRIVATE cmz_vm2_chess1_compiler cmz_vm2_attention_cost)
 target_compile_options(cmz_vm2_test_attention_cost PRIVATE "${TORCH_CXX_FLAGS}")
 add_test(NAME cmz_vm2_attention_cost COMMAND cmz_vm2_test_attention_cost)

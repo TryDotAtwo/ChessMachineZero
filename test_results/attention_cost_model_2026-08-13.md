@@ -48,3 +48,7 @@ speedup=1.33694x
 ```
 
 This is a warm three-run single-thread CPU median. GPU speedup is not claimed.
+
+Compact Q/K projection: RED failed on missing APIs; GREEN proved byte-exact
+stage-2 winners and projected output. Both production trials hit the 900-second
+timeout, so the prior path is retained and no compact speedup is claimed.

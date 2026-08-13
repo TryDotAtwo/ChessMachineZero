@@ -8,6 +8,22 @@
 
 namespace cmz::vm2 {
 
+CompactAttentionProjection compile_compact_attention_projection(
+    const torch::Tensor& wq,
+    const torch::Tensor& wk,
+    const torch::Tensor& wv,
+    const torch::Tensor& wo) {
+    const auto q_used = wq.ne(0).any(0);
+    const auto k_used = wk.ne(0).any(0);
+    const auto score_columns = torch::nonzero(q_used.logical_and(k_used)).squeeze(1);
+    return CompactAttentionProjection{
+        wq.index_select(1, score_columns).contiguous().detach().set_requires_grad(false),
+        wk.index_select(1, score_columns).contiguous().detach().set_requires_grad(false),
+        wv,
+        wo,
+        score_columns.size(0)};
+}
+
 AttentionCostReport analyze_attention_cost(const ProgramImage& image) {
     AttentionCostReport report{{}, 0, 0};
     report.stages.reserve(kStageCount);

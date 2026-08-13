@@ -1,5 +1,9 @@
 # Project memory
 
+- 2026-08-13: compact Q/K projection is exact but not production-enabled; two
+  CPU LibTorch full-gate trials exceeded 900 seconds. Production retains dense
+  projections with frozen block-sparse score attention.
+
 - The active implementation is the orphan branch `codex/percepta-transformer-vm`.
 - The inference runtime is `native/vm2/src/attention.cpp` plus
   `native/vm2/src/machine.cpp`.

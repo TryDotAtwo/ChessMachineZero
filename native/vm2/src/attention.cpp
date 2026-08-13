@@ -55,4 +55,35 @@ BlockAttentionResult block_self_attention(
         q, k, v, global_winners.squeeze(1).to(torch::kInt64), output};
 }
 
+CompactBlockAttentionResult compact_block_self_attention(
+    const torch::Tensor& x,
+    const CompactAttentionProjection& projection,
+    const std::vector<AttentionBlock>& blocks) {
+    const auto q = torch::matmul(x, projection.wq);
+    const auto k = torch::matmul(x, projection.wk);
+    const auto v = torch::matmul(x, projection.wv);
+
+    const auto evaluate = [&](const AttentionBlock& block) {
+        const auto block_q = torch::matmul(block.query_selection, q);
+        const auto block_k = torch::matmul(block.key_selection, k);
+        const auto block_v = torch::matmul(block.key_selection, v);
+        const auto scores = torch::matmul(block_q, block_k.t()) + block.mask;
+        const auto local_winners = std::get<1>(scores.max(1, false));
+        const auto selection = at::one_hot(local_winners, scores.size(1)).to(x.scalar_type());
+        return std::pair{
+            torch::matmul(block.query_selection.t(), torch::matmul(selection, block_v)),
+            torch::matmul(block.query_selection.t(),
+                          torch::matmul(selection, block.global_key_ids))};
+    };
+    auto routed = evaluate(blocks.front());
+    auto output = routed.first;
+    auto winners = routed.second;
+    for (std::size_t block = 1; block < blocks.size(); ++block) {
+        routed = evaluate(blocks[block]);
+        output = output + routed.first;
+        winners = winners + routed.second;
+    }
+    return CompactBlockAttentionResult{winners.squeeze(1).to(torch::kInt64), output};
+}
+
 }  // namespace cmz::vm2
