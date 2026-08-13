@@ -22,3 +22,9 @@ The first budgeted optimizer preserves the mask exactly. On stage 2, a
 Dense selection matrices are currently used only as an exactness prototype;
 no latency improvement is claimed until a static native selection layout
 removes their overhead and a hardware benchmark passes.
+
+The selection layout now uses frozen sparse COO matrices with exactly one
+nonzero per selected row. It remains pure matrix routing. On the available
+single-thread CPU diagnostic, stage 2 median latency over five timed runs was
+39.6268 ms dense versus 27.5298 ms block-sparse (1.43941x). This is CPU-only
+stage evidence, not a full-transition or GPU speed claim.

@@ -1,5 +1,7 @@
 #include <stdexcept>
 #include <iostream>
+#include <chrono>
+#include <algorithm>
 
 #include "cmz_vm2/attention_cost.h"
 #include "cmz_vm2/chess1_compiler.h"
@@ -44,6 +46,16 @@ int main() {
     }
     const auto blocks = cmz::vm2::materialize_attention_blocks(
         merged, cmz::vm2::chess1::kTokenCount, image.tokens.options());
+    for (const auto& materialized : blocks) {
+        if (!materialized.query_selection.is_sparse() ||
+            !materialized.key_selection.is_sparse()) {
+            throw std::runtime_error("selection routing must use frozen sparse COO matrices");
+        }
+        if (materialized.query_selection._nnz() != materialized.query_selection.size(0) ||
+            materialized.key_selection._nnz() != materialized.key_selection.size(0)) {
+            throw std::runtime_error("each static selection row must contain exactly one route");
+        }
+    }
     const auto dense = cmz::vm2::self_attention(
         image.tokens, image.weights.wq[2], image.weights.wk[2], image.weights.wv[2],
         image.attention_masks[2]);
@@ -53,6 +65,30 @@ int main() {
         !torch::equal(dense.winners, block.winners)) {
         throw std::runtime_error("padded block execution must equal dense attention exactly");
     }
+    (void)cmz::vm2::self_attention(
+        image.tokens, image.weights.wq[2], image.weights.wk[2], image.weights.wv[2],
+        image.attention_masks[2]);
+    (void)cmz::vm2::block_self_attention(
+        image.tokens, image.weights.wq[2], image.weights.wk[2], image.weights.wv[2], blocks);
+    std::vector<double> dense_samples, block_samples;
+    for (std::int64_t repeat = 0; repeat < 5; ++repeat) {
+        const auto dense_begin = std::chrono::steady_clock::now();
+        (void)cmz::vm2::self_attention(
+            image.tokens, image.weights.wq[2], image.weights.wk[2], image.weights.wv[2],
+            image.attention_masks[2]);
+        const auto dense_end = std::chrono::steady_clock::now();
+        const auto block_begin = std::chrono::steady_clock::now();
+        (void)cmz::vm2::block_self_attention(
+            image.tokens, image.weights.wq[2], image.weights.wk[2], image.weights.wv[2], blocks);
+        const auto block_end = std::chrono::steady_clock::now();
+        dense_samples.push_back(std::chrono::duration<double, std::milli>(dense_end - dense_begin).count());
+        block_samples.push_back(std::chrono::duration<double, std::milli>(block_end - block_begin).count());
+    }
+    std::sort(dense_samples.begin(), dense_samples.end());
+    std::sort(block_samples.begin(), block_samples.end());
+    std::cout << "stage2_cpu_dense_median_ms=" << dense_samples[2]
+              << " stage2_cpu_block_median_ms=" << block_samples[2]
+              << " speedup=" << dense_samples[2] / block_samples[2] << '\n';
     std::cout << "stage2 budget=1 padded=" << one_block.padded_score_pairs
               << " cost=" << one_block.estimated_cost << '\n';
     std::cout << "stage2 budget=16 padded=" << merged.padded_score_pairs

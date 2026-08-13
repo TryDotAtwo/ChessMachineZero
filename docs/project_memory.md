@@ -66,6 +66,9 @@
 - A budgeted offline merge preserves masks exactly; stage 2 reaches 171,920
   padded pairs in 16 blocks and is byte-exact with dense attention. Dense
   selection matrices are still prototype-only and no speedup is claimed.
+- Frozen sparse COO selection uses one nonzero per route row. Stage 2 remains
+  byte-exact and measured 1.43941x faster than dense in a five-run warm
+  single-thread CPU diagnostic; full-transition/GPU performance is unverified.
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,
   recurrent board state, current CTest and purity counts; full chess remains
   explicitly pending.

@@ -24,3 +24,16 @@ sixteen_blocks_estimated_cost=237456
 The 16-block materialized prototype is byte-exact with dense output and global
 hardmax winners. Dense selection matrices remain prototype-only, so this is not
 yet performance evidence.
+
+Frozen sparse COO routing then replaced dense selection matrices. Each route
+matrix contains exactly one nonzero per row and retains byte-exact output and
+winners. Five-run, warm, single-thread CPU diagnostic:
+
+```text
+stage2_cpu_dense_median_ms=39.6268
+stage2_cpu_block_median_ms=27.5298
+speedup=1.43941x
+```
+
+This result covers stage 2 only. Production transition and GPU speedup remain
+unclaimed until all 15 plans and end-to-end gates pass.

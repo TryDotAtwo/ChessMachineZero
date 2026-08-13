@@ -134,19 +134,29 @@ std::vector<AttentionBlock> materialize_attention_blocks(
     std::vector<AttentionBlock> blocks;
     blocks.reserve(plan.blocks.size());
     for (const auto& source : plan.blocks) {
-        auto query_selection = torch::zeros(
-            {static_cast<std::int64_t>(source.queries.size()), token_count}, options);
-        auto key_selection = torch::zeros(
-            {static_cast<std::int64_t>(source.keys.size()), token_count}, options);
+        std::vector<std::int64_t> query_rows(source.queries.size());
+        std::vector<std::int64_t> key_rows(source.keys.size());
+        for (std::size_t local = 0; local < query_rows.size(); ++local) {
+            query_rows[local] = static_cast<std::int64_t>(local);
+        }
+        for (std::size_t local = 0; local < key_rows.size(); ++local) {
+            key_rows[local] = static_cast<std::int64_t>(local);
+        }
+        const auto index_options = torch::TensorOptions().dtype(torch::kInt64);
+        const auto query_indices = torch::stack({
+            torch::tensor(query_rows, index_options), torch::tensor(source.queries, index_options)});
+        const auto key_indices = torch::stack({
+            torch::tensor(key_rows, index_options), torch::tensor(source.keys, index_options)});
+        const auto sparse_options = options.layout(torch::kSparse);
+        auto query_selection = torch::sparse_coo_tensor(
+            query_indices, torch::ones({static_cast<std::int64_t>(source.queries.size())}, options),
+            {static_cast<std::int64_t>(source.queries.size()), token_count}, sparse_options).coalesce();
+        auto key_selection = torch::sparse_coo_tensor(
+            key_indices, torch::ones({static_cast<std::int64_t>(source.keys.size())}, options),
+            {static_cast<std::int64_t>(source.keys.size()), token_count}, sparse_options).coalesce();
         auto global_key_ids = torch::zeros(
             {static_cast<std::int64_t>(source.keys.size()), 1}, options);
-        for (std::size_t local = 0; local < source.queries.size(); ++local) {
-            query_selection.index_put_(
-                {static_cast<std::int64_t>(local), source.queries[local]}, 1.0);
-        }
         for (std::size_t local = 0; local < source.keys.size(); ++local) {
-            key_selection.index_put_(
-                {static_cast<std::int64_t>(local), source.keys[local]}, 1.0);
             global_key_ids.index_put_(
                 {static_cast<std::int64_t>(local), 0}, source.keys[local]);
         }
