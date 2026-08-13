@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { parseInferenceTrace, REQUIRED_MATRICES, type InferenceTrace, type MatrixName } from "./trace-schema";
 import { multiplyCell, scoreCell, valueAt } from "./matrix";
 import { boardSquares, knightTargets, knightTrace, squareName, WQ, WK, CLASS_KEYS } from "./knight";
+import { TraceDebugger } from "./TraceDebugger";
 
 const operations: MatrixName[] = [...REQUIRED_MATRICES];
 const fmt = (v: number | "-inf") => v === "-inf" ? "−∞" : Number.isInteger(v) ? String(v) : v.toPrecision(5);
@@ -49,6 +50,7 @@ export default function App(){
  <section className="status"><div><small>STAGE</small><b>{stage} / 14</b></div><div><small>MATRIX</small><b>{name}</b></div><div><small>SELECTED CELL</small><b>[{row},{col}] = {fmt(valueAt(current!.matrices[name],Math.min(row,current!.matrices[name].rows-1),Math.min(col,current!.matrices[name].cols-1)))}</b></div><div><small>CHANGED CELLS</small><b>{changed}</b></div></section>
  <section className="main-grid"><MatrixGrid trace={trace} stage={stage} name={name} row={row} col={col} onCell={(r,c)=>{setRow(r);setCol(c)}}/><Inspector trace={trace} stage={stage} name={name} row={row} col={col}/></section>
  <section className="writes"><h2>Последовательная matrix-write трасса</h2>{current!.writes.map(w=><div key={w.component}><b>component {w.component}</b><code>X{w.component+1} = X{w.component} + R{w.component}(Y − X{w.component})C{w.component}</code><span>R {w.R.rows}×{w.R.cols}</span><span>C {w.C.rows}×{w.C.cols}</span></div>)}</section>
+ <TraceDebugger trace={trace}/>
  <KnightLab/>
  </main>
 }

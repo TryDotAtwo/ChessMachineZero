@@ -1,5 +1,8 @@
 # Prompt history
 
+- 2026-08-13: User requested implementing the discussed understandable and
+  animated full-trace debugger, not only the knight walkthrough.
+
 - 2026-08-13: User requested that the right-side matrices clearly change with
   the clicked board cells and remain understandable.
 

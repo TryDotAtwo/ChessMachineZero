@@ -1,5 +1,10 @@
 # Project memory
 
+- 2026-08-13: Pages presents the full pawn trace as 90 animated debugger
+  microsteps over the real float64 artifact. It synchronizes board state,
+  selected token labels, matrix heatmaps and hardmax focus. Knight geometry is
+  still a separate geometry-only gate.
+
 - 2026-08-13: Pages includes an interactive knight matrix lab backed by the
   same 3-to-2 frozen classification construction as the exhaustive native
   gate. It must remain labelled geometry-only until board writes are wired.

@@ -1,5 +1,12 @@
 # Change history
 
+## 2026-08-13 — animated full native trace debugger
+
+- Added a synchronized board/token/heatmap debugger for the complete 15-stage
+  pawn native trace, with six microsteps per stage and playback controls.
+- Added explanation, active-number, and all-matrix modes; the original exact
+  coordinate explorer remains available below.
+
 ## 2026-08-13 — pair-synchronized knight trace
 
 - The first board click now selects only a source and pauses the trace until a
