@@ -1,4 +1,8 @@
-# Knight geometry gate — 2026-08-13
+# Knight geometry gate — 2026-08-13 — WITHDRAWN
+
+This artifact is not acceptance evidence. The input token contained the final
+legal/illegal class, so matrix inference only decoded a precomputed label. The
+implementation and CTest target were removed on 2026-08-14.
 
 TDD RED failed because `cmz_vm2/knight_geometry.h` did not exist.
 

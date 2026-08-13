@@ -1,18 +1,14 @@
 # Project memory
 
+- 2026-08-14: the preclassified knight circuit and browser mirror are removed.
+  They encoded the final legal class in X and are invalid evidence. Correct
+  knight work must derive geometry from coordinate tokens via reusable frozen
+  stages before it may re-enter acceptance or public claims.
+
 - 2026-08-13: Pages presents the full pawn trace as 90 animated debugger
   microsteps over the real float64 artifact. It synchronizes board state,
   selected token labels, matrix heatmaps and hardmax focus. Knight geometry is
   still a separate geometry-only gate.
-
-- 2026-08-13: Pages includes an interactive knight matrix lab backed by the
-  same 3-to-2 frozen classification construction as the exhaustive native
-  gate. It must remain labelled geometry-only until board writes are wired.
-
-- 2026-08-13: knight geometry gate factorizes source/target pairs instead of
-  adding eight direction-specific candidate banks. A frozen matrix/hardmax
-  circuit exhaustively classifies all 4096 square pairs. It is not yet wired
-  into board legality or production move application.
 
 - 2026-08-13: compact Q/K projection is exact but not production-enabled; two
   CPU LibTorch full-gate trials exceeded 900 seconds. Production retains dense

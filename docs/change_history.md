@@ -1,5 +1,14 @@
 # Change history
 
+## 2026-08-14 — withdraw preclassified knight circuit
+
+- Removed the native and browser knight classifiers from the build and source
+  tree. Their input token contained the already-computed legal class, so the
+  hardmax only decoded an answer and did not derive knight geometry.
+- Added an evidence gate preventing the withdrawn files/target from returning.
+- Knight support is pending until coordinates are transformed into geometry
+  predicates by reusable frozen attention stages.
+
 ## 2026-08-13 — animated full native trace debugger
 
 - Added a synchronized board/token/heatmap debugger for the complete 15-stage

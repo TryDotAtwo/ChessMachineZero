@@ -44,3 +44,14 @@ def test_pages_workflow_gates_runtime_and_public_claims() -> None:
         assert watched_path in workflow
     assert "pytest tests/test_vm2_source_purity.py tests/test_public_evidence_gate.py" in workflow
     assert "needs: [evidence, build]" in workflow
+
+
+def test_withdrawn_knight_label_circuit_cannot_return() -> None:
+    forbidden = (
+        ROOT / "native/vm2/src/knight_geometry.cpp",
+        ROOT / "native/vm2/include/cmz_vm2/knight_geometry.h",
+        ROOT / "site/src/knight.ts",
+    )
+    assert not any(path.exists() for path in forbidden)
+    cmake = (ROOT / "native/vm2/CMakeLists.txt").read_text(encoding="utf-8")
+    assert "knight_geometry" not in cmake
