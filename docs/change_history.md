@@ -126,3 +126,6 @@
   timeline, numeric matrices, cell arithmetic, hardmax, AV and matrix-write.
 - Removed the synthetic knight classifier from the public UI; the frontend now
   visualizes only the exported pawn-rule trace.
+- Fixed the responsive matrix-equation grid: the seven-part Q x K^T + M = S
+  expression now uses an explicit class instead of a brittle DOM-position
+  selector, and all matrix columns are allowed to shrink without collapsing.

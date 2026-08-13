@@ -54,3 +54,8 @@
   understandable animated full native matrix trace on the right.
 - Combine design option 3 with the real numeric matrices of option 2; keep
   ChessMachineZero branding and Percepta attribution.
+
+## 2026-08-14
+
+- Fix the broken matrix layout visible in the deployed site and verify the
+  complete frontend across desktop and mobile viewports.

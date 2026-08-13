@@ -10,5 +10,6 @@ describe("unified landing layout", () => {
     expect(laboratorySource).toContain("реальные float64");
     expect(laboratorySource).toContain("без логики правил во frontend");
     expect(laboratorySource).not.toContain("knightTrace");
+    expect(laboratorySource).toContain('className="matrix-equation score-equation"');
   });
 });
