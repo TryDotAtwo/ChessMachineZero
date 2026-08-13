@@ -75,6 +75,9 @@
 - Replaced decorative site matrices with a native-exported 15-stage numeric
   trace, arbitrary cell navigation, scalar product expansion, hardmax winners,
   and three sequential matrix-write components.
+- Added an exact mask-derived attention cost model. It proved 74.1694x fewer
+  useful score pairs and exposed the need for padded block merging rather than
+  thousands of exact-route microkernels.
 - Added the generic offline mask-to-block compiler. It groups only immutable
   mask structure, freezes all plan tensors, and passes exact dense/block output
   and winner equivalence plus the 18-test purity/evidence gate.

@@ -60,6 +60,9 @@
 - The Pages UI is now a numeric matrix-trace explorer backed by a 15-stage
   native-exported float64 artifact; it exposes arbitrary coordinates of
   X/Q/K/V/S/A/Y/XPrime and all three sequential R/C write components.
+- Current chess masks contain 203,861 finite score pairs versus 15,120,240
+  dense pairs (74.1694x theoretical reduction), but exact-route grouping yields
+  748–1004 blocks per stage and is rejected due to launch overhead.
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,
   recurrent board state, current CTest and purity counts; full chess remains
   explicitly pending.
