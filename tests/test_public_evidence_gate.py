@@ -18,15 +18,18 @@ def test_site_claims_match_compiled_schema() -> None:
     chess_header = (ROOT / "native/vm2/include/cmz_vm2/chess1_compiler.h").read_text(encoding="utf-8")
     vm_header = (ROOT / "native/vm2/include/cmz_vm2/schema.h").read_text(encoding="utf-8")
     app = (ROOT / "site/src/App.tsx").read_text(encoding="utf-8")
+    laboratory = (ROOT / "site/src/TraceDebugger.tsx").read_text(encoding="utf-8")
     artifact = json.loads((ROOT / "site/public/traces/pawn-e2-e3.json").read_text(encoding="utf-8"))
 
     candidates = constant(chess_header, "kCandidateTokenCount")
     stages = constant(vm_header, "kStageCount")
     assert len(artifact["stages"]) == stages
     assert artifact["stages"][0]["matrices"]["S"]["rows"] >= candidates
-    assert "полные шахматы ещё не реализованы" in app
-    assert "MatrixGrid" in app and "Арифметика ячейки" in app
-    assert "Шахматы как" not in app and "ответ" not in app.lower()
+    public_ui = app + laboratory
+    assert "полные шахматы ещё не реализованы" in public_ui
+    assert "NativeTraceLaboratory" in public_ui and "Арифметика ячейки" in public_ui
+    assert "без логики правил во frontend" in public_ui
+    assert "ответ" not in public_ui.lower()
 
 
 def test_pages_workflow_gates_runtime_and_public_claims() -> None:

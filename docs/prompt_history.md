@@ -47,3 +47,10 @@
   preserve the rule that runtime semantics are only frozen attention inference.
 - Continue toward complete chess after publishing Pages; add the next rule
   circuit with exact checks and no chess-aware runtime path.
+
+## 2026-08-13
+
+- Use the approved unified laboratory design: large board on the left and an
+  understandable animated full native matrix trace on the right.
+- Combine design option 3 with the real numeric matrices of option 2; keep
+  ChessMachineZero branding and Percepta attribution.

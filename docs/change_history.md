@@ -122,3 +122,7 @@
 - Added the generic offline mask-to-block compiler. It groups only immutable
   mask structure, freezes all plan tensors, and passes exact dense/block output
   and winner equivalence plus the 18-test purity/evidence gate.
+- Rebuilt Pages as one synchronized native-trace laboratory with board, stage
+  timeline, numeric matrices, cell arithmetic, hardmax, AV and matrix-write.
+- Removed the synthetic knight classifier from the public UI; the frontend now
+  visualizes only the exported pawn-rule trace.

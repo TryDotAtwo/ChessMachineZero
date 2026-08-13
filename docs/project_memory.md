@@ -94,3 +94,7 @@
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,
   recurrent board state, current CTest and purity counts; full chess remains
   explicitly pending.
+- The public site is one synchronized native-trace laboratory and must not
+  derive chess legality in TypeScript.
+- The former browser-side knight demo is withdrawn from public evidence because
+  its input token already contained the classified geometry label.
