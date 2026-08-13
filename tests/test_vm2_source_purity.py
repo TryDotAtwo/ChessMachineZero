@@ -40,6 +40,17 @@ def test_vm2_runtime_is_attention_only(tmp_path: Path) -> None:
     }
 
 
+def test_knight_runtime_is_only_fixed_attention_and_matrix_write() -> None:
+    source = (ROOT / "native/vm2/src/knight_runtime.cpp").read_text(encoding="utf-8")
+    assert "self_attention(" in source
+    assert source.count("torch::matmul(") >= 3
+    for forbidden in (
+        "source % 8", "target % 8", "std::abs", "index_put_", ".item<",
+        "if (", "switch (", ".sum(", "legal",
+    ):
+        assert forbidden not in source.lower()
+
+
 @pytest.mark.parametrize(
     ("injected", "message"),
     [

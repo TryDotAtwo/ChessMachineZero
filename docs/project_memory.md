@@ -5,6 +5,12 @@
   knight work must derive geometry from coordinate tokens via reusable frozen
   stages before it may re-enter acceptance or public claims.
 
+- 2026-08-14: the replacement knight geometry circuit is valid parameteric
+  evidence. Binding changes only four coordinate one-hots. Three frozen
+  attention/matrix-write stages derive absolute file/rank deltas and the final
+  geometry predicate. It is not yet integrated with pieces, occupancy, check
+  legality or board transitions, so public full-chess claims remain unchanged.
+
 - 2026-08-13: Pages presents the full pawn trace as 90 animated debugger
   microsteps over the real float64 artifact. It synchronizes board state,
   selected token labels, matrix heatmaps and hardmax focus. Knight geometry is

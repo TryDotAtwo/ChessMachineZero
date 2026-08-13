@@ -26,6 +26,17 @@ target_compile_options(cmz_vm2_test_attention PRIVATE "${TORCH_CXX_FLAGS}")
 
 add_test(NAME cmz_vm2_attention COMMAND cmz_vm2_test_attention)
 
+add_library(cmz_vm2_knight_circuit STATIC src/knight_circuit.cpp src/knight_runtime.cpp)
+target_include_directories(cmz_vm2_knight_circuit PUBLIC include)
+target_link_libraries(cmz_vm2_knight_circuit PUBLIC cmz_vm2_attention)
+target_compile_options(cmz_vm2_knight_circuit PRIVATE "${TORCH_CXX_FLAGS}")
+
+add_executable(cmz_vm2_test_knight_circuit tests/test_knight_circuit.cpp)
+target_include_directories(cmz_vm2_test_knight_circuit PRIVATE include)
+target_link_libraries(cmz_vm2_test_knight_circuit PRIVATE cmz_vm2_knight_circuit)
+target_compile_options(cmz_vm2_test_knight_circuit PRIVATE "${TORCH_CXX_FLAGS}")
+add_test(NAME cmz_vm2_knight_circuit COMMAND cmz_vm2_test_knight_circuit)
+
 add_library(cmz_vm2_attention_cost STATIC src/attention_cost.cpp)
 target_include_directories(cmz_vm2_attention_cost PUBLIC include)
 target_link_libraries(cmz_vm2_attention_cost PUBLIC cmz_vm2_attention)

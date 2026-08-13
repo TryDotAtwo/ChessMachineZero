@@ -9,6 +9,16 @@
 - Knight support is pending until coordinates are transformed into geometry
   predicates by reusable frozen attention stages.
 
+## 2026-08-14 — parametric knight geometry circuit
+
+- Reintroduced knight geometry with a new three-stage circuit whose bound input
+  contains only source/target file and rank one-hots.
+- Two reusable 8x8 absolute-difference relation banks derive file/rank deltas;
+  a third relation bank derives `(1,2) or (2,1)` through attention hardmax.
+- The isolated runtime contains only fixed self-attention, matrix writes and
+  fixed matmul output selectors. Exhaustive native testing passes all 4096
+  source/target pairs; a purity gate rejects coordinate or semantic operations.
+
 ## 2026-08-13 — animated full native trace debugger
 
 - Added a synchronized board/token/heatmap debugger for the complete 15-stage
