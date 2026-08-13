@@ -1,5 +1,7 @@
 # Prompt history
 
+- 2026-08-13: User requested continuing from pawn rules toward full chess.
+
 - 2026-08-13: User said "Делай" to continue computational optimization.
 
 ## 2026-08-10

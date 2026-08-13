@@ -1,5 +1,10 @@
 # Project memory
 
+- 2026-08-13: knight geometry gate factorizes source/target pairs instead of
+  adding eight direction-specific candidate banks. A frozen matrix/hardmax
+  circuit exhaustively classifies all 4096 square pairs. It is not yet wired
+  into board legality or production move application.
+
 - 2026-08-13: compact Q/K projection is exact but not production-enabled; two
   CPU LibTorch full-gate trials exceeded 900 seconds. Production retains dense
   projections with frozen block-sparse score attention.

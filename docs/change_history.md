@@ -1,5 +1,11 @@
 # Change history
 
+## 2026-08-13 — factorized knight geometry gate
+
+- Added a frozen matrix/hardmax circuit for the 64x64 knight relation.
+- Exhaustively verified every source/target pair without expanding the main
+  circuit by eight direction-specific candidate banks.
+
 ## 2026-08-13 — exact compact projection experiment
 
 - Proved an offline-compiled, matrix-only compact Q/K path exactly equivalent.
