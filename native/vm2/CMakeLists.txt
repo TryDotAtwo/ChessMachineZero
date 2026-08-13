@@ -38,6 +38,11 @@ target_include_directories(cmz_vm2 PUBLIC include)
 target_link_libraries(cmz_vm2 PUBLIC cmz_vm2_attention)
 target_compile_options(cmz_vm2 PRIVATE "${TORCH_CXX_FLAGS}")
 
+add_library(cmz_vm2_trace_exporter STATIC src/trace_exporter.cpp)
+target_include_directories(cmz_vm2_trace_exporter PUBLIC include)
+target_link_libraries(cmz_vm2_trace_exporter PUBLIC cmz_vm2_attention)
+target_compile_options(cmz_vm2_trace_exporter PRIVATE "${TORCH_CXX_FLAGS}")
+
 add_executable(cmz_vm2_test_machine tests/test_machine.cpp)
 target_include_directories(cmz_vm2_test_machine PRIVATE include)
 target_link_libraries(cmz_vm2_test_machine PRIVATE cmz_vm2 cmz_vm2_compiler)
@@ -63,3 +68,15 @@ target_link_libraries(cmz_vm2_test_chess1_capture PRIVATE cmz_vm2 cmz_vm2_chess1
 target_compile_options(cmz_vm2_test_chess1_capture PRIVATE "${TORCH_CXX_FLAGS}")
 
 add_test(NAME cmz_vm2_chess1_capture COMMAND cmz_vm2_test_chess1_capture)
+
+add_executable(cmz_vm2_test_trace_exporter tests/test_trace_exporter.cpp)
+target_include_directories(cmz_vm2_test_trace_exporter PRIVATE include)
+target_link_libraries(cmz_vm2_test_trace_exporter PRIVATE cmz_vm2 cmz_vm2_chess1_compiler cmz_vm2_trace_exporter)
+target_compile_options(cmz_vm2_test_trace_exporter PRIVATE "${TORCH_CXX_FLAGS}")
+
+add_test(NAME cmz_vm2_trace_exporter COMMAND cmz_vm2_test_trace_exporter)
+
+add_executable(cmz_vm2_export_chess1_trace tools/export_chess1_trace.cpp)
+target_include_directories(cmz_vm2_export_chess1_trace PRIVATE include)
+target_link_libraries(cmz_vm2_export_chess1_trace PRIVATE cmz_vm2_chess1_compiler cmz_vm2_trace_exporter)
+target_compile_options(cmz_vm2_export_chess1_trace PRIVATE "${TORCH_CXX_FLAGS}")

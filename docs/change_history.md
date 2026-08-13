@@ -72,6 +72,9 @@
 - Added a generic frozen block-attention primitive using only matrix
   selections, local QK^T/hardmax/AV and transpose-matrix routing; exact tests
   preserve dense outputs and global lowest-index ties.
+- Replaced decorative site matrices with a native-exported 15-stage numeric
+  trace, arbitrary cell navigation, scalar product expansion, hardmax winners,
+  and three sequential matrix-write components.
 - Added the generic offline mask-to-block compiler. It groups only immutable
   mask structure, freezes all plan tensors, and passes exact dense/block output
   and winner equivalence plus the 18-test purity/evidence gate.

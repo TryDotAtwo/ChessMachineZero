@@ -57,6 +57,9 @@
   and byte-exact with dense output and global hardmax winners.
 - The approved visual site lives in `site/` and deploys from the orphan branch
   through `.github/workflows/pages.yml` to the repository GitHub Pages URL.
+- The Pages UI is now a numeric matrix-trace explorer backed by a 15-stage
+  native-exported float64 artifact; it exposes arbitrary coordinates of
+  X/Q/K/V/S/A/Y/XPrime and all three sequential R/C write components.
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,
   recurrent board state, current CTest and purity counts; full chess remains
   explicitly pending.

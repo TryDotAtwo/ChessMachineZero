@@ -23,6 +23,8 @@
   GitHub Pages.
 - Keep the approved scientific dark design, add meaningful animations, and
   expose Percepta-style token traces.
+- Replace all decorative/request-response content with literal numeric matrices
+  and an exhaustive path inspector, then deploy it.
 - Continue after interrupted connectivity and extend the attention-only chess
   system without introducing host chess logic.
 - Continue the persistent implementation goal after connectivity interruption;

@@ -1,138 +1,48 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, GitBranch, Pause, Play, RotateCcw, StepForward } from "lucide-react";
-import { TOKEN_ROWS, TRACE } from "./trace";
+import { parseInferenceTrace, REQUIRED_MATRICES, type InferenceTrace, type MatrixName } from "./trace-schema";
+import { multiplyCell, scoreCell, valueAt } from "./matrix";
 
-const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+const operations: MatrixName[] = [...REQUIRED_MATRICES];
+const fmt = (v: number | "-inf") => v === "-inf" ? "−∞" : Number.isInteger(v) ? String(v) : v.toPrecision(5);
 
-function Board({ moved, active }: { moved: boolean; active: boolean }) {
-  const pawn = moved ? 20 : 12;
-  return <div className={`board-wrap ${active ? "board-active" : ""}`}>
-    <div className="board" aria-label={moved ? "Доска после e2-e3" : "Доска до e2-e3"}>
-      {Array.from({ length: 64 }, (_, visual) => {
-        const rankFromTop = Math.floor(visual / 8);
-        const file = visual % 8;
-        const logical = (7 - rankFromTop) * 8 + file;
-        return <div className={`square ${(rankFromTop + file) % 2 ? "dark" : "light"}`} key={logical}>
-          {logical === pawn && <span className="pawn">♙</span>}
-          {rankFromTop === 7 && <small className="file">{files[file]}</small>}
-          {file === 0 && <small className="rank">{8 - rankFromTop}</small>}
-        </div>;
-      })}
-    </div>
-    <div className="board-label">{moved ? "Xₜ₊₁ · e3" : "Xₜ · e2"}</div>
+function MatrixGrid({ trace, stage, name, row, col, onCell }: { trace: InferenceTrace; stage: number; name: MatrixName; row: number; col: number; onCell(r:number,c:number):void }) {
+  const m = trace.stages[stage].matrices[name];
+  const rowStart = Math.max(0, Math.min(row - 7, m.rows - 16));
+  const colStart = Math.max(0, Math.min(col - 7, m.cols - 16));
+  const rows = Array.from({length: Math.min(16, m.rows - rowStart)}, (_,i)=>rowStart+i);
+  const cols = Array.from({length: Math.min(16, m.cols - colStart)}, (_,i)=>colStart+i);
+  return <div className="matrix-pane">
+    <div className="matrix-meta"><strong>{name}</strong><span>{m.rows} × {m.cols}</span><span>{m.storage.toUpperCase()}</span></div>
+    <div className="matrix-scroll"><table className="matrix"><thead><tr><th>r\c</th>{cols.map(c=><th key={c}>{c}</th>)}</tr></thead><tbody>
+      {rows.map(r=><tr key={r}><th>{r}</th>{cols.map(c=>{const v=valueAt(m,r,c); return <td key={c}><button className={`${r===row&&c===col?"selected":""} ${v!==0&&v!=="-inf"?"nonzero":""}`} onClick={()=>onCell(r,c)}>{fmt(v)}</button></td>})}</tr>)}
+    </tbody></table></div>
+    <div className="matrix-nav"><label>row <input type="number" min="0" max={m.rows-1} value={row} onChange={e=>onCell(Math.min(m.rows-1,+e.target.value),col)}/></label><label>col <input type="number" min="0" max={m.cols-1} value={col} onChange={e=>onCell(row,Math.min(m.cols-1,+e.target.value))}/></label><span>Окно 16×16; координатами доступна любая из {m.rows*m.cols} ячеек.</span></div>
   </div>;
 }
 
-function MiniMatrix({ name, stage, offset }: { name: string; stage: number; offset: number }) {
-  return <div className="matrix-block active">
-    <div className="matrix-title"><span>{name}</span><small>64 × d</small></div>
-    <div className="mini-matrix">
-      {Array.from({ length: 48 }, (_, i) => <i key={i} style={{
-        opacity: .12 + (((i * 7 + offset) % 11) / 15),
-        animationDelay: `${(i % 8) * 45}ms`,
-      }} />)}
-    </div>
-  </div>;
+function Inspector({trace,stage,name,row,col}:{trace:InferenceTrace;stage:number;name:MatrixName;row:number;col:number}) {
+  const s=trace.stages[stage], m=s.matrices[name];
+  const r=Math.min(row,m.rows-1), c=Math.min(col,m.cols-1);
+  let formula="Значение взято непосредственно из native trace artifact.";
+  let terms: ReturnType<typeof multiplyCell>["terms"] = [];
+  let sum=valueAt(m,r,c);
+  if(name==="Q"||name==="K"||name==="V") { const left=s.matrices.X; const right=s.matrices[name==="Q"?"Wq":name==="K"?"Wk":"Wv"]; const x=multiplyCell(left,right,r,c); terms=x.terms; sum=x.sum; formula=`${name}[${r},${c}] = Σ X[${r},k] × W${name.toLowerCase()}[k,${c}]`; }
+  if(name==="S") { const x=scoreCell(s.matrices.Q,s.matrices.K,s.matrices.M,r,c); terms=x.terms; sum=x.sum; formula=`S[${r},${c}] = Σ Q[${r},k] × K[${c},k] + M[${r},${c}]`; }
+  const winner=s.winners[Math.min(r,s.winners.length-1)];
+  return <aside className="inspector"><h2>Арифметика ячейки</h2><code>{formula}</code><div className="result"><span>trace</span><b>{fmt(valueAt(m,r,c))}</b><span>recomputed</span><b>{typeof sum==="number"?fmt(sum):fmt(sum)}</b></div>{terms.length>0?<ol>{terms.map(t=><li key={t.k}><code>k={t.k}: {fmt(t.left)} × {fmt(t.right)} = {fmt(t.product)}</code></li>)}</ol>:<p>Ненулевых произведений нет.</p>}<div className="winner"><span>hardmax row {r}</span><strong>winning key = {winner}</strong><small>При равенстве выбирается минимальный индекс.</small></div></aside>
 }
 
-function ScoreMatrix({ stage }: { stage: number }) {
-  const winner = 27;
-  return <div className="score-block active">
-    <div className="matrix-title"><span>QKᵀ</span><small>N × N</small></div>
-    <div className="score-matrix">
-      {Array.from({ length: 64 }, (_, i) => <i key={i} className={i === winner ? "winner" : ""}
-        style={{ opacity: i === winner ? 1 : .12 + (((i * 13) % 17) / 28) }} />)}
-      <span className="scan-line" />
-    </div>
-  </div>;
+export default function App(){
+ const [trace,setTrace]=useState<InferenceTrace|null>(null),[error,setError]=useState(""); const [stage,setStage]=useState(0),[name,setName]=useState<MatrixName>("S"),[row,setRow]=useState(0),[col,setCol]=useState(0);
+ useEffect(()=>{fetch(`${import.meta.env.BASE_URL}traces/pawn-e2-e3.json`).then(r=>r.json()).then(x=>setTrace(parseInferenceTrace(x))).catch(e=>setError(String(e)))},[]);
+ const current=trace?.stages[stage]; const changed=useMemo(()=>current?.changed.length??0,[current]);
+ if(error)return <main className="loading">Ошибка трассы: {error}</main>; if(!trace)return <main className="loading">Загрузка 17 MB реальной native-трассы…</main>;
+ return <main className="workspace"><header><div><strong>ChessMachineZero / Matrix Trace</strong><small>pawn-rule slice · полные шахматы ещё не реализованы</small></div><a href="https://github.com/TryDotAtwo/ChessMachineZero/tree/codex/percepta-transformer-vm">исходный код ↗</a></header>
+ <section className="provenance"><span>schema {trace.schema}</span><span>commit {trace.provenance.commit.slice(0,12)}</span><span>float64</span><span>native exporter</span></section>
+ <nav className="stages">{trace.stages.map(s=><button className={s.index===stage?"active":""} onClick={()=>{setStage(s.index);setRow(0);setCol(0)}} key={s.index}><b>{String(s.index).padStart(2,"0")}</b><span>{s.name}</span></button>)}</nav>
+ <section className="pipeline">{operations.map((op,i)=><button className={op===name?"active":""} onClick={()=>{setName(op);setRow(0);setCol(0)}} key={op}><span>{op}</span><small>{trace.stages[stage].matrices[op].rows}×{trace.stages[stage].matrices[op].cols}</small>{i<operations.length-1&&<i>→</i>}</button>)}</section>
+ <section className="status"><div><small>STAGE</small><b>{stage} / 14</b></div><div><small>MATRIX</small><b>{name}</b></div><div><small>SELECTED CELL</small><b>[{row},{col}] = {fmt(valueAt(current!.matrices[name],Math.min(row,current!.matrices[name].rows-1),Math.min(col,current!.matrices[name].cols-1)))}</b></div><div><small>CHANGED CELLS</small><b>{changed}</b></div></section>
+ <section className="main-grid"><MatrixGrid trace={trace} stage={stage} name={name} row={row} col={col} onCell={(r,c)=>{setRow(r);setCol(c)}}/><Inspector trace={trace} stage={stage} name={name} row={row} col={col}/></section>
+ <section className="writes"><h2>Последовательная matrix-write трасса</h2>{current!.writes.map(w=><div key={w.component}><b>component {w.component}</b><code>X{w.component+1} = X{w.component} + R{w.component}(Y − X{w.component})C{w.component}</code><span>R {w.R.rows}×{w.R.cols}</span><span>C {w.C.rows}×{w.C.cols}</span></div>)}</section>
+ </main>
 }
-
-function InferenceCanvas({ stage }: { stage: number }) {
-  return <div className="inference-canvas">
-    <Board moved={false} active={stage === 0} />
-    <div className={`token-stream ${stage === 0 ? "active" : ""}`}>
-      {["SIDE", "e2", "e3", "REL"].map((x, i) => <span key={x} style={{ animationDelay: `${i * 180}ms` }}>{x}</span>)}
-      <ChevronRight />
-    </div>
-    <div className="matrix-cluster">
-      <MiniMatrix name="Q" stage={stage} offset={1} />
-      <MiniMatrix name="K" stage={stage} offset={4} />
-      <MiniMatrix name="V" stage={stage} offset={8} />
-    </div>
-    <div className="flow-arrow"><span /></div>
-    <ScoreMatrix stage={stage} />
-    <div className="hardmax active">
-      <small>hardmax</small>{Array.from({ length: 8 }, (_, i) => <i className={i === 3 ? "on" : ""} key={i} />)}
-    </div>
-    <div className="av-node active">AV</div>
-    <Board moved={stage >= 12} active={stage >= 12} />
-  </div>;
-}
-
-function App() {
-  const [stage, setStage] = useState(0);
-  const [playing, setPlaying] = useState(true);
-  const [traceMode, setTraceMode] = useState<"tokens" | "matrix">("tokens");
-  useEffect(() => {
-    if (!playing) return;
-    const id = window.setInterval(() => setStage(s => (s + 1) % TRACE.length), 1500);
-    return () => window.clearInterval(id);
-  }, [playing]);
-  const current = TRACE[stage];
-  const selectedCells = useMemo(() => new Set([9, 18, 27, 36]), []);
-
-  return <>
-    <header>
-      <a className="brand" href="#top" aria-label="Percepta Chess"><span>♞</span> Percepta Chess</a>
-      <nav><a href="#idea">Идея</a><a href="#matrices">Матрицы</a><a href="#trace">Трасса</a><a href="#proof">Доказательства</a></nav>
-      <a className="github-link" href="https://github.com/TryDotAtwo/ChessMachineZero/tree/codex/percepta-transformer-vm"><GitBranch size={17}/> GitHub</a>
-    </header>
-    <main id="top">
-      <section className="hero" id="idea">
-        <div className="hero-copy">
-          <h1>Шахматы как<br/><em>чистый инференс</em></h1>
-          <p>Токены <b>→</b> Q/K/V <b>→</b> QKᵀ <b>→</b> hardmax <b>→</b> AV <b>→</b> новое состояние доски</p>
-          <div className="actions">
-            <button onClick={() => setPlaying(v => !v)}>{playing ? <Pause/> : <Play/>}{playing ? "Пауза" : "Запустить ход"}</button>
-            <button className="secondary" onClick={() => { setStage(s => (s + 1) % TRACE.length); setPlaying(false); }}><StepForward/> Один шаг</button>
-            <a href="https://github.com/TryDotAtwo/ChessMachineZero/tree/codex/percepta-transformer-vm/native/vm2">Открыть код <ChevronRight/></a>
-          </div>
-        </div>
-        <div className="stage-readout"><span>0{stage + 1}</span><div><small>АКТИВНАЯ СТАДИЯ</small><strong>{current.title}</strong></div></div>
-        <InferenceCanvas stage={stage}/>
-        <div className="stage-rail" role="tablist" aria-label="Стадии инференса">
-          {TRACE.map((item, i) => <button key={item.id} className={i === stage ? "active" : ""} onClick={() => { setStage(i); setPlaying(false); }}><span>{item.short}</span><small>{item.title}</small></button>)}
-        </div>
-      </section>
-
-      <section className="matrix-explainer" id="matrices">
-        <div className="section-heading"><h2>Какие матрицы<br/>перемножаются</h2><p>Runtime знает только этот граф. Шахматные значения находятся в токенах, масках и замороженных весах.</p></div>
-        <div className="equation-line">
-          {["X", "Wq", "Q", "Kᵀ", "QKᵀ", "H", "V", "AV"].map((x, i) => <div key={x} className={x === current.short || (stage === 3 && x === "H") ? "hot" : ""}><span>{x}</span>{i < 7 && <b>{["×", "=", "×", "=", "→ hardmax", "×", "="][i]}</b>}</div>)}
-        </div>
-        <div className="matrix-note"><code>{current.equation}</code><p>{current.detail}</p></div>
-      </section>
-
-      <section className="trace-section" id="trace">
-        <div className="trace-top"><div><h2>Трасса токенов</h2><p>Как в Percepta: можно остановить inference и увидеть, какой токен запросил какой ключ и какое значение было перенесено.</p></div>
-          <div className="mode-switch"><button className={traceMode === "tokens" ? "active" : ""} onClick={() => setTraceMode("tokens")}>Токены</button><button className={traceMode === "matrix" ? "active" : ""} onClick={() => setTraceMode("matrix")}>Sparse QKᵀ</button></div>
-        </div>
-        {traceMode === "tokens" ? <div className="token-table">
-          <div className="table-head"><span>ROW</span><span>ЗНАЧЕНИЕ</span><span>РОЛЬ</span><span>МАРШРУТ</span></div>
-          {TOKEN_ROWS.map((row, i) => <div className={i === Math.min(stage, TOKEN_ROWS.length - 1) ? "active" : ""} key={row.token}><span>{String(i).padStart(3, "0")} · {row.token}</span><strong>{row.value}</strong><span>{row.role}</span><i><b style={{ width: `${20 + i * 13}%` }}/></i></div>)}
-        </div> : <div className="sparse-view">
-          <div className="axis y">query rows</div><div className="sparse-grid">{Array.from({ length: 64 }, (_, i) => <i key={i} className={selectedCells.has(i) ? "selected" : ""}><span>{selectedCells.has(i) ? "1" : "·"}</span></i>)}</div><div className="axis x">key columns →</div>
-        </div>}
-        <div className="trace-detail"><div><small>QUERY</small><code>{current.activeTokens[0]}</code></div><ChevronRight/><div><small>WINNING KEY / VALUE</small><code>{current.activeTokens.slice(1).join(" · ")}</code></div></div>
-      </section>
-
-      <section className="proof" id="proof">
-        <div><h2>Что доказано сейчас</h2><p>Сайт намеренно не выдаёт текущий rule-slice за готовые шахматы.</p></div>
-        <ul><li><strong>✓</strong><span>Pawn push + diagonal capture</span><small>256 кандидатов · 15 стадий</small></li><li><strong>✓</strong><span>Color-aware target predicate</span><small>side × kind × piece → allowed</small></li><li><strong>✓</strong><span>Predicate-token legality</span><small>5 предикатов → hardmax AND</small></li><li><strong>✓</strong><span>Hardmax player circuit</span><small>recurrent inference-ходы</small></li><li><strong>✓</strong><span>Runtime purity</span><small>CTest 5/5 · mutation 14/14</small></li><li className="pending"><strong>→</strong><span>Полные шахматы</span><small>pieces/check/promotion впереди</small></li></ul>
-      </section>
-    </main>
-    <footer><span>Percepta Chess · эксперимент с transformer-native вычислением</span><button onClick={() => { setStage(0); setPlaying(true); }}><RotateCcw/> Повторить трассу</button></footer>
-  </>;
-}
-
-export default App;
