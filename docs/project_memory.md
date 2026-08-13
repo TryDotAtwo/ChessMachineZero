@@ -63,6 +63,9 @@
 - Current chess masks contain 203,861 finite score pairs versus 15,120,240
   dense pairs (74.1694x theoretical reduction), but exact-route grouping yields
   748–1004 blocks per stage and is rejected due to launch overhead.
+- A budgeted offline merge preserves masks exactly; stage 2 reaches 171,920
+  padded pairs in 16 blocks and is byte-exact with dense attention. Dense
+  selection matrices are still prototype-only and no speedup is claimed.
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,
   recurrent board state, current CTest and purity counts; full chess remains
   explicitly pending.
