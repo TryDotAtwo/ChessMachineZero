@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { knightTargets, knightTrace, squareName } from "./knight";
+import { boardSquares, knightTargets, knightTrace, squareName } from "./knight";
 
 describe("knight matrix trace", () => {
   it("classifies a legal pair through matrix scores and hardmax", () => {
@@ -22,5 +22,6 @@ describe("knight matrix trace", () => {
   it("drives a clickable chessboard with named highlighted targets", () => {
     expect(squareName(1)).toBe("b1");
     expect(knightTargets(1)).toEqual([11, 16, 18]);
+    expect(boardSquares.slice(0, 8).map(squareName)).toEqual(["a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"]);
   });
 });

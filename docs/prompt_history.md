@@ -1,5 +1,8 @@
 # Prompt history
 
+- 2026-08-13: User requested that the right-side matrices clearly change with
+  the clicked board cells and remain understandable.
+
 - 2026-08-13: User preferred the earlier landing-page style and requested a
   clickable knight board plus a clearer explanation of the matrices.
 

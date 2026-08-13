@@ -1,5 +1,13 @@
 # Change history
 
+## 2026-08-13 — pair-synchronized knight trace
+
+- The first board click now selects only a source and pauses the trace until a
+  target is selected; it no longer evaluates a fake source-to-self pair.
+- X, Q, scores and hardmax are visibly recomputed per selected pair, while Wq,
+  Wk and class keys are explicitly labelled as frozen weights.
+- Corrected visual board ordering to standard a8..h8 at the top.
+
 ## 2026-08-13 — clickable knight board
 
 - Replaced numeric source/target controls with a clickable chessboard and

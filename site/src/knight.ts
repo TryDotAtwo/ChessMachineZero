@@ -2,6 +2,7 @@ export const WQ = [[0, 0], [1, 0], [0, 1]] as const;
 export const WK = [[1, 0], [0, 1]] as const;
 export const CLASS_KEYS = [[1, 0], [0, 1]] as const;
 export const squareName = (square: number) => `${"abcdefgh"[square % 8]}${Math.floor(square / 8) + 1}`;
+export const boardSquares = Array.from({length:64},(_,i)=>(7-Math.floor(i/8))*8+i%8);
 export const knightTargets = (source: number) => Array.from({length:64},(_,target)=>target)
   .filter(target => knightTrace(source, target).winner === 1);
 
