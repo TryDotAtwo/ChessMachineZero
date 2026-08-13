@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseInferenceTrace } from "./trace-schema";
 
-const matrixNames = ["X", "Wq", "Wk", "Wv", "Q", "K", "V", "M", "S", "A", "Y", "R", "C", "XPrime"];
+const matrixNames = ["X", "Wq", "Wk", "Wv", "Q", "K", "V", "M", "S", "A", "Y", "XPrime"];
 
 function matrix(name: string, rows = 2, cols = 2) {
   return { name, rows, cols, storage: "dense", values: [1, 0, 0, 1] };
@@ -17,6 +17,13 @@ function validTrace() {
       index,
       name: `stage-${index}`,
       matrices: Object.fromEntries(matrixNames.map(name => [name, matrix(name)])),
+      writes: Array.from({ length: 3 }, (_, component) => ({
+        component,
+        R: matrix("R"),
+        C: matrix("C"),
+        before: matrix("before"),
+        after: matrix("after"),
+      })),
       winners: [0, 1],
       changed: index === 14 ? [{ row: 1, col: 1, before: 0, after: 1 }] : [],
     })),
@@ -35,6 +42,12 @@ describe("parseInferenceTrace", () => {
     const input = validTrace();
     delete input.stages[3].matrices.S;
     expect(() => parseInferenceTrace(input)).toThrow(/stage 3.*S/);
+  });
+
+  it("requires all three sequential write projections", () => {
+    const input = validTrace();
+    input.stages[2].writes.pop();
+    expect(() => parseInferenceTrace(input)).toThrow(/write components/);
   });
 
   it("rejects out-of-bounds COO entries and winners", () => {

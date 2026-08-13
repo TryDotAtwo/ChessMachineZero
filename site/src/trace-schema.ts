@@ -1,5 +1,5 @@
 export const REQUIRED_MATRICES = [
-  "X", "Wq", "Wk", "Wv", "Q", "K", "V", "M", "S", "A", "Y", "R", "C", "XPrime",
+  "X", "Wq", "Wk", "Wv", "Q", "K", "V", "M", "S", "A", "Y", "XPrime",
 ] as const;
 
 export type MatrixName = typeof REQUIRED_MATRICES[number];
@@ -20,6 +20,7 @@ export type StageTrace = {
   index: number;
   name: string;
   matrices: Record<MatrixName, MatrixData>;
+  writes: Array<{ component: number; R: MatrixData; C: MatrixData; before: MatrixData; after: MatrixData }>;
   winners: number[];
   changed: Array<{ row: number; col: number; before: NumericValue; after: NumericValue }>;
 };
@@ -96,6 +97,18 @@ export function parseInferenceTrace(value: unknown): InferenceTrace {
       if (!(name in rawMatrices)) throw new Error(`stage ${expectedIndex} missing matrix ${name}`);
       return [name, parseMatrix(rawMatrices[name], name, expectedIndex)];
     })) as Record<MatrixName, MatrixData>;
+    if (!Array.isArray(stage.writes) || stage.writes.length !== 3) throw new Error(`stage ${expectedIndex} must contain 3 write components`);
+    const writes = stage.writes.map((writeValue, component) => {
+      const write = object(writeValue, `stage ${expectedIndex} write ${component}`);
+      if (write.component !== component) throw new Error(`stage ${expectedIndex} write components are out of order`);
+      return {
+        component,
+        R: parseMatrix(write.R, "R" as MatrixName, expectedIndex),
+        C: parseMatrix(write.C, "C" as MatrixName, expectedIndex),
+        before: parseMatrix(write.before, "before" as MatrixName, expectedIndex),
+        after: parseMatrix(write.after, "after" as MatrixName, expectedIndex),
+      };
+    });
     if (!Array.isArray(stage.winners) || stage.winners.length !== matrices.S.rows) throw new Error(`stage ${expectedIndex} winner count mismatch`);
     const winners = stage.winners.map((winner, row) => {
       const parsed = integer(winner, `stage ${expectedIndex} winner ${row}`);
@@ -113,7 +126,7 @@ export function parseInferenceTrace(value: unknown): InferenceTrace {
       if (matrixValue(matrices.XPrime, row, col) !== after) throw new Error("changed value is not backed by XPrime");
       return { row, col, before, after };
     });
-    return { index: expectedIndex, name: stage.name, matrices, winners, changed };
+    return { index: expectedIndex, name: stage.name, matrices, writes, winners, changed };
   });
   return {
     schema: "cmz.matrix-trace.v1",
