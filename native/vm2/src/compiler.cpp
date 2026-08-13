@@ -511,9 +511,15 @@ ProgramImage compile_program(const std::array<Instruction, kProgramSlots>& progr
     }
 
     tokens = tokens.detach().set_requires_grad(false);
+    const auto masks = make_attention_masks(options);
+    std::array<std::vector<AttentionBlock>, kStageCount> blocks;
+    for (std::int64_t stage = 0; stage < kStageCount; ++stage) {
+        blocks[stage] = compile_attention_blocks(masks[stage]);
+    }
     return ProgramImage{
         tokens,
-        make_attention_masks(options),
+        masks,
+        blocks,
         make_write_projections(options),
         make_weights(options),
     };

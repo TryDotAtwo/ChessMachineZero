@@ -37,3 +37,14 @@ speedup=1.43941x
 
 This result covers stage 2 only. Production transition and GPU speedup remain
 unclaimed until all 15 plans and end-to-end gates pass.
+
+The 15-stage production switch passed byte-exact equality against the dense
+trace oracle, exact chess capture, generic compiler, and purity gates.
+
+```text
+transition_cpu_dense_median_ms=1346.7
+transition_cpu_block_median_ms=1007.3
+speedup=1.33694x
+```
+
+This is a warm three-run single-thread CPU median. GPU speedup is not claimed.

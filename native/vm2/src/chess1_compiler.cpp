@@ -3,6 +3,8 @@
 #include <limits>
 #include <stdexcept>
 
+#include "cmz_vm2/attention_cost.h"
+
 namespace cmz::vm2 {
 namespace {
 
@@ -467,7 +469,13 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_cand
         }
     }
     tokens = tokens.detach().set_requires_grad(false);
-    return ProgramImage{tokens, masks, projections, weights};
+    std::array<std::vector<AttentionBlock>, kStageCount> blocks;
+    for (std::int64_t stage = 0; stage < kStageCount; ++stage) {
+        blocks[stage] = materialize_attention_blocks(
+            optimize_attention_blocks(masks[stage], 16, 4096.0),
+            chess1::kTokenCount, options);
+    }
+    return ProgramImage{tokens, masks, blocks, projections, weights};
 }
 
 ProgramImage compile_chess1_auto(const Chess1Board& board) {
@@ -497,7 +505,8 @@ ProgramImage bind_chess1_board(const ProgramImage& circuit, const Chess1Board& b
                 static_cast<std::int64_t>(board.squares[square]));
     }
     tokens = tokens.detach().set_requires_grad(false);
-    return ProgramImage{tokens, circuit.attention_masks, circuit.write_projections,
+    return ProgramImage{tokens, circuit.attention_masks, circuit.attention_blocks,
+                        circuit.write_projections,
                         circuit.weights};
 }
 

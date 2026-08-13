@@ -69,6 +69,10 @@
 - Frozen sparse COO selection uses one nonzero per route row. Stage 2 remains
   byte-exact and measured 1.43941x faster than dense in a five-run warm
   single-thread CPU diagnostic; full-transition/GPU performance is unverified.
+- Production transition now uses 1–16 frozen block-sparse plans on all 15
+  stages and is byte-exact with the dense trace oracle. Three-run warm
+  single-thread CPU median improved 1346.7 to 1007.3 ms (1.33694x); GPU remains
+  unmeasured.
 - Site claims must be driven by implemented evidence: symmetric pawn circuit,
   recurrent board state, current CTest and purity counts; full chess remains
   explicitly pending.

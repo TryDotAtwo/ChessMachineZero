@@ -1,15 +1,25 @@
 #include <stdexcept>
 #include <fstream>
 #include <sstream>
+#include <chrono>
+#include <algorithm>
+#include <iostream>
 
 #include "cmz_vm2/chess1_compiler.h"
 #include "cmz_vm2/trace_exporter.h"
+#include "cmz_vm2/machine.h"
 
 int main() {
     cmz::vm2::Chess1Board board{};
     board.squares[12] = cmz::vm2::Chess1Piece::WhitePawn;
     const auto image = cmz::vm2::compile_chess1(board, 12);
     const auto trace = cmz::vm2::trace_transition(image, image.tokens);
+    for (std::int64_t stage = 0; stage < cmz::vm2::kStageCount; ++stage) {
+        if (image.attention_blocks[stage].empty() ||
+            image.attention_blocks[stage].size() > 16) {
+            throw std::runtime_error("every production stage needs 1..16 frozen blocks");
+        }
+    }
     if (trace.stages.size() != cmz::vm2::kStageCount) {
         throw std::runtime_error("trace must expose all 15 inference stages");
     }
@@ -40,6 +50,26 @@ int main() {
     if (!torch::equal(trace.final_state, state)) {
         throw std::runtime_error("trace final state must equal last XPrime");
     }
+    const auto production = cmz::vm2::transition(image, image.tokens);
+    if (!torch::equal(production, trace.final_state)) {
+        throw std::runtime_error("production block transition must equal dense trace oracle");
+    }
+    std::vector<double> dense_samples, block_samples;
+    for (std::int64_t repeat = 0; repeat < 3; ++repeat) {
+        const auto dense_begin = std::chrono::steady_clock::now();
+        (void)cmz::vm2::trace_transition(image, image.tokens);
+        const auto dense_end = std::chrono::steady_clock::now();
+        const auto block_begin = std::chrono::steady_clock::now();
+        (void)cmz::vm2::transition(image, image.tokens);
+        const auto block_end = std::chrono::steady_clock::now();
+        dense_samples.push_back(std::chrono::duration<double, std::milli>(dense_end - dense_begin).count());
+        block_samples.push_back(std::chrono::duration<double, std::milli>(block_end - block_begin).count());
+    }
+    std::sort(dense_samples.begin(), dense_samples.end());
+    std::sort(block_samples.begin(), block_samples.end());
+    std::cout << "transition_cpu_dense_median_ms=" << dense_samples[1]
+              << " transition_cpu_block_median_ms=" << block_samples[1]
+              << " speedup=" << dense_samples[1] / block_samples[1] << '\n';
     const std::string path = "/tmp/cmz-matrix-trace.json";
     cmz::vm2::write_trace_json(path, image, image.tokens,
                                "0123456789abcdef0123456789abcdef01234567");

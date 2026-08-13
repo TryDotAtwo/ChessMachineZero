@@ -8,12 +8,12 @@ namespace cmz::vm2 {
 torch::Tensor transition(const ProgramImage& image, const torch::Tensor& initial_state) {
     auto state = initial_state;
     for (std::int64_t stage = 0; stage < kStageCount; ++stage) {
-        const auto attention = self_attention(
+        const auto attention = block_self_attention(
             state,
             image.weights.wq[stage],
             image.weights.wk[stage],
             image.weights.wv[stage],
-            image.attention_masks[stage]);
+            image.attention_blocks[stage]);
         const auto projected = torch::matmul(attention.output, image.weights.wo[stage]);
         for (std::int64_t component = 0; component < kWriteProjectionComponents; ++component) {
             const auto delta = projected - state;

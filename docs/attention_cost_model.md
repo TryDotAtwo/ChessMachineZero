@@ -28,3 +28,9 @@ nonzero per selected row. It remains pure matrix routing. On the available
 single-thread CPU diagnostic, stage 2 median latency over five timed runs was
 39.6268 ms dense versus 27.5298 ms block-sparse (1.43941x). This is CPU-only
 stage evidence, not a full-transition or GPU speed claim.
+
+All 15 frozen plans are now embedded in `ProgramImage`, and production
+`transition` calls block attention exclusively. The full output is byte-exact
+with the independent dense trace oracle. Three-run warm single-thread CPU
+median is 1346.7 ms dense versus 1007.3 ms production block (1.33694x). GPU
+performance remains unmeasured.

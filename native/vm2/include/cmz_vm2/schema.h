@@ -5,6 +5,8 @@
 
 #include <torch/torch.h>
 
+#include "cmz_vm2/attention.h"
+
 namespace cmz::vm2 {
 
 inline constexpr std::int64_t kRegisterCount = 4;
@@ -100,6 +102,7 @@ struct WriteProjections {
 struct ProgramImage {
     torch::Tensor tokens;
     std::array<torch::Tensor, kStageCount> attention_masks;
+    std::array<std::vector<AttentionBlock>, kStageCount> attention_blocks;
     WriteProjections write_projections;
     FrozenWeights weights;
 };

@@ -62,33 +62,36 @@ PaddedAttentionPlan optimize_attention_blocks(
     const auto padded = [](const Group& group) {
         return static_cast<std::int64_t>(group.queries.size() * group.keys.size());
     };
-    while (work.size() > static_cast<std::size_t>(block_budget)) {
-        std::size_t best_left = 0, best_right = 1;
-        std::int64_t best_delta = std::numeric_limits<std::int64_t>::max();
-        for (std::size_t left = 0; left < work.size(); ++left) {
-            for (std::size_t right = left + 1; right < work.size(); ++right) {
-                std::vector<std::int64_t> keys;
-                std::set_union(work[left].keys.begin(), work[left].keys.end(),
-                               work[right].keys.begin(), work[right].keys.end(),
-                               std::back_inserter(keys));
-                const auto merged = static_cast<std::int64_t>(
-                    (work[left].queries.size() + work[right].queries.size()) * keys.size());
-                const auto delta = merged - padded(work[left]) - padded(work[right]);
-                if (delta < best_delta) {
-                    best_delta = delta; best_left = left; best_right = right;
-                }
-            }
+    std::sort(work.begin(), work.end(), [&](const Group& left, const Group& right) {
+        return padded(left) > padded(right);
+    });
+    std::vector<Group> packed;
+    packed.reserve(static_cast<std::size_t>(block_budget));
+    for (auto& route : work) {
+        if (packed.size() < static_cast<std::size_t>(block_budget)) {
+            packed.push_back(std::move(route));
+            continue;
         }
-        auto& left = work[best_left];
-        const auto& right = work[best_right];
-        left.queries.insert(left.queries.end(), right.queries.begin(), right.queries.end());
-        std::sort(left.queries.begin(), left.queries.end());
-        std::vector<std::int64_t> merged_keys;
-        std::set_union(left.keys.begin(), left.keys.end(), right.keys.begin(), right.keys.end(),
-                       std::back_inserter(merged_keys));
-        left.keys = std::move(merged_keys);
-        work.erase(work.begin() + static_cast<std::ptrdiff_t>(best_right));
+        std::size_t best = 0;
+        std::int64_t best_delta = std::numeric_limits<std::int64_t>::max();
+        for (std::size_t target = 0; target < packed.size(); ++target) {
+            std::vector<std::int64_t> keys;
+            std::set_union(packed[target].keys.begin(), packed[target].keys.end(),
+                           route.keys.begin(), route.keys.end(), std::back_inserter(keys));
+            const auto merged = static_cast<std::int64_t>(
+                (packed[target].queries.size() + route.queries.size()) * keys.size());
+            const auto delta = merged - padded(packed[target]);
+            if (delta < best_delta) { best_delta = delta; best = target; }
+        }
+        auto& target = packed[best];
+        target.queries.insert(target.queries.end(), route.queries.begin(), route.queries.end());
+        std::sort(target.queries.begin(), target.queries.end());
+        std::vector<std::int64_t> keys;
+        std::set_union(target.keys.begin(), target.keys.end(), route.keys.begin(), route.keys.end(),
+                       std::back_inserter(keys));
+        target.keys = std::move(keys);
     }
+    work = std::move(packed);
     PaddedAttentionPlan plan{{}, useful, 0, 0.0};
     for (const auto& group : work) {
         auto local_mask = torch::full(
