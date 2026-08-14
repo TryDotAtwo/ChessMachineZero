@@ -13,6 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMZ_VM3_EXECUTOR_SOURCES
   src/attention2d.cpp
   src/chess_state_views.cpp
+  src/trajectory.cpp
 )
 set(CMZ_VM3_POLICY_SOURCES
   src/st_selector.cpp
@@ -62,3 +63,7 @@ add_executable(cmz_vm3_state_oracle_cli tests/state_oracle_cli.cpp)
 target_link_libraries(cmz_vm3_state_oracle_cli PRIVATE cmz_vm3_executor cmz_vm3_compiler ${TORCH_LIBRARIES})
 add_dependencies(cmz_vm3_test_state_schema cmz_vm3_state_oracle_cli)
 add_test(NAME cmz_vm3_state_schema COMMAND cmz_vm3_test_state_schema)
+
+add_executable(cmz_vm3_test_trajectory tests/test_trajectory.cpp)
+target_link_libraries(cmz_vm3_test_trajectory PRIVATE cmz_vm3_executor ${TORCH_LIBRARIES})
+add_test(NAME cmz_vm3_trajectory COMMAND cmz_vm3_test_trajectory)

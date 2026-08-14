@@ -38,6 +38,7 @@ FORBIDDEN_PATTERNS = (
     (re.compile(r"\.detach\s*\("), "autograd detach"),
     (re.compile(r"torch::(?:where|nonzero)\s*\("), "dynamic tensor routing"),
     (re.compile(r"\.index_(?:put|select)_?\s*\("), "in-place semantic write"),
+    (re.compile(r"\.copy_\s*\("), "full-state or history copy"),
     (re.compile(r"\.(?:gather|nonzero|sort|topk)\s*\("), "dynamic tensor routing"),
     (re.compile(r"\.(?:gt|ge|lt|le|eq)\s*\("), "state-dependent mask"),
     (re.compile(r"torch::relu\s*\(|\.relu\s*\("), "unregistered tensor operation"),

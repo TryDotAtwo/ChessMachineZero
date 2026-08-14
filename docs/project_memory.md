@@ -1,5 +1,12 @@
 # Project memory
 
+- 2026-08-14: VM3 training trajectory uses one separate functional MoveSlot per
+  fixed structural step: `commit*MOVE + (1-commit)*PAD`. There is no history
+  `cat`, tensor cursor indexing, prior-slot mutation, `copy_` or recurrent
+  detach. CPU/GPU tests prove exact committed/PAD values, distinct O(d_model)
+  storage, unchanged prior pointers and gradient reachability to every active
+  move and the commit predicate. Policy K/V attachment remains Task 7.
+
 - 2026-08-14: the canonical VM3 recurrent state ABI is a same-shape 2D token
   tensor with predicate activity in column zero and immutable identity/workspace
   features in the remaining columns. Its 1724 core rows encode 64x13 square

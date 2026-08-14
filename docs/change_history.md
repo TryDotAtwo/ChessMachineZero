@@ -1,5 +1,15 @@
 # Change history
 
+## 2026-08-14 — append-only MOVE trajectory primitive
+
+- Added the fixed-field MOVE token contract and functional training slot
+  construction with exactly one structural tensor per rollout step.
+- Added CPU/GPU tests for exact commit/PAD behavior, prior-slot identity,
+  distinct O(d_model) allocation and gradients through every active slot and
+  commit predicate.
+- Extended purity to reject `copy_` in addition to cat, detach, tensor-driven
+  indexing and in-place semantic writes.
+
 ## 2026-08-14 — canonical recurrent state ABI
 
 - Added the fixed 1724-row core state layout, typed board/metadata/claim/

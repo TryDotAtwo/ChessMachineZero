@@ -79,6 +79,7 @@ def test_vm3_auditor_accepts_the_declared_target_closure() -> None:
         ("void f(Tensor x) { torch::where(x > 0, x, x); }", "dynamic tensor routing"),
         ("void f(Tensor x) { torch::nonzero(x); }", "dynamic tensor routing"),
         ("void f(Tensor x) { x.index_put_({0}, 1); }", "in-place semantic write"),
+        ("void f(Tensor x, Tensor y) { x.copy_(y); }", "full-state or history copy"),
         ("void f(Tensor x) { x.gather(0, x); }", "dynamic tensor routing"),
         ("void f(Tensor x) { x.gt(0); }", "state-dependent mask"),
         ("void f() { torch::NoGradGuard guard; }", "host or autograd escape"),
