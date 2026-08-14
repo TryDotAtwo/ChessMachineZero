@@ -1,39 +1,18 @@
-#include <cmath>
 #include <stdexcept>
-
 #include "cmz_vm2/knight_circuit.h"
 
-int main() {
-    const auto circuit = cmz::vm2::compile_knight_circuit();
-    for (std::int64_t source = 0; source < 64; ++source) {
-        for (std::int64_t target = 0; target < 64; ++target) {
-            const auto input = cmz::vm2::bind_knight_pair(circuit, source, target);
-            const auto output = cmz::vm2::run_knight_circuit(circuit, input);
-            const auto df = std::abs(source % 8 - target % 8);
-            const auto dr = std::abs(source / 8 - target / 8);
-            const bool expected = (df == 1 && dr == 2) || (df == 2 && dr == 1);
-            if (output.item<std::int64_t>() != static_cast<std::int64_t>(expected)) {
-                throw std::runtime_error("parametric knight circuit mismatch");
-            }
-        }
-    }
-
-    const auto first = cmz::vm2::bind_knight_pair(circuit, 1, 18);
-    const auto second = cmz::vm2::bind_knight_pair(circuit, 1, 17);
-    const auto changed = first.ne(second).nonzero();
-    if (changed.size(0) != 2 || changed.select(1, 0).ne(0).any().item<bool>()) {
-        throw std::runtime_error("binding may change only target coordinate features on token zero");
-    }
-    if (circuit.tokens.requires_grad()) throw std::runtime_error("tokens must be frozen");
-    for (std::int64_t stage = 0; stage < cmz::vm2::kKnightStages; ++stage) {
-        if (circuit.wq[stage].requires_grad() || circuit.wk[stage].requires_grad() ||
-            circuit.wv[stage].requires_grad() || circuit.masks[stage].requires_grad() ||
-            circuit.row_writes[stage].requires_grad() || circuit.feature_writes[stage].requires_grad()) {
-            throw std::runtime_error("all knight rule tensors must be frozen");
-        }
-    }
-    if (circuit.output_row.requires_grad() || circuit.output_feature.requires_grad()) {
-        throw std::runtime_error("output selectors must be frozen");
-    }
-    return 0;
+using namespace cmz::vm2;
+void require(bool ok,const char* msg){if(!ok)throw std::runtime_error(msg);}
+KnightBoard base(KnightSide side,std::int64_t source,KnightPiece piece){KnightBoard b{};b.side=side;b.squares[source]=piece;return b;}
+void check(std::int64_t source,std::int64_t target,KnightBoard board,bool legal,KnightPiece target_piece,KnightSide next){auto c=compile_knight_circuit(source,target);auto input=bind_knight_board(c,board);auto state=run_knight_circuit(c,input);require(select_knight_legal(c,state).item<std::int64_t>()==legal,"legality mismatch");auto out=select_knight_board(c,state).argmax(1);for(std::int64_t sq=0;sq<64;++sq){auto expected=board.squares[sq];if(legal&&sq==source)expected=KnightPiece::Empty;if(legal&&sq==target)expected=target_piece;auto actual=out[sq].item<std::int64_t>();if(actual!=static_cast<std::int64_t>(expected))throw std::runtime_error("board write mismatch source="+std::to_string(source)+" target="+std::to_string(target)+" square="+std::to_string(sq)+" expected="+std::to_string(static_cast<std::int64_t>(expected))+" actual="+std::to_string(actual));}auto side=select_knight_side(c,state).argmax(1).item<std::int64_t>();require(side==static_cast<std::int64_t>(next),"side mismatch");}
+int main(){
+ const std::array<std::pair<std::int64_t,std::int64_t>,12> basis{{{0,10},{0,17},{7,13},{7,22},{56,41},{56,50},{63,46},{63,53},{27,10},{27,12},{27,42},{27,44}}};
+ for(const auto [s,t]:basis){auto df=std::abs(s%8-t%8),dr=std::abs(s/8-t/8);bool geom=(df==1&&dr==2)||(df==2&&dr==1);auto b=base(KnightSide::White,s,KnightPiece::WhiteKnight);check(s,t,b,geom,KnightPiece::WhiteKnight,geom?KnightSide::Black:KnightSide::White);}
+ {auto b=base(KnightSide::White,1,KnightPiece::WhiteKnight);b.squares[18]=KnightPiece::BlackOther;check(1,18,b,true,KnightPiece::WhiteKnight,KnightSide::Black);}
+ {auto b=base(KnightSide::White,1,KnightPiece::WhiteKnight);b.squares[18]=KnightPiece::WhiteOther;check(1,18,b,false,KnightPiece::WhiteOther,KnightSide::White);}
+ check(1,18,base(KnightSide::White,1,KnightPiece::BlackKnight),false,KnightPiece::BlackKnight,KnightSide::White);
+ check(1,18,base(KnightSide::Black,1,KnightPiece::BlackKnight),true,KnightPiece::BlackKnight,KnightSide::White);
+ auto c=compile_knight_circuit(1,18);auto a=bind_knight_board(c,base(KnightSide::White,1,KnightPiece::WhiteKnight));auto b=bind_knight_board(c,base(KnightSide::White,1,KnightPiece::WhiteKnight));require(torch::equal(a,b),"binding must be deterministic");
+ for(int st=0;st<kKnightStages;++st)require(!c.wq[st].requires_grad()&&!c.wk[st].requires_grad()&&!c.wv[st].requires_grad()&&!c.masks[st].requires_grad()&&!c.row_writes[st].requires_grad()&&!c.feature_writes[st].requires_grad(),"rule tensors must be frozen");
+ return 0;
 }

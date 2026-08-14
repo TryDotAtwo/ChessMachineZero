@@ -19,6 +19,17 @@
   fixed matmul output selectors. Exhaustive native testing passes all 4096
   source/target pairs; a purity gate rejects coordinate or semantic operations.
 
+## 2026-08-14 — knight legality and board transition
+
+- Extended the parameteric circuit to ten fixed stages: source/target piece
+  lookup, side/occupancy conjunction, legal-gated source and target writes,
+  64 output-square selections and a `(side, legal) -> next side` lookup.
+- Legal moves and captures alter exactly two board tokens; illegal geometry,
+  wrong-color sources and friendly targets leave board and side unchanged.
+- Full-transition acceptance covers a coordinate-edge basis plus both colors
+  and occupancy classes. The earlier compact geometry gate remains the only
+  exhaustive 4096-pair result; no exhaustive full-board claim is made.
+
 ## 2026-08-13 — animated full native trace debugger
 
 - Added a synchronized board/token/heatmap debugger for the complete 15-stage

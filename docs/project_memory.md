@@ -11,6 +11,11 @@
   geometry predicate. It is not yet integrated with pieces, occupancy, check
   legality or board transitions, so public full-chess claims remain unchanged.
 
+- 2026-08-14: selected knight moves now include piece/side/target-occupancy
+  legality, legal-gated source/target matrix writes, 64 output tokens and side
+  transition in the fixed attention runtime. Check legality and integration
+  into automatic multi-piece candidate selection remain pending.
+
 - 2026-08-13: Pages presents the full pawn trace as 90 animated debugger
   microsteps over the real float64 artifact. It synchronizes board state,
   selected token labels, matrix heatmaps and hardmax focus. Knight geometry is
