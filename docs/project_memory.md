@@ -1,5 +1,16 @@
 # Project memory
 
+- 2026-08-14: VM3 implementation has started with the frozen tensor contract,
+  generic checksum/interval/certificate program loader, adversarial runtime
+  purity and operation-manifest gate, and the canonical deterministic
+  straight-through selector. The selector is exact lowest-index hard in the
+  forward pass and sends gradients through the eligibility-weighted stable
+  surrogate without `detach`. This is infrastructure evidence only, not yet a
+  recurrent chess or GPU-residency claim. The pinned container build remains
+  unaccepted until a clean image passes its internal LibTorch integrity checks
+  and the unified CI entrypoint; Docker VM TLS failures are currently external
+  to the repository tests.
+
 - 2026-08-14: a full architecture/autograd audit supersedes VM2 as the active
   implementation target, while preserving it as historical slice evidence.
   VM2 hard `max -> one_hot` cuts gradients to Q/K and policy logits; pawn and

@@ -3,3 +3,4 @@ project(percepta_transformer_vm LANGUAGES CXX)
 
 include(CTest)
 add_subdirectory(native/vm2)
+add_subdirectory(native/vm3)

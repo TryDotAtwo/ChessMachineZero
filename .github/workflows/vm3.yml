@@ -1,0 +1,24 @@
+name: VM3
+
+on:
+  push:
+    branches: [codex/percepta-transformer-vm]
+  pull_request:
+
+jobs:
+  cpu-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Contract and purity gates
+        shell: pwsh
+        run: ./tools/vm3-ci.ps1 -Target all -CTestRegex '^cmz_vm3' -PytestArgs 'tests/test_vm3_source_purity.py -q'
+
+  gpu-gates:
+    if: ${{ vars.CMZ_VM3_GPU_RUNNER_ENABLED == 'true' }}
+    runs-on: [self-hosted, linux, x64, gpu, cmz-vm3]
+    steps:
+      - uses: actions/checkout@v4
+      - name: GPU residency and determinism gates
+        shell: pwsh
+        run: ./tools/vm3-ci.ps1 -Target all -CTestRegex '^cmz_vm3_gpu_' -WithGpu

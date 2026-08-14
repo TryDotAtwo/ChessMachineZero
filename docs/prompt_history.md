@@ -73,3 +73,6 @@
   inference; keep rule legality and selection free of host chess logic.
 - Continue implementation by unifying pawn and knight legal candidates under
   that policy contract, preserving fixed weights and input-token move requests.
+- Begin the approved VM3 implementation now, set the corrected persistent goal,
+  and keep implementing the full differentiable recurrent attention-only chess
+  machine under the previously fixed invariants and evidence gates.

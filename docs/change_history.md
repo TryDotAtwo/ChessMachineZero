@@ -1,5 +1,23 @@
 # Change history
 
+## 2026-08-14 — begin native VM3 implementation
+
+- Added the independent `native/vm3` target graph, exact ABI constants and an
+  adversarial purity auditor that classifies every runtime source, rejects
+  compiler linkage and exports an allowlisted operation manifest.
+- Added a checksum-verified immutable program loader with ordered stages,
+  cycle rejection, outward-rounded interval replay, `FrozenMatmul` proof replay
+  and fail-closed selector score certificates.
+- Added the canonical exact-hard/custom-soft-backward selector and native tests
+  for lowest-index ties, sentinel routing, finite stability and analytic score
+  and eligibility gradient equality. Python gates report 37 passing tests and
+  native contract/loader/selector tests pass in the existing validated LibTorch
+  environment.
+- Added a pinned CUDA 12.8.1/PyTorch 2.7.1 VM3 container and unified CI script.
+  Its first image exposed filesystem truncation after low disk space; integrity
+  checks now reject that condition. Clean-image acceptance remains pending
+  because the Docker VM currently times out during TLS to Docker Hub.
+
 ## 2026-08-14 — differentiable recurrent VM3 architecture audit
 
 - Audited the current VM2 runtime, rule slices, policy, legal-set bridge,
