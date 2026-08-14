@@ -22,6 +22,7 @@ set(CMZ_VM3_LOADER_SOURCES
   src/program_loader.cpp
 )
 set(CMZ_VM3_COMPILER_SOURCES
+  compiler/candidate_bank.cpp
   compiler/initial_state_binder.cpp
 )
 
@@ -67,3 +68,7 @@ add_test(NAME cmz_vm3_state_schema COMMAND cmz_vm3_test_state_schema)
 add_executable(cmz_vm3_test_trajectory tests/test_trajectory.cpp)
 target_link_libraries(cmz_vm3_test_trajectory PRIVATE cmz_vm3_executor ${TORCH_LIBRARIES})
 add_test(NAME cmz_vm3_trajectory COMMAND cmz_vm3_test_trajectory)
+
+add_executable(cmz_vm3_test_candidate_bank tests/test_candidate_bank.cpp)
+target_link_libraries(cmz_vm3_test_candidate_bank PRIVATE cmz_vm3_compiler ${TORCH_LIBRARIES})
+add_test(NAME cmz_vm3_candidate_bank COMMAND cmz_vm3_test_candidate_bank)

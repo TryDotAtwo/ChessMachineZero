@@ -1,5 +1,14 @@
 # Change history
 
+## 2026-08-14 — universal VM3 candidate bank
+
+- Added the compiler-only 4272-move bank and the separate empty selector
+  sentinel with deterministic IDs and exhaustive promotion coverage.
+- Encoded only raw square, file, rank and promotion identity one-hots; added a
+  source-schema guard against derived chess-semantic fields.
+- Added exact native acceptance and retained a green 50-test Python suite and
+  seven-test native CTest suite.
+
 ## 2026-08-14 — append-only MOVE trajectory primitive
 
 - Added the fixed-field MOVE token contract and functional training slot

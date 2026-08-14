@@ -131,3 +131,19 @@ def test_vm3_auditor_rejects_unclassified_runtime_source(tmp_path: Path) -> None
     result = run_audit(broken_root)
     assert result.returncode == 1
     assert "unclassified runtime source" in result.stderr
+
+
+def test_vm3_candidate_bank_exposes_only_raw_identity_features() -> None:
+    header = (ROOT / "native/vm3/include/cmz_vm3/candidate_bank.h").read_text(
+        encoding="utf-8"
+    ).lower()
+    for forbidden in (
+        "delta",
+        "ray",
+        "piece_kind",
+        "geometry",
+        "occupancy",
+        "legality",
+        "legal",
+    ):
+        assert forbidden not in header

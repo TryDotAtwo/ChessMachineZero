@@ -1,5 +1,12 @@
 # Project memory
 
+- 2026-08-14: the VM3 compiler emits one universal, deterministic candidate
+  bank: all 4096 source-major/target-minor square pairs, followed by all 176
+  promotion records (44 square pairs times Q/R/B/N), plus one zero identity
+  selector sentinel. Its frozen tensors contain only raw source, target,
+  promotion and coordinate one-hots. No piece, geometry, occupancy or legality
+  fact is precomputed into the bank; those remain work for the frozen rule graph.
+
 - 2026-08-14: VM3 training trajectory uses one separate functional MoveSlot per
   fixed structural step: `commit*MOVE + (1-commit)*PAD`. There is no history
   `cat`, tensor cursor indexing, prior-slot mutation, `copy_` or recurrent
