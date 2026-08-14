@@ -698,17 +698,17 @@ generic empty-selector sentinel. Runtime rows expose only source, target,
 promotion and raw source/target coordinate one-hots. They contain no deltas,
 ray/direction kind, piece kind, geometry class, occupancy or legality.
 
-- [ ] **Step 1: Write RED tests** for exact move/sentinel counts `4272/4273`,
+- [x] **Step 1: Write RED tests** for exact move/sentinel counts `4272/4273`,
 unique IDs, deterministic ordering, all 44 promotion source/target pairs times
 Q/R/B/N, and absence of delta/ray/piece/geometry/occupancy/legality features.
 
-- [ ] **Step 2: Run RED.**
+- [x] **Step 2: Run RED.**
 
 ```powershell
 powershell -File tools/vm3-ci.ps1 -Target cmz_vm3_test_candidate_bank -CTestRegex '^cmz_vm3_candidate_bank$'
 ```
 
-- [ ] **Step 3: Implement compiler-only enumeration.** Candidate rows encode
+- [x] **Step 3: Implement compiler-only enumeration.** Candidate rows encode
 only raw identity and coordinate one-hots. The 44 ordinary promotion-square
 source/target rows remain present but are made illegal by frozen rule stages
 when `promotion=NONE`; the 176 extra rows carry the four explicit choices.
@@ -739,13 +739,13 @@ require(bank.size() == kMoveCandidateCount); // 4096 + 44*4
 This loop is compiler-only. `raw_candidate` writes IDs and coordinate one-hots,
 not the result of a geometry predicate.
 
-- [ ] **Step 4: Run GREEN and snapshot the candidate manifest.**
+- [x] **Step 4: Run GREEN and snapshot the candidate manifest.**
 
 ```powershell
 powershell -File tools/vm3-ci.ps1 -Target cmz_vm3_test_candidate_bank -CTestRegex '^cmz_vm3_candidate_bank$'
 ```
 
-- [ ] **Step 5: Commit** as `feat: compile universal chess candidate bank`.
+- [x] **Step 5: Commit** as `feat: compile universal chess candidate bank`.
 
 ### Task 7: Swappable bounded attention-only policy and absolute legal gate
 
@@ -763,7 +763,7 @@ claim-after witness eligibility and halt-required tokens.
 ```cpp
 struct PolicyInput {
   Tensor state_tokens, candidate_tokens, move_legal;
-  Tensor claim_now, claim_after_eligible, halt_required;
+  Tensor claim_now, claim_after_eligible, auto_claim, halt_required;
   const TrajectoryTape& trajectory;
 };
 struct PolicyOutput {
@@ -800,7 +800,7 @@ checks every raw parameter finite before the inference capture/launch. These are
 generic policy-artifact checks and do not read board, legality or trajectory
 state.
 
-- [ ] **Step 1: Write RED tests** for ZeroPolicy first-legal behavior,
+- [x] **Step 1: Write RED tests** for ZeroPolicy first-legal behavior,
 candidate-permutation equivariance, parameter count independent of candidate
 count, absence of candidate-ID parameters/bias, legal dominance under extreme
 raw logits, current and intended-move claims, forced auto-claim, all-illegal
@@ -855,13 +855,13 @@ fixed zero/identity, including its backward path.
 In auto-claim mode `CLAIM_NOW` exceeds every ordinary control score; a true halt
 still has the highest margin.
 
-- [ ] **Step 2: Run RED.**
+- [x] **Step 2: Run RED.**
 
 ```powershell
 powershell -File tools/vm3-ci.ps1 -Target cmz_vm3_test_policy -CTestRegex '^cmz_vm3_policy$'
 ```
 
-- [ ] **Step 3: Implement ZeroPolicy and a minimal multi-head `d_head=2`
+- [x] **Step 3: Implement ZeroPolicy and a minimal multi-head `d_head=2`
 trajectory-aware `TransformerPolicy` without MLP or handcrafted evaluation.**
 `PolicyPair` evaluates both registered slots and a frozen side-token projection
 selects their output; runtime never performs `if (white_to_move)` dispatch.
@@ -929,7 +929,7 @@ performs a device finite reduction immediately after `optimizer.step()` and a
 host-visible generic health check before scheduling the next rollout. If a raw
 parameter is non-finite, the next rollout launch counter must remain unchanged.
 
-- [ ] **Step 4: Run GREEN and verify only policy parameters require grad.**
+- [x] **Step 4: Run GREEN and verify only policy parameters require grad.**
 
 Also assert that an illegal or sentinel packet has exactly zero forward effect,
 illegal descriptors have zero surrogate transition weight, the explicitly
@@ -942,7 +942,7 @@ steps leaves all pre-terminal gradients identical.
 powershell -File tools/vm3-ci.ps1 -Target cmz_vm3_test_policy -CTestRegex '^cmz_vm3_policy$'
 ```
 
-- [ ] **Step 5: Commit** as `feat: add swappable legal-only ST policy`.
+- [x] **Step 5: Commit** as `feat: add swappable legal-only ST policy`.
 
 ### Task 8: Minimal unified pawn-and-knight closed ring
 

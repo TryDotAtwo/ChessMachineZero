@@ -170,6 +170,9 @@ because cancellation does not prove a bit-exact hard tensor in floating point.
     can affect the exact forward state, and halt dominates terminal state. The
     backward path follows the explicitly declared eligibility surrogate; it is
     not misreported as an argmax derivative or as exact chess semantics.
+17a. `AUTO_CLAIM` is a frozen rule-emitted tensor projection of the canonical
+     claim-mode state, supplied beside `CLAIM_NOW`; policy code does not decode
+     the claim-mode row or choose the bonus on the host.
 18. The committed or intended packet is computed by matrix multiplication of
     exact ST selection with fixed descriptors. Only `COMMIT_MOVE` updates the
     board and appends one token. Claim and halt routes preserve board/history.

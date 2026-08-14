@@ -16,9 +16,11 @@ set(CMZ_VM3_EXECUTOR_SOURCES
   src/trajectory.cpp
 )
 set(CMZ_VM3_POLICY_SOURCES
+  src/policy.cpp
   src/st_selector.cpp
 )
 set(CMZ_VM3_LOADER_SOURCES
+  src/policy_preflight.cpp
   src/program_loader.cpp
 )
 set(CMZ_VM3_COMPILER_SOURCES
@@ -72,3 +74,7 @@ add_test(NAME cmz_vm3_trajectory COMMAND cmz_vm3_test_trajectory)
 add_executable(cmz_vm3_test_candidate_bank tests/test_candidate_bank.cpp)
 target_link_libraries(cmz_vm3_test_candidate_bank PRIVATE cmz_vm3_compiler ${TORCH_LIBRARIES})
 add_test(NAME cmz_vm3_candidate_bank COMMAND cmz_vm3_test_candidate_bank)
+
+add_executable(cmz_vm3_test_policy tests/test_policy.cpp)
+target_link_libraries(cmz_vm3_test_policy PRIVATE cmz_vm3_executor ${TORCH_LIBRARIES})
+add_test(NAME cmz_vm3_policy COMMAND cmz_vm3_test_policy)

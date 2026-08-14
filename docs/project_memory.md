@@ -1,5 +1,19 @@
 # Project memory
 
+- 2026-08-14: VM3 has a swappable bounded attention-only policy ABI. Raw
+  trainable scalars are converted by stable signed-binary softmax before every
+  matmul; all Q/K/V, learned queries and reusable outputs are re-bounded, every
+  Q/K head is physically width two, and local candidate/control decisions are
+  two-class ACCEPT/REJECT probabilities. The absolute frozen gate admits only
+  rule-emitted legal/witness/control routes and has deterministic move,
+  claim-after, auto-claim and halt behavior. Both side modules execute and a
+  tensor side route selects output and emitted K/V. Initialization preflight
+  recomputes fan-in, includes summed projection fan-ins and fixed margins,
+  checks dtype/raw finiteness and rejects incomplete operation manifests before
+  rollout. CPU and RTX 3070 tests prove permutation equivariance, extreme-finite
+  stability, terminal-zero gradients, inactive-padding gradient invariance and
+  gradient reachability through every active history slot.
+
 - 2026-08-14: the VM3 compiler emits one universal, deterministic candidate
   bank: all 4096 source-major/target-minor square pairs, followed by all 176
   promotion records (44 square pairs times Q/R/B/N), plus one zero identity

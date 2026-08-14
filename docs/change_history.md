@@ -1,5 +1,19 @@
 # Change history
 
+## 2026-08-14 — bounded swappable attention-only policy
+
+- Added ZeroPolicy and a minimal TransformerPolicy with shared local
+  ACCEPT/REJECT scoring, physical `d_head=2`, bounded/re-bounded projections,
+  fixed-slot trajectory attention and no MLP or candidate-axis parameter.
+- Added absolute move/witness/control routing for legal moves, literal claims,
+  auto-claim and halt, plus tensor-only evaluation/routing of both side modules
+  and their emitted K/V.
+- Added fail-closed preflight for raw finiteness, actual Q/K shapes, dtype,
+  operation manifest, summed fan-in and fixed score margins.
+- Added CPU/GPU evidence for exact hard routing, permutation equivariance,
+  extreme finite parameters, history/logit gradients, terminal gating and
+  inactive-padding gradient invariance.
+
 ## 2026-08-14 — universal VM3 candidate bank
 
 - Added the compiler-only 4272-move bank and the separate empty selector
