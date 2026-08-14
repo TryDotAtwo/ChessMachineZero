@@ -60,6 +60,7 @@ ALLOWED_TORCH_OPERATIONS = {
     "at::one_hot",
     "torch::Tensor",
     "torch::exp",
+    "torch::index_select",
     "torch::matmul",
     "torch::ones_like",
     "torch::stack",

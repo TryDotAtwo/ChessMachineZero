@@ -23,14 +23,15 @@ FrozenStage make_stage(std::int64_t key_begin,
                        std::int64_t key_count,
                        torch::Tensor wq,
                        torch::Tensor wk,
-                       torch::Tensor wv) {
+                       torch::Tensor wv,
+                       torch::Tensor feature_router) {
   auto query_router = zeros({1, kPacketRows});
   query_router.index_put_({0, kQueryRow}, 1.0);
   auto key_router = zeros({key_count, kPacketRows});
-  auto global_ids = zeros({key_count});
+  auto global_ids = torch::zeros({key_count}, torch::kInt64);
   for (std::int64_t key = 0; key < key_count; ++key) {
     key_router.index_put_({key, key_begin + key}, 1.0);
-    global_ids.index_put_({key}, static_cast<double>(key_begin + key));
+    global_ids.index_put_({key}, key_begin + key);
   }
   auto output_router = zeros({kPacketRows, 1});
   output_router.index_put_({kQueryRow, 0}, 1.0);
@@ -41,7 +42,7 @@ FrozenStage make_stage(std::int64_t key_begin,
                          torch::ones({1, key_count}, torch::kFloat64),
                          global_ids});
   return {std::move(wq), std::move(wk), std::move(wv),
-          zeros({1, 1}), zeros({1, 1}), zeros({1, 1}),
+          zeros({1, 1}), zeros({1, 1}), std::move(feature_router),
           std::move(plan)};
 }
 
@@ -51,11 +52,18 @@ FrozenStage active_lookup(std::int64_t key_begin,
                                                           std::int64_t>> copies) {
   auto wq = zeros({kFeatureCount, 2});
   auto wk = zeros({kFeatureCount, 2});
-  auto wv = zeros({kFeatureCount, kFeatureCount});
+  auto wv = zeros({kFeatureCount, static_cast<std::int64_t>(copies.size())});
+  auto feature_router =
+      zeros({static_cast<std::int64_t>(copies.size()), kFeatureCount});
   wq.index_put_({kConst, 0}, 1.0);
   wk.index_put_({kActive, 0}, 1.0);
-  for (const auto& [source, target] : copies) wv.index_put_({source, target}, 1.0);
-  return make_stage(key_begin, key_count, wq, wk, wv);
+  std::int64_t route = 0;
+  for (const auto& [source, target] : copies) {
+    wv.index_put_({source, route}, 1.0);
+    feature_router.index_put_({route, target}, 1.0);
+    ++route;
+  }
+  return make_stage(key_begin, key_count, wq, wk, wv, feature_router);
 }
 
 FrozenStage single_copy(std::int64_t key_row,
@@ -63,11 +71,18 @@ FrozenStage single_copy(std::int64_t key_row,
                                                         std::int64_t>> copies) {
   auto wq = zeros({kFeatureCount, 2});
   auto wk = zeros({kFeatureCount, 2});
-  auto wv = zeros({kFeatureCount, kFeatureCount});
+  auto wv = zeros({kFeatureCount, static_cast<std::int64_t>(copies.size())});
+  auto feature_router =
+      zeros({static_cast<std::int64_t>(copies.size()), kFeatureCount});
   wq.index_put_({kConst, 0}, 1.0);
   wk.index_put_({kConst, 0}, 1.0);
-  for (const auto& [source, target] : copies) wv.index_put_({source, target}, 1.0);
-  return make_stage(key_row, 1, wq, wk, wv);
+  std::int64_t route = 0;
+  for (const auto& [source, target] : copies) {
+    wv.index_put_({source, route}, 1.0);
+    feature_router.index_put_({route, target}, 1.0);
+    ++route;
+  }
+  return make_stage(key_row, 1, wq, wk, wv, feature_router);
 }
 
 FrozenStage truth_gate(std::int64_t left,
@@ -76,21 +91,24 @@ FrozenStage truth_gate(std::int64_t left,
                        bool conjunction) {
   auto wq = zeros({kFeatureCount, 2});
   auto wk = zeros({kFeatureCount, 2});
-  auto wv = zeros({kFeatureCount, kFeatureCount});
+  auto wv = zeros({kFeatureCount, 1});
+  auto feature_router = zeros({1, kFeatureCount});
   wq.index_put_({kConst, 0}, -1.0);
   wq.index_put_({kConst, 1}, -1.0);
   wq.index_put_({left, 0}, 2.0);
   wq.index_put_({right, 1}, 2.0);
   wk.index_put_({kTruthX, 0}, 1.0);
   wk.index_put_({kTruthY, 1}, 1.0);
-  wv.index_put_({conjunction ? kTruthAnd : kTruthOr, destination}, 1.0);
-  return make_stage(kTruthBegin, 4, wq, wk, wv);
+  wv.index_put_({conjunction ? kTruthAnd : kTruthOr, 0}, 1.0);
+  feature_router.index_put_({0, destination}, 1.0);
+  return make_stage(kTruthBegin, 4, wq, wk, wv, feature_router);
 }
 
 void move_stage(FrozenStage& stage, const torch::Device& device) {
   stage.wq = stage.wq.to(device);
   stage.wk = stage.wk.to(device);
   stage.wv = stage.wv.to(device);
+  stage.feature_router = stage.feature_router.to(device);
   for (auto& block : stage.attention_plan.blocks) {
     block.query_router = block.query_router.to(device);
     block.key_router = block.key_router.to(device);
@@ -157,15 +175,115 @@ void build_manifest(FrozenChessProgram& program) {
   }
 }
 
+void add_pseudo_legal_tensors(FrozenChessProgram& program,
+                              const CandidateBank& bank) {
+  auto geometry = zeros({kMoveCandidateCount, kPieceStateCount});
+  std::array<torch::Tensor, 6> between{
+      zeros({kMoveCandidateCount, 64}), zeros({kMoveCandidateCount, 64}),
+      zeros({kMoveCandidateCount, 64}), zeros({kMoveCandidateCount, 64}),
+      zeros({kMoveCandidateCount, 64}), zeros({kMoveCandidateCount, 64})};
+  auto between_absent = torch::ones({6, kMoveCandidateCount}, torch::kFloat64);
+  const auto allow = [&](std::int64_t id, std::int64_t piece) {
+    geometry.index_put_({id, piece}, 1.0);
+  };
+  for (const auto& move : bank.moves) {
+    const auto sf = move.source % 8;
+    const auto sr = move.source / 8;
+    const auto tf = move.target % 8;
+    const auto tr = move.target / 8;
+    const auto df = tf - sf;
+    const auto dr = tr - sr;
+    const auto adf = std::abs(df);
+    const auto adr = std::abs(dr);
+    const auto ordinary = move.promotion == Promotion::None;
+    const auto knight = ordinary && ((adf == 1 && adr == 2) ||
+                                     (adf == 2 && adr == 1));
+    const auto king = ordinary && std::max(adf, adr) == 1;
+    const auto bishop = ordinary && adf == adr && adf > 0;
+    const auto rook = ordinary && ((df == 0) != (dr == 0));
+    if (knight) {
+      allow(move.id, static_cast<std::int64_t>(PieceState::WN));
+      allow(move.id, static_cast<std::int64_t>(PieceState::BN));
+    }
+    if (king) {
+      allow(move.id, static_cast<std::int64_t>(PieceState::WK));
+      allow(move.id, static_cast<std::int64_t>(PieceState::BK));
+    }
+    const auto add_slider = [&](PieceState white_piece, PieceState black_piece,
+                                bool valid) {
+      if (!valid) return;
+      const auto wp = static_cast<std::int64_t>(white_piece);
+      const auto bp = static_cast<std::int64_t>(black_piece);
+      allow(move.id, wp);
+      allow(move.id, bp);
+    };
+    add_slider(PieceState::WB, PieceState::BB, bishop);
+    add_slider(PieceState::WR, PieceState::BR, rook);
+    add_slider(PieceState::WQ, PieceState::BQ, bishop || rook);
+
+    const auto wp = static_cast<std::int64_t>(PieceState::WP);
+    const auto bp = static_cast<std::int64_t>(PieceState::BP);
+    const auto white_promotion = tr == 7 && move.promotion != Promotion::None;
+    const auto black_promotion = tr == 0 && move.promotion != Promotion::None;
+    const auto white_plain = tr != 7 && ordinary;
+    const auto black_plain = tr != 0 && ordinary;
+    if ((white_plain || white_promotion) && dr == 1 && adf <= 1) {
+      geometry.index_put_({move.id, wp}, 1.0);
+    }
+    if ((black_plain || black_promotion) && dr == -1 && adf <= 1) {
+      geometry.index_put_({move.id, bp}, 1.0);
+    }
+    if (ordinary && sf == tf && sr == 1 && dr == 2) {
+      geometry.index_put_({move.id, wp}, 1.0);
+    }
+    if (ordinary && sf == tf && sr == 6 && dr == -2) {
+      geometry.index_put_({move.id, bp}, 1.0);
+    }
+
+    if (bishop || rook || (ordinary && sf == tf && std::abs(dr) == 2)) {
+      const auto step_f = df == 0 ? 0 : (df > 0 ? 1 : -1);
+      const auto step_r = dr == 0 ? 0 : (dr > 0 ? 1 : -1);
+      auto file = sf + step_f;
+      auto rank = sr + step_r;
+      std::int64_t slot = 0;
+      while ((file != tf || rank != tr) && slot < 6) {
+        between[slot].index_put_({move.id, file + 8 * rank}, 1.0);
+        between_absent.index_put_({slot, move.id}, 0.0);
+        file += step_f;
+        rank += step_r;
+        ++slot;
+      }
+    }
+  }
+  program.tensors.emplace("candidate_piece_geometry", geometry);
+  program.tensors.emplace("between_absent", between_absent);
+  for (std::int64_t slot = 0; slot < 6; ++slot)
+    program.tensors.emplace("candidate_between_" + std::to_string(slot),
+                            between[slot]);
+}
+
 }  // namespace
 
 FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& options) {
   FrozenChessProgram program;
   program.schema_version = 1;
   const auto bank = compile_candidate_bank();
+  add_pseudo_legal_tensors(program, bank);
   const auto pawn = compile_pawn_geometry(bank);
   const auto knight = compile_knight_geometry(bank);
-  const auto geometry = torch::cat({knight, pawn}, -1);
+  const std::array<std::int64_t, 8> extended_piece_ids{{
+      3, 4, 5, 6, 9, 10, 11, 12}};
+  auto extended_geometry = zeros({kMoveCandidateCount, 8});
+  for (std::int64_t index = 0; index < 8; ++index)
+    extended_geometry.index_put_(
+        {torch::indexing::Slice(), index},
+        program.tensors.at("candidate_piece_geometry")
+            .select(-1, extended_piece_ids[index]));
+  const auto geometry = torch::cat(
+      {knight, pawn, extended_geometry,
+       program.tensors.at("between_absent").transpose(0, 1)}, -1);
+  for (const auto* intermediate : {"candidate_piece_geometry", "between_absent"})
+    program.tensors.erase(intermediate);
 
   auto packet = zeros({kPacketRows, kFeatureCount});
   packet.index_put_({kQueryRow, kConst}, 1.0);
@@ -178,6 +296,14 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
       packet.index_put_({row, kPieceWn}, piece == 2 ? 1.0 : 0.0);
       packet.index_put_({row, kPieceBp}, piece == 7 ? 1.0 : 0.0);
       packet.index_put_({row, kPieceBn}, piece == 8 ? 1.0 : 0.0);
+      packet.index_put_({row, kPieceWb}, piece == 3 ? 1.0 : 0.0);
+      packet.index_put_({row, kPieceWr}, piece == 4 ? 1.0 : 0.0);
+      packet.index_put_({row, kPieceWq}, piece == 5 ? 1.0 : 0.0);
+      packet.index_put_({row, kPieceWk}, piece == 6 ? 1.0 : 0.0);
+      packet.index_put_({row, kPieceBb}, piece == 9 ? 1.0 : 0.0);
+      packet.index_put_({row, kPieceBr}, piece == 10 ? 1.0 : 0.0);
+      packet.index_put_({row, kPieceBq}, piece == 11 ? 1.0 : 0.0);
+      packet.index_put_({row, kPieceBk}, piece == 12 ? 1.0 : 0.0);
       const auto white = piece >= 1 && piece <= 6;
       const auto black = piece >= 7 && piece <= 12;
       packet.index_put_({row, kPieceWhite}, white ? 1.0 : 0.0);
@@ -185,6 +311,9 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
       packet.index_put_({row, kPieceNotWhite}, white ? 0.0 : 1.0);
       packet.index_put_({row, kPieceNotBlack}, black ? 0.0 : 1.0);
     }
+  }
+  for (std::int64_t slot = 0; slot < 6; ++slot) {
+    packet.index_put_({kBetweenBegin + slot, kConst}, 1.0);
   }
   for (std::int64_t side = 0; side < 2; ++side) {
     packet.index_put_({kSideBegin + side, kConst}, 1.0);
@@ -206,7 +335,11 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
 
   program.pre_policy_stages.push_back(active_lookup(
       kSourceBegin, 13, {{kPieceWp, kSourceWp}, {kPieceBp, kSourceBp},
-                         {kPieceWn, kSourceWn}, {kPieceBn, kSourceBn}}));
+                         {kPieceWn, kSourceWn}, {kPieceBn, kSourceBn},
+                         {kPieceWb, kSourceWb}, {kPieceWr, kSourceWr},
+                         {kPieceWq, kSourceWq}, {kPieceWk, kSourceWk},
+                         {kPieceBb, kSourceBb}, {kPieceBr, kSourceBr},
+                         {kPieceBq, kSourceBq}, {kPieceBk, kSourceBk}}));
   program.pre_policy_stages.push_back(active_lookup(
       kTargetBegin, 13,
       {{kPieceEmpty, kTargetEmpty}, {kPieceWhite, kTargetWhite},
@@ -223,7 +356,16 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
        {kGeomWhiteCapture, kGeomWhiteCapture},
        {kGeomBlackPush1, kGeomBlackPush1},
        {kGeomBlackPush2, kGeomBlackPush2},
-       {kGeomBlackCapture, kGeomBlackCapture}}));
+       {kGeomBlackCapture, kGeomBlackCapture},
+       {kGeomWb, kGeomWb}, {kGeomWr, kGeomWr}, {kGeomWq, kGeomWq},
+       {kGeomWk, kGeomWk}, {kGeomBb, kGeomBb}, {kGeomBr, kGeomBr},
+       {kGeomBq, kGeomBq}, {kGeomBk, kGeomBk},
+       {kBetweenEmpty0, kBetweenEmpty0}, {kBetweenEmpty1, kBetweenEmpty1},
+       {kBetweenEmpty2, kBetweenEmpty2}, {kBetweenEmpty3, kBetweenEmpty3},
+       {kBetweenEmpty4, kBetweenEmpty4}, {kBetweenEmpty5, kBetweenEmpty5}}));
+  for (std::int64_t slot = 0; slot < 6; ++slot)
+    program.pre_policy_stages.push_back(single_copy(
+        kBetweenBegin + slot, {{kPieceEmpty, kBetweenEmpty0 + slot}}));
 
   const std::array<std::array<std::int64_t, 3>, 4> actor_gates{{
       {{kSideWhite, kSourceWp, kActorWp}},
@@ -231,6 +373,13 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
       {{kSideWhite, kSourceWn, kActorWn}},
       {{kSideBlack, kSourceBn, kActorBn}}}};
   for (const auto& gate : actor_gates)
+    program.pre_policy_stages.push_back(truth_gate(gate[0], gate[1], gate[2], true));
+  const std::array<std::array<std::int64_t, 3>, 8> extended_actor_gates{{
+      {{kSideWhite, kSourceWb, kActorWb}}, {{kSideWhite, kSourceWr, kActorWr}},
+      {{kSideWhite, kSourceWq, kActorWq}}, {{kSideWhite, kSourceWk, kActorWk}},
+      {{kSideBlack, kSourceBb, kActorBb}}, {{kSideBlack, kSourceBr, kActorBr}},
+      {{kSideBlack, kSourceBq, kActorBq}}, {{kSideBlack, kSourceBk, kActorBk}}}};
+  for (const auto& gate : extended_actor_gates)
     program.pre_policy_stages.push_back(truth_gate(gate[0], gate[1], gate[2], true));
   const std::array<std::array<std::int64_t, 3>, 8> geometry_gates{{
       {{kActorWn, kGeomKnight, kWnGeom}}, {{kActorBn, kGeomKnight, kBnGeom}},
@@ -257,16 +406,63 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
       truth_gate(kWp2Target, kMiddleEmpty, kWp2Legal, true));
   program.pre_policy_stages.push_back(
       truth_gate(kBp2Target, kMiddleEmpty, kBp2Legal, true));
-  const std::array<std::int64_t, 8> branches{{
-      kWnLegal, kBnLegal, kWp1Legal, kWp2Legal,
-      kWpcLegal, kBp1Legal, kBp2Legal, kBpcLegal}};
-  const std::array<std::int64_t, 4> or_level1{{kOr0, kOr1, kOr2, kOr3}};
-  for (std::int64_t index = 0; index < 4; ++index)
+  program.pre_policy_stages.push_back(
+      truth_gate(kBetweenEmpty0, kBetweenEmpty1, kRayAnd0, true));
+  program.pre_policy_stages.push_back(
+      truth_gate(kBetweenEmpty2, kBetweenEmpty3, kRayAnd1, true));
+  program.pre_policy_stages.push_back(
+      truth_gate(kBetweenEmpty4, kBetweenEmpty5, kRayAnd2, true));
+  program.pre_policy_stages.push_back(truth_gate(kRayAnd0, kRayAnd1, kRayAnd3, true));
+  program.pre_policy_stages.push_back(truth_gate(kRayAnd3, kRayAnd2, kRayClear, true));
+  const std::array<std::int64_t, 8> actor_features{{
+      kActorWb, kActorWr, kActorWq, kActorWk,
+      kActorBb, kActorBr, kActorBq, kActorBk}};
+  const std::array<std::int64_t, 8> geometry_features_ext{{
+      kGeomWb, kGeomWr, kGeomWq, kGeomWk,
+      kGeomBb, kGeomBr, kGeomBq, kGeomBk}};
+  const std::array<std::int64_t, 8> actor_geometry{{
+      kActorGeomWb, kActorGeomWr, kActorGeomWq, kActorGeomWk,
+      kActorGeomBb, kActorGeomBr, kActorGeomBq, kActorGeomBk}};
+  const std::array<std::int64_t, 8> target_geometry{{
+      kTargetGeomWb, kTargetGeomWr, kTargetGeomWq, kTargetGeomWk,
+      kTargetGeomBb, kTargetGeomBr, kTargetGeomBq, kTargetGeomBk}};
+  for (std::int64_t index = 0; index < 8; ++index) {
     program.pre_policy_stages.push_back(truth_gate(
-        branches[index * 2], branches[index * 2 + 1], or_level1[index], false));
-  program.pre_policy_stages.push_back(truth_gate(kOr0, kOr1, kOr4, false));
-  program.pre_policy_stages.push_back(truth_gate(kOr2, kOr3, kOr5, false));
-  program.pre_policy_stages.push_back(truth_gate(kOr4, kOr5, kLegal, false));
+        actor_features[index], geometry_features_ext[index], actor_geometry[index], true));
+    program.pre_policy_stages.push_back(truth_gate(
+        actor_geometry[index], index < 4 ? kTargetNotWhite : kTargetNotBlack,
+        target_geometry[index], true));
+  }
+  const std::array<std::int64_t, 6> slider_outputs{{
+      kSliderWbLegal, kSliderWrLegal, kSliderWqLegal,
+      kSliderBbLegal, kSliderBrLegal, kSliderBqLegal}};
+  for (std::int64_t index = 0; index < 3; ++index) {
+    program.pre_policy_stages.push_back(truth_gate(
+        target_geometry[index], kRayClear, slider_outputs[index], true));
+    program.pre_policy_stages.push_back(truth_gate(
+        target_geometry[index + 4], kRayClear, slider_outputs[index + 3], true));
+  }
+  program.pre_policy_stages.push_back(
+      truth_gate(target_geometry[3], target_geometry[3], kWkLegal, true));
+  program.pre_policy_stages.push_back(
+      truth_gate(target_geometry[7], target_geometry[7], kBkLegal, true));
+  std::vector<std::int64_t> branches{
+      kWnLegal, kBnLegal, kWp1Legal, kWp2Legal, kWpcLegal, kBp1Legal,
+      kBp2Legal, kBpcLegal, kSliderWbLegal, kSliderWrLegal, kSliderWqLegal,
+      kWkLegal, kSliderBbLegal, kSliderBrLegal, kSliderBqLegal, kBkLegal};
+  std::int64_t next_or = kExtOrBegin;
+  while (branches.size() > 1) {
+    std::vector<std::int64_t> next;
+    for (std::size_t index = 0; index < branches.size(); index += 2) {
+      const auto left = branches[index];
+      const auto right = branches[std::min(index + 1, branches.size() - 1)];
+      const auto destination = branches.size() <= 2 ? kLegal : next_or++;
+      program.pre_policy_stages.push_back(
+          truth_gate(left, right, destination, false));
+      next.push_back(destination);
+    }
+    branches = std::move(next);
+  }
 
   auto middle = zeros({kMoveCandidateCount, 64});
   auto descriptors = zeros({kMoveCandidateCount, 3});
@@ -294,21 +490,30 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
   auto source_rows = zeros({13, kPacketRows});
   auto target_rows = zeros({13, kPacketRows});
   auto middle_rows = zeros({13, kPacketRows});
+  auto between_rows = zeros({6, kPacketRows});
   for (std::int64_t piece = 0; piece < 13; ++piece) {
     source_rows.index_put_({piece, kSourceBegin + piece}, 1.0);
     target_rows.index_put_({piece, kTargetBegin + piece}, 1.0);
     middle_rows.index_put_({piece, kMiddleBegin + piece}, 1.0);
   }
+  for (std::int64_t slot = 0; slot < 6; ++slot)
+    between_rows.index_put_({slot, kBetweenBegin + slot}, 1.0);
   auto side_rows = zeros({2, kPacketRows});
   side_rows.index_put_({0, kSideBegin}, 1.0);
   side_rows.index_put_({1, kSideBegin + 1}, 1.0);
   auto geometry_row = zeros({kPacketRows, 1});
   geometry_row.index_put_({kGeometryRow, 0}, 1.0);
-  auto geometry_features = zeros({7, kFeatureCount});
+  auto geometry_features = zeros({21, kFeatureCount});
   for (std::int64_t feature = 0; feature < 7; ++feature)
     geometry_features.index_put_({feature, kGeomKnight + feature}, 1.0);
+  for (std::int64_t feature = 0; feature < 8; ++feature)
+    geometry_features.index_put_({7 + feature, kGeomWb + feature}, 1.0);
+  for (std::int64_t slot = 0; slot < 6; ++slot)
+    geometry_features.index_put_({15 + slot, kBetweenEmpty0 + slot}, 1.0);
   auto active_feature = zeros({kFeatureCount});
   active_feature.index_put_({kActive}, 1.0);
+  auto empty_feature = zeros({kFeatureCount});
+  empty_feature.index_put_({kPieceEmpty}, 1.0);
 
   program.tensors.emplace("state_template", zeros({kStateCoreRows, kFeatureCount}));
   program.tensors.emplace("state_layout", canonical_state_layout({}));
@@ -324,10 +529,12 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
   program.tensors.emplace("source_packet_rows", source_rows);
   program.tensors.emplace("target_packet_rows", target_rows);
   program.tensors.emplace("middle_packet_rows", middle_rows);
+  program.tensors.emplace("between_packet_rows", between_rows);
   program.tensors.emplace("side_packet_rows", side_rows);
   program.tensors.emplace("geometry_packet_row", geometry_row);
   program.tensors.emplace("geometry_feature_router", geometry_features);
   program.tensors.emplace("packet_active_feature", active_feature);
+  program.tensors.emplace("packet_empty_feature", empty_feature);
   program.tensors.emplace("candidate_broadcast", torch::ones({kMoveCandidateCount, 1}, torch::kFloat64));
   program.tensors.emplace("empty_piece", at::one_hot(torch::tensor(0), 13).to(torch::kFloat64));
   program.tensors.emplace("side_flip", torch::tensor({{0.0, 1.0}, {1.0, 0.0}}, torch::kFloat64));

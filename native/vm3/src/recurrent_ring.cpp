@@ -8,26 +8,28 @@
 namespace cmz::vm3 {
 namespace {
 
-torch::Tensor execute_packet_stage(const torch::Tensor& memory,
+torch::Tensor execute_packet_stage(const torch::Tensor& query,
+                                   const torch::Tensor& memory,
                                    const FrozenStage& stage,
                                    double temperature) {
   const auto& block = stage.attention_plan.blocks.front();
-  const auto query_tokens = torch::matmul(block.query_router, memory);
-  const auto key_tokens = torch::matmul(block.key_router, memory);
-  const auto q = torch::matmul(query_tokens, stage.wq);
+  const auto key_tokens = torch::index_select(memory, -2, block.global_key_ids);
+  const auto q = torch::matmul(query.unsqueeze(-2), stage.wq);
   const auto k = torch::matmul(key_tokens, stage.wk);
   const auto v = torch::matmul(key_tokens, stage.wv);
   const auto scores = torch::matmul(q, k.transpose(-2, -1)) + block.fixed_mask;
   const auto selection = deterministic_st_select(
       scores, block.fixed_eligibility, temperature).straight_through;
-  return memory + torch::matmul(block.output_router,
-                                torch::matmul(selection, v));
+  return query + torch::matmul(
+      torch::matmul(selection, v).squeeze(-2), stage.feature_router);
 }
 
-torch::Tensor assemble_rule_memory(const FrozenChessProgram& program,
-                                   const torch::Tensor& tokens) {
-  const auto board = board_state_view(tokens).unsqueeze(0);
-  const auto side = side_view(tokens).unsqueeze(0);
+torch::Tensor assemble_rule_memory_batch(const FrozenChessProgram& program,
+                                         const torch::Tensor& tokens) {
+  const auto active = tokens.select(-1, kStateActiveFeature);
+  const auto board = active.narrow(-1, kBoardOffset, kBoardRows)
+                         .view({tokens.size(0), 64, 13});
+  const auto side = active.narrow(-1, kSideOffset, kSideRows);
   const auto& source_square = program.tensors.at("candidate_source_square");
   const auto& target_square = program.tensors.at("candidate_target_square");
   const auto& middle_square = program.tensors.at("candidate_middle_square");
@@ -56,19 +58,38 @@ torch::Tensor assemble_rule_memory(const FrozenChessProgram& program,
   memory = memory +
       torch::matmul(side_active, program.tensors.at("side_packet_rows"))
               .unsqueeze(-1) * active_feature;
+  const auto& between_rows = program.tensors.at("between_packet_rows");
+  for (std::int64_t slot = 0; slot < 6; ++slot) {
+    const auto between_active = torch::matmul(
+        program.tensors.at("candidate_between_" + std::to_string(slot)), board);
+    memory = memory +
+        between_active.select(-1, 0).unsqueeze(-1).unsqueeze(-1) *
+        between_rows.select(0, slot).unsqueeze(-1) *
+        program.tensors.at("packet_empty_feature");
+  }
   return memory;
 }
 
 }  // namespace
 
+torch::Tensor compute_rule_legal(const FrozenChessProgram& program,
+                                 const torch::Tensor& state_tokens) {
+  return compute_rule_legal_batch(program, state_tokens.unsqueeze(0));
+}
+
+torch::Tensor compute_rule_legal_batch(const FrozenChessProgram& program,
+                                       const torch::Tensor& state_batch) {
+  auto memory = assemble_rule_memory_batch(program, state_batch);
+  auto query = memory.select(-2, rule::kQueryRow);
+  for (const auto& stage : program.pre_policy_stages)
+    query = execute_packet_stage(query, memory, stage, 1.0);
+  return query.select(-1, rule::kLegal);
+}
+
 StepResult recurrent_step(const FrozenChessProgram& program,
                           PolicyPair policies,
                           const ChessRingState& state) {
-  auto memory = assemble_rule_memory(program, state.tokens);
-  for (const auto& stage : program.pre_policy_stages)
-    memory = execute_packet_stage(memory, stage, 1.0);
-  const auto legal = memory.select(-2, rule::kQueryRow)
-                         .select(-1, rule::kLegal);
+  const auto legal = compute_rule_legal(program, state.tokens);
   const auto& zero = program.tensors.at("zero_bit");
   PolicyInput input{state.tokens.unsqueeze(0),
                     program.tensors.at("candidate_tokens").unsqueeze(0),

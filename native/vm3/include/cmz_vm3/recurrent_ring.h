@@ -14,6 +14,11 @@ struct StepResult {
   PolicyOutput policy;
 };
 
+torch::Tensor compute_rule_legal(const FrozenChessProgram& program,
+                                 const torch::Tensor& state_tokens);
+torch::Tensor compute_rule_legal_batch(const FrozenChessProgram& program,
+                                       const torch::Tensor& state_batch);
+
 StepResult recurrent_step(const FrozenChessProgram& program,
                           PolicyPair policies,
                           const ChessRingState& state);

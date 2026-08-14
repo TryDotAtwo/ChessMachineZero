@@ -1,5 +1,18 @@
 # Change history
 
+## 2026-08-14 — ordinary pseudo-legal frozen attention graph
+
+- Expanded the single VM3 rule image to 85 physical `d_head=2` stages over
+  identical 53-token packets for all ordinary piece geometry and Q/R/B/N
+  promotions, including six frozen between-square ray predicates.
+- Kept position semantics inside state-driven Q/K/V execution; compiler-only
+  relation tables are universal, and runtime has no chess branch or compiler
+  link. Added fixed-index HullKV row routing and low-rank V factorization without
+  changing exact hard output or ST gradients.
+- Added exhaustive geometry/blocker/promotion native tests and an exact
+  516-position GPU oracle against python-chess. Castling, en-passant and king
+  safety remain explicitly outside this completed task.
+
 ## 2026-08-14 — unified pawn-and-knight recurrent ring
 
 - Added compiler-only pawn/knight geometry relations, reusable binary truth

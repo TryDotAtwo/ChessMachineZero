@@ -1,5 +1,18 @@
 # Project memory
 
+- 2026-08-14: VM3 ordinary pseudo-legality now covers pawns, knights, bishops,
+  rooks, queens, kings and all four promotions in the same 4272-candidate rule
+  image. Identical 53-token packets run 85 frozen physical `d_head=2` Q/K/V
+  stages; source/target lookup, side match, six ray-empty predicates and all
+  Boolean reductions are attention operations. Compiler relations contain only
+  universal geometry/between-square facts; board-dependent results come from
+  the canonical state. Exact fixed-index HullKV routing and low-rank V factors
+  remove zero work while preserving hard output and gradients. Native CTest is
+  10/10, purity has zero findings, a 516-position RTX 3070 pseudo-legal oracle
+  matches python-chess exactly after the Task-9 castling/EP filter, and GPU
+  recurrent-gradient evidence passes. This is not yet king-safe/full chess:
+  special moves, trial transitions and attack filtering remain open.
+
 - 2026-08-14: VM3 now closes a minimal unified pawn-and-knight recurrent ring.
   One serialized and SHA-256-validated frozen image runs 4272 candidates as a fixed batch of
   identical 47-token packets through 34 physical `d_head=2` attention stages.
