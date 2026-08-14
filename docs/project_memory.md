@@ -1,5 +1,20 @@
 # Project memory
 
+- 2026-08-14: VM3 now closes a minimal unified pawn-and-knight recurrent ring.
+  One serialized and SHA-256-validated frozen image runs 4272 candidates as a fixed batch of
+  identical 47-token packets through 34 physical `d_head=2` attention stages.
+  Compiler-only rule tables provide universal pawn/knight geometry; runtime
+  receives only board/side state plus raw candidates and performs fixed
+  matmul, attention, ST selection and matrix board/state writes. A step emits
+  one common LEGAL tensor, exact selected descriptor, same-ABI next state and
+  one attached MOVE/KV slot; its output feeds the same step directly. Exact
+  CPU/GPU tests cover white/black moves, captures, own occupancy, blocked double
+  pushes, two-ply recurrence and gradient flow from output board through legal
+  eligibility into input state. Acceptance executes only after a binary
+  `save_frozen_program -> load_frozen_program` round trip, including direct GPU
+  loading; the compiler is absent from the executor link closure. This remains a pawn/knight slice, not full
+  pseudo-legal or king-safe chess.
+
 - 2026-08-14: VM3 has a swappable bounded attention-only policy ABI. Raw
   trainable scalars are converted by stable signed-binary softmax before every
   matmul; all Q/K/V, learned queries and reusable outputs are re-bounded, every

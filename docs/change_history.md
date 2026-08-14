@@ -1,5 +1,19 @@
 # Change history
 
+## 2026-08-14 — unified pawn-and-knight recurrent ring
+
+- Added compiler-only pawn/knight geometry relations, reusable binary truth
+  gates and a serialized, per-tensor SHA-256-validated 34-stage frozen rule
+  image over one 4272-candidate bank.
+- Added the generic executor-only recurrent step: packet assembly, routed
+  two-dimensional attention, shared LEGAL tensor, policy routing, exact matrix
+  board/side write and append-only MOVE/KV trajectory.
+- Added exact integration tests for both sides, pushes, double pushes,
+  captures, knight geometry, occupancy, board write, side flip and immediate
+  second-step recurrence, plus SHA and end-to-end gradient assertions.
+- Preserved the compiler/executor link boundary and runtime purity; CPU and RTX
+  3070 gates pass after the same binary writer/loader round trip.
+
 ## 2026-08-14 — bounded swappable attention-only policy
 
 - Added ZeroPolicy and a minimal TransformerPolicy with shared local

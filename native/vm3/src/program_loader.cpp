@@ -80,6 +80,13 @@ double upper(long double value){double out=static_cast<double>(value);return sta
 
 }  // namespace
 
+std::array<std::uint8_t, 32> tensor_sha256(const torch::Tensor& tensor) {
+  const auto cpu = tensor.to(torch::kCPU).contiguous();
+  std::vector<std::uint8_t> bytes(cpu.nbytes());
+  std::memcpy(bytes.data(), cpu.const_data_ptr(), bytes.size());
+  return sha256(std::move(bytes));
+}
+
 FrozenChessProgram load_frozen_program(const std::filesystem::path& path, const torch::Device& device) {
   Reader r(path); FrozenChessProgram p;
   const std::array<char,8> magic{'C','M','Z','V','M','3','\0','\0'};
@@ -90,12 +97,12 @@ FrozenChessProgram load_frozen_program(const std::filesystem::path& path, const 
   if(nt>100000||nn>100000||nc>100000||npre>10000||npost>10000) Reader::fail("count limit");
   for(std::uint32_t i=0;i<nt;++i){
     ProgramTensorManifest m; m.name=r.string(); if(m.name.empty()||p.tensors.count(m.name)) Reader::fail("duplicate tensor name");
-    const auto dtype=r.value<std::uint32_t>(); if(dtype!=1) Reader::fail("unsupported dtype"); m.dtype=torch::kFloat64;
+    const auto dtype=r.value<std::uint32_t>(); if(dtype!=1&&dtype!=2) Reader::fail("unsupported dtype"); m.dtype=dtype==1?torch::kFloat64:torch::kInt64;
     const auto rank=r.value<std::uint32_t>(); if(rank>8) Reader::fail("tensor rank"); std::int64_t numel=1;
     for(std::uint32_t j=0;j<rank;++j){auto d=r.value<std::int64_t>();if(d<0||d>100000000)Reader::fail("tensor shape");m.shape.push_back(d);numel*=d;}
     const auto bytes=r.value<std::uint64_t>(); std::array<std::uint8_t,32> wanted{}; for(auto& x:wanted)x=r.value<std::uint8_t>(); auto payload=r.bytes(bytes);
-    if(bytes!=static_cast<std::uint64_t>(numel)*sizeof(double)) Reader::fail("tensor payload size"); if(sha256(payload)!=wanted) Reader::fail("SHA-256 mismatch");
-    m.sha256=wanted; auto options=torch::TensorOptions().dtype(torch::kFloat64).device(torch::kCPU);
+    if(bytes!=static_cast<std::uint64_t>(numel)*(dtype==1?sizeof(double):sizeof(std::int64_t))) Reader::fail("tensor payload size"); if(sha256(payload)!=wanted) Reader::fail("SHA-256 mismatch");
+    m.sha256=wanted; auto options=torch::TensorOptions().dtype(m.dtype).device(torch::kCPU);
     auto tensor=torch::from_blob(payload.data(), m.shape, options).clone(); tensor.set_requires_grad(false);
     p.manifest.push_back(m); p.tensors.emplace(m.name,std::move(tensor));
   }

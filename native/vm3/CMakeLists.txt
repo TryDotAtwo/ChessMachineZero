@@ -13,6 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMZ_VM3_EXECUTOR_SOURCES
   src/attention2d.cpp
   src/chess_state_views.cpp
+  src/recurrent_ring.cpp
   src/trajectory.cpp
 )
 set(CMZ_VM3_POLICY_SOURCES
@@ -26,6 +27,10 @@ set(CMZ_VM3_LOADER_SOURCES
 set(CMZ_VM3_COMPILER_SOURCES
   compiler/candidate_bank.cpp
   compiler/initial_state_binder.cpp
+  compiler/pawn_rules.cpp
+  compiler/piece_rules.cpp
+  compiler/rule_image_writer.cpp
+  compiler/rule_compiler.cpp
 )
 
 add_library(cmz_vm3_program_loader STATIC ${CMZ_VM3_LOADER_SOURCES})
@@ -43,6 +48,9 @@ target_link_libraries(cmz_vm3_compiler PUBLIC cmz_vm3_program_loader ${TORCH_LIB
 add_library(cmz_vm3_executor STATIC ${CMZ_VM3_EXECUTOR_SOURCES})
 target_include_directories(cmz_vm3_executor PUBLIC include ${TORCH_INCLUDE_DIRS})
 target_link_libraries(cmz_vm3_executor PUBLIC cmz_vm3_policy cmz_vm3_program_loader ${TORCH_LIBRARIES})
+
+add_executable(cmz_vm3_compile_minimal_rules compiler/rule_compiler_main.cpp)
+target_link_libraries(cmz_vm3_compile_minimal_rules PRIVATE cmz_vm3_compiler ${TORCH_LIBRARIES})
 
 add_executable(cmz_vm3_contract tests/test_contract.cpp)
 target_include_directories(cmz_vm3_contract PRIVATE include)
@@ -78,3 +86,7 @@ add_test(NAME cmz_vm3_candidate_bank COMMAND cmz_vm3_test_candidate_bank)
 add_executable(cmz_vm3_test_policy tests/test_policy.cpp)
 target_link_libraries(cmz_vm3_test_policy PRIVATE cmz_vm3_executor ${TORCH_LIBRARIES})
 add_test(NAME cmz_vm3_policy COMMAND cmz_vm3_test_policy)
+
+add_executable(cmz_vm3_test_minimal_ring tests/test_minimal_ring.cpp)
+target_link_libraries(cmz_vm3_test_minimal_ring PRIVATE cmz_vm3_executor cmz_vm3_compiler ${TORCH_LIBRARIES})
+add_test(NAME cmz_vm3_minimal_ring COMMAND cmz_vm3_test_minimal_ring)

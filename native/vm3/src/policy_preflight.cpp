@@ -6,6 +6,15 @@
 
 namespace cmz::vm3 {
 
+PolicyRouting policy_routing_from_program(const FrozenChessProgram& program) {
+  return {program.tensors.at("policy_move_routes"),
+          program.tensors.at("policy_move_sentinel_route"),
+          program.tensors.at("policy_control_routes"),
+          program.tensors.at("policy_halt_route"),
+          program.tensors.at("policy_claim_now_route"),
+          program.tensors.at("policy_accept_column")};
+}
+
 void validate_policy_preflight(const PolicyModule& policy) {
   const auto& contract = policy.contract();
   const auto& manifest = policy.operation_manifest();

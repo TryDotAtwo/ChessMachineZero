@@ -74,6 +74,8 @@ struct PolicyRouting {
   torch::Tensor accept_column;
 };
 
+PolicyRouting policy_routing_from_program(const FrozenChessProgram& program);
+
 PolicyOutput apply_policy_gate(const PolicyInput& input,
                                const PolicyRouting& routing,
                                const torch::Tensor& candidate_logits,
@@ -149,12 +151,13 @@ struct PolicyPair {
 
 struct PolicyPairOutput {
   PolicyOutput selected;
-  PolicyKvSlot selected_move_kv;
 };
 
 PolicyPairOutput run_policy_pair(PolicyPair pair,
                                  const PolicyInput& input,
-                                 const torch::Tensor& side_route,
-                                 const MoveSlot& emitted_slot);
+                                 const torch::Tensor& side_route);
+PolicyKvSlot encode_policy_pair_move(PolicyPair pair,
+                                     const torch::Tensor& side_route,
+                                     const MoveSlot& emitted_slot);
 
 }  // namespace cmz::vm3

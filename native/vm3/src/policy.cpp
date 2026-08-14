@@ -151,8 +151,10 @@ const PolicyOperationManifest& ZeroPolicy::operation_manifest() const {
 PolicyOutput ZeroPolicy::forward(const PolicyInput& input) {
   const auto candidate_logits = input.candidate_tokens.slice(-1, 0, 2) * 0.0;
   const auto control_logits = input.state_tokens.slice(1, 0, 3).slice(-1, 0, 2) * 0.0;
-  return apply_policy_gate(input, routing_, candidate_logits, control_logits,
-                           temperature_);
+  const auto state_packet = input.state_tokens.slice(-1, 0, 2) * 0.0;
+  return route_policy(input, routing_, candidate_logits, control_logits,
+                      temperature_, candidate_logits, state_packet,
+                      state_packet, state_packet, state_packet);
 }
 
 PolicyKvSlot ZeroPolicy::encode_move(const MoveSlot& slot) {
@@ -295,12 +297,9 @@ PolicyOutput TransformerPolicy::forward(const PolicyInput& input) {
 
 PolicyPairOutput run_policy_pair(PolicyPair pair,
                                  const PolicyInput& input,
-                                 const torch::Tensor& side_route,
-                                 const MoveSlot& emitted_slot) {
+                                 const torch::Tensor& side_route) {
   const auto first = pair.white.forward(input);
   const auto second = pair.black.forward(input);
-  const auto first_kv = pair.white.encode_move(emitted_slot);
-  const auto second_kv = pair.black.encode_move(emitted_slot);
   const auto w0_matrix = side_route.select(-1, 0).unsqueeze(-1);
   const auto w1_matrix = side_route.select(-1, 1).unsqueeze(-1);
   const auto w0_tensor = w0_matrix.unsqueeze(-1);
@@ -324,9 +323,18 @@ PolicyPairOutput run_policy_pair(PolicyPair pair,
       mix_tensor(first.state_v, second.state_v),
       mix_tensor(first.history_k, second.history_k),
       mix_tensor(first.history_v, second.history_v)};
-  return {selected,
-          {mix_matrix(first_kv.key, second_kv.key),
-           mix_matrix(first_kv.value, second_kv.value)}};
+  return {selected};
+}
+
+PolicyKvSlot encode_policy_pair_move(PolicyPair pair,
+                                     const torch::Tensor& side_route,
+                                     const MoveSlot& emitted_slot) {
+  const auto first = pair.white.encode_move(emitted_slot);
+  const auto second = pair.black.encode_move(emitted_slot);
+  const auto w0 = side_route.select(-1, 0).unsqueeze(-1);
+  const auto w1 = side_route.select(-1, 1).unsqueeze(-1);
+  return {w0 * first.key + w1 * second.key,
+          w0 * first.value + w1 * second.value};
 }
 
 }  // namespace cmz::vm3

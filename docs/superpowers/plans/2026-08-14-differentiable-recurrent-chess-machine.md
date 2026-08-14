@@ -964,17 +964,17 @@ struct StepResult { ChessRingState next; Tensor legal; Tensor selected_move;
 StepResult recurrent_step(const FrozenChessProgram&, PolicyPair&, const ChessRingState&);
 ```
 
-- [ ] **Step 1: Write RED integration tests** using one shared board and one
+- [x] **Step 1: Write RED integration tests** using one shared board and one
 candidate bank: pawn and knight legal predicates, policy winner, exact board
 write, side flip, one trajectory append and direct second-step consumption.
 
-- [ ] **Step 2: Run RED.**
+- [x] **Step 2: Run RED.**
 
 ```powershell
 powershell -File tools/vm3-ci.ps1 -Target cmz_vm3_test_minimal_ring -CTestRegex '^cmz_vm3_minimal_ring$'
 ```
 
-- [ ] **Step 3: Port accepted pawn/knight relations into one serialized VM3
+- [x] **Step 3: Port accepted pawn/knight relations into one serialized VM3
 rule image.** Compiler code emits only tensors/stage metadata. The generic
 `recurrent_ring.cpp` executes the image without linking compiler objects.
 Remove VM2's separate widths/depths, synthetic legal-set assembly and
@@ -1008,7 +1008,12 @@ The loops above are fixed structural stage iteration. `decode_tensor_views`
 returns tensor slices/views only; it does not read values or branch. The
 compiler has its own executable that produces and hashes the stage tensors.
 
-- [ ] **Step 4: Run GREEN** and compare canonical semantic projections with VM2:
+Implementation note: the accepted graph runs as an equivalent fixed batch of
+4272 identical 47-token routed self-attention packets. This avoids quadratic
+global row routers while preserving one immutable stage list, physical
+`d_head=2`, exact hard winners and the same frozen rule semantics.
+
+- [x] **Step 4: Run GREEN** and compare canonical semantic projections with VM2:
 legal candidate IDs, selected source/target/promotion, output board and side.
 Token bytes are deliberately not compared because VM3 has a different ABI.
 
@@ -1016,7 +1021,7 @@ Token bytes are deliberately not compared because VM3 has a different ABI.
 powershell -File tools/vm3-ci.ps1 -Target cmz_vm3_test_minimal_ring -CTestRegex '^cmz_vm3_minimal_ring$'
 ```
 
-- [ ] **Step 5: Commit** as `feat: close unified pawn knight recurrent ring`.
+- [x] **Step 5: Commit** as `feat: close unified pawn knight recurrent ring`.
 
 ### Task 9: Ordinary pseudo-legal geometry and promotion
 

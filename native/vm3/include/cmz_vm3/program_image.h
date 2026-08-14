@@ -78,6 +78,8 @@ struct FrozenChessProgram {
   std::vector<FrozenStage> post_policy_stages;
 };
 
+std::array<std::uint8_t, 32> tensor_sha256(const torch::Tensor& tensor);
+
 FrozenChessProgram load_frozen_program(const std::filesystem::path& path,
                                        const torch::Device& device);
 

@@ -347,12 +347,13 @@ int main(int argc, char** argv) {
       routing(options), transformer_initialization(options), 0.7);
   const auto side_route = torch::tensor({{1.0, 0.0}}, options);
   const cmz::vm3::PolicyPair pair{transformer, opponent};
-  const auto paired = cmz::vm3::run_policy_pair(
-      pair, learned_input, side_route, history.move_slots[0]);
+  const auto paired = cmz::vm3::run_policy_pair(pair, learned_input, side_route);
+  const auto paired_kv = cmz::vm3::encode_policy_pair_move(
+      pair, side_route, history.move_slots[0]);
   ok &= require(torch::allclose(paired.selected.candidate_logits,
                                 learned.candidate_logits, 1e-12, 1e-12),
                 "both policies execute and frozen side routing selects one output");
-  ok &= require(torch::allclose(paired.selected_move_kv.key,
+  ok &= require(torch::allclose(paired_kv.key,
                                 transformer.encode_move(history.move_slots[0]).key,
                                 1e-12, 1e-12),
                 "the same tensor side route selects the emitted policy K/V");
