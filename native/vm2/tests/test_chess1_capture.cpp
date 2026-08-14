@@ -27,13 +27,13 @@ int main() {
     using cmz::vm2::Chess1Piece;
     using cmz::vm2::Chess1Side;
 
-    const auto circuit = cmz::vm2::compile_chess1_circuit(2 * 64 + 27);
+    const auto circuit = cmz::vm2::compile_chess1_circuit();
 
     Chess1Board white{};
     white.squares[27] = Chess1Piece::WhitePawn;
     white.squares[34] = Chess1Piece::BlackPawn;
     white.squares[36] = Chess1Piece::BlackOther;
-    const auto bound = cmz::vm2::bind_chess1_board(circuit, white);
+    const auto bound = cmz::vm2::bind_chess1_input(circuit, white, 2 * 64 + 27);
     const auto fresh = cmz::vm2::compile_chess1(white, 2 * 64 + 27);
     require(torch::equal(bound.tokens, fresh.tokens),
             "binding board tokens must match fresh compilation byte-for-byte");

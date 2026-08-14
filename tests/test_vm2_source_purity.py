@@ -64,6 +64,27 @@ def test_temporary_move_policy_is_only_matrix_scores_and_hardmax() -> None:
         assert forbidden not in runtime
 
 
+def test_legal_set_assembly_is_only_frozen_matrix_routing() -> None:
+    source = (ROOT / "native/vm2/src/legal_set.cpp").read_text(encoding="utf-8")
+    runtime = source.split("torch::Tensor assemble_legal_set", 1)[1]
+    assert runtime.count("torch::matmul(") == 2
+    for forbidden in ("if (", "switch (", ".item<", "index_put_", "cat(", "where("):
+        assert forbidden not in runtime
+
+
+def test_pawn_requested_move_is_input_data_not_circuit_selection() -> None:
+    header = (ROOT / "native/vm2/include/cmz_vm2/chess1_compiler.h").read_text(
+        encoding="utf-8"
+    )
+    source = (ROOT / "native/vm2/src/chess1_compiler.cpp").read_text(encoding="utf-8")
+    assert "ProgramImage compile_chess1_circuit();" in header
+    assert "ProgramImage bind_chess1_input(" in header
+    circuit = source.split("ProgramImage compile_chess1_circuit()", 1)[1].split(
+        "ProgramImage bind_chess1_board", 1
+    )[0]
+    assert "selected_candidate" not in circuit
+
+
 @pytest.mark.parametrize(
     ("injected", "message"),
     [

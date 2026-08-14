@@ -62,3 +62,5 @@
 - Add a temporary move chooser, but isolate it behind a tensor contract so a
   trained transformer policy can replace it later without changing rule
   inference; keep rule legality and selection free of host chess logic.
+- Continue implementation by unifying pawn and knight legal candidates under
+  that policy contract, preserving fixed weights and input-token move requests.

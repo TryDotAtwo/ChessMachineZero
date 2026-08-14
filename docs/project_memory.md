@@ -114,3 +114,10 @@
   tokens, applies frozen matrix projections and hardmax-selects the first legal
   trace candidate. Its candidate-score tensor contract is intentionally the
   replacement seam for a future trained transformer policy.
+- Pawn requested-move selection no longer changes an attention mask. One
+  compiled circuit accepts the requested `(source, move_kind)` in
+  `SelectedToken`; fixed stage-9 Q/K weights match it against all 256 pawn
+  candidates.
+- Pawn and knight predicate streams now share a `LegalSetAssembler`: two frozen
+  row projections form one ordered `[NOT_LEGAL, LEGAL]` tensor consumed by the
+  same swappable move policy.

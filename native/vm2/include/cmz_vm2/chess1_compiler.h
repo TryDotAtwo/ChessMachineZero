@@ -67,7 +67,11 @@ inline constexpr std::int64_t kOutputSideOffset = 205;
 
 ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_source);
 ProgramImage compile_chess1_auto(const Chess1Board& board);
-ProgramImage compile_chess1_circuit(std::int64_t selected_candidate);
+ProgramImage compile_chess1_circuit();
 ProgramImage bind_chess1_board(const ProgramImage& circuit, const Chess1Board& board);
+ProgramImage bind_chess1_input(
+    const ProgramImage& circuit,
+    const Chess1Board& board,
+    std::int64_t selected_candidate);
 
 }  // namespace cmz::vm2

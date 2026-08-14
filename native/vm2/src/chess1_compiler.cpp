@@ -189,6 +189,9 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_cand
     one_hot(tokens, chess1::kOffboardToken, kTargetOffset, 64);
     if (selected_candidate == -1) {
         one_hot(tokens, chess1::kSelectedToken, chess1::kLegalOffset, 1);
+    } else {
+        one_hot(tokens, chess1::kSelectedToken, kSquareOffset, selected_candidate % 64);
+        one_hot(tokens, chess1::kSelectedToken, kMoveKindOffset, selected_candidate / 64);
     }
     one_hot(tokens, chess1::kSourceWriteToken, kSourcePieceOffset,
             static_cast<std::int64_t>(Chess1Piece::Empty));
@@ -364,16 +367,16 @@ ProgramImage compile_chess1(const Chess1Board& board, std::int64_t selected_cand
     weight(weights.wv[9], kSideOffset + 0, kNextSideOffset + 1);
     weight(weights.wv[9], kSideOffset + 1, kNextSideOffset + 0);
     masks[9].index_put_({chess1::kSelectedToken, chess1::kSelectedToken}, negative_infinity);
+    for (std::int64_t candidate = 0; candidate < chess1::kCandidateTokenCount; ++candidate) {
+        masks[9].index_put_({chess1::kSelectedToken,
+                             chess1::kCandidateTokenBegin + candidate}, 0.0);
+    }
     if (selected_candidate == -1) {
         weight(weights.wq[9], chess1::kLegalOffset + 1, 0);
         weight(weights.wk[9], chess1::kLegalOffset + 1, 0);
-        for (std::int64_t candidate = 0; candidate < chess1::kCandidateTokenCount; ++candidate) {
-            masks[9].index_put_({chess1::kSelectedToken,
-                                 chess1::kCandidateTokenBegin + candidate}, 0.0);
-        }
     } else {
-        masks[9].index_put_({chess1::kSelectedToken,
-                             chess1::kCandidateTokenBegin + selected_candidate}, 0.0);
+        score_category(weights, 9, kSquareOffset, 0, 64);
+        score_category(weights, 9, kMoveKindOffset, 64, kMoveKindCount);
     }
     enable_write(projections, 9, chess1::kSelectedToken, chess1::kSelectedToken + 1,
                  kSquareOffset, kTargetOffset + 65);
@@ -482,8 +485,8 @@ ProgramImage compile_chess1_auto(const Chess1Board& board) {
     return compile_chess1(board, -1);
 }
 
-ProgramImage compile_chess1_circuit(std::int64_t selected_candidate) {
-    return compile_chess1(Chess1Board{}, selected_candidate);
+ProgramImage compile_chess1_circuit() {
+    return compile_chess1(Chess1Board{}, 0);
 }
 
 ProgramImage bind_chess1_board(const ProgramImage& circuit, const Chess1Board& board) {
@@ -508,6 +511,26 @@ ProgramImage bind_chess1_board(const ProgramImage& circuit, const Chess1Board& b
     return ProgramImage{tokens, circuit.attention_masks, circuit.attention_blocks,
                         circuit.write_projections,
                         circuit.weights};
+}
+
+ProgramImage bind_chess1_input(
+    const ProgramImage& circuit,
+    const Chess1Board& board,
+    std::int64_t selected_candidate) {
+    if (selected_candidate < 0 || selected_candidate >= chess1::kCandidateTokenCount) {
+        throw std::invalid_argument("selected candidate is outside 0..255");
+    }
+    auto bound = bind_chess1_board(circuit, board);
+    auto tokens = bound.tokens.clone();
+    tokens.index_put_({chess1::kSelectedToken,
+                       torch::indexing::Slice(kSquareOffset, kSquareOffset + 64)}, 0.0);
+    tokens.index_put_({chess1::kSelectedToken,
+                       torch::indexing::Slice(kMoveKindOffset,
+                                              kMoveKindOffset + kMoveKindCount)}, 0.0);
+    one_hot(tokens, chess1::kSelectedToken, kSquareOffset, selected_candidate % 64);
+    one_hot(tokens, chess1::kSelectedToken, kMoveKindOffset, selected_candidate / 64);
+    bound.tokens = tokens.detach().set_requires_grad(false);
+    return bound;
 }
 
 }  // namespace cmz::vm2

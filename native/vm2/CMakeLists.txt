@@ -48,6 +48,17 @@ target_link_libraries(cmz_vm2_test_move_policy PRIVATE cmz_vm2_move_policy)
 target_compile_options(cmz_vm2_test_move_policy PRIVATE "${TORCH_CXX_FLAGS}")
 add_test(NAME cmz_vm2_move_policy COMMAND cmz_vm2_test_move_policy)
 
+add_library(cmz_vm2_legal_set STATIC src/legal_set.cpp)
+target_include_directories(cmz_vm2_legal_set PUBLIC include)
+target_link_libraries(cmz_vm2_legal_set PUBLIC ${TORCH_LIBRARIES})
+target_compile_options(cmz_vm2_legal_set PRIVATE "${TORCH_CXX_FLAGS}")
+
+add_executable(cmz_vm2_test_legal_set tests/test_legal_set.cpp)
+target_include_directories(cmz_vm2_test_legal_set PRIVATE include)
+target_link_libraries(cmz_vm2_test_legal_set PRIVATE cmz_vm2_legal_set cmz_vm2_move_policy)
+target_compile_options(cmz_vm2_test_legal_set PRIVATE "${TORCH_CXX_FLAGS}")
+add_test(NAME cmz_vm2_legal_set COMMAND cmz_vm2_test_legal_set)
+
 add_library(cmz_vm2_attention_cost STATIC src/attention_cost.cpp)
 target_include_directories(cmz_vm2_attention_cost PUBLIC include)
 target_link_libraries(cmz_vm2_attention_cost PUBLIC cmz_vm2_attention)

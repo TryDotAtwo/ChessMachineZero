@@ -165,3 +165,8 @@
 - Added a swappable tensor-only move-policy contract. The current frozen
   fallback chooses the first rule-emitted legal candidate; a trained scorer can
   replace its projection without changing the rule VM or transition interface.
+- Removed candidate-specific pawn attention masks. Requested pawn moves are now
+  input-token data selected by fixed Q/K matching across the complete candidate
+  bank.
+- Added a frozen matrix-only legal-set assembler that combines pawn and knight
+  predicate streams before the shared policy hardmax.
