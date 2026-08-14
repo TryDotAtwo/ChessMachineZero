@@ -193,6 +193,12 @@ The recurrent `ChessRingState` contains:
 - a logical append-only trajectory tape;
 - fixed candidate and rule workspace rows.
 
+Each alternative above is represented by a fixed predicate-token row whose
+active value is column zero. Token identity/features and workspace remain in
+the same 2D tensor. A checksum-loaded `state_layout` tensor publishes every
+core offset/width; initialization fails closed unless it matches the compiled
+ABI. Consequently the recurrent output has exactly the input template shape.
+
 19. One committed move appends exactly one logical `MOVE` token. Terminal steps
     append none.
 20. Policy supplies only `source`, `target` and promotion choice. Capture,

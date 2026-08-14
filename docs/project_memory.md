@@ -1,5 +1,14 @@
 # Project memory
 
+- 2026-08-14: the canonical VM3 recurrent state ABI is a same-shape 2D token
+  tensor with predicate activity in column zero and immutable identity/workspace
+  features in the remaining columns. Its 1724 core rows encode 64x13 square
+  states, side, exact castling state, raw EP, clocks, radix fullmove/cursor,
+  claim mode/availability, terminal and result. An initialization-only compiler
+  binder verifies a checksum-loaded layout tensor, preserves workspace/storage,
+  and binds on CPU or GPU. Exact native boundary tests and eight python-chess
+  FEN oracle cases pass; no FEN adapter is linked to runtime.
+
 - 2026-08-14: VM3 now has true physical `d_head=2` dense attention and an
   immutable grouped key-block backend. Both use the same `Wq/Wk/Wv`; block
   routing is fixed by row routers, query-group offsets and global key IDs.

@@ -1,5 +1,18 @@
 # Change history
 
+## 2026-08-14 — canonical recurrent state ABI
+
+- Added the fixed 1724-row core state layout, typed board/metadata/claim/
+  terminal enums, same-shape state container and runtime-only fixed tensor
+  views.
+- Added an initialization-only compiler binder that validates the immutable
+  `state_layout`, fills exact predicate rows, preserves template identity and
+  workspace features, and rejects every out-of-range input before rollout.
+- Added exhaustive native tests for all 13 piece states, 16 castling states,
+  NONE plus 64 raw EP states, both sides/modes, clock/radix limits and defaults.
+  CPU and RTX 3070 binding pass; eight python-chess FEN oracle cases match the
+  native numeric packet through a test-only CLI.
+
 ## 2026-08-14 — exact batched two-dimensional ST attention
 
 - Added dense `d_head=2` attention and a two-pass immutable key-block path with

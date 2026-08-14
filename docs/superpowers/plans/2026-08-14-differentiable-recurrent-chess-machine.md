@@ -576,6 +576,12 @@ base-128 fullmove digits (maximum accepted value 9526), three base-128
 trajectory/cursor digits, claim-mode/claim/terminal/result rows and fixed
 workspace. The compiler publishes every offset and width in the manifest;
 input and output shapes are identical.
+Every semantic alternative occupies a fixed predicate-token row. Column zero is
+the active value written by the initialization binder and later frozen matrix
+writes; all remaining identity/features and trailing workspace rows come from
+the immutable `state_template`. The checksum-loaded `state_layout` tensor lists
+the eleven `(offset,width)` core segments and must match the compiled ABI before
+binding. The two claim-availability rows are `CLAIM_NOW` and `CLAIM_AFTER`.
 
 - [ ] **Step 1: Write exact one-hot and FEN round-trip oracle tests** covering
 all 13 square states, 16 castling combinations, `EP=NONE|square`, both claim
