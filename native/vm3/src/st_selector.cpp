@@ -30,6 +30,13 @@ void validate_temperature(double temperature) {
 
 }  // namespace
 
+torch::Tensor exact_hard_soft_selection(const torch::Tensor& hard,
+                                        const torch::Tensor& soft) {
+  TORCH_CHECK(hard.sizes() == soft.sizes(),
+              "VM3 hard and soft selections must have identical shapes");
+  return ExactHardSoftBackward::apply(hard, soft);
+}
+
 StSelection deterministic_st_select(const torch::Tensor& scores,
                                     double temperature) {
   return deterministic_st_select(scores, torch::ones_like(scores), temperature);
@@ -44,7 +51,7 @@ StSelection deterministic_st_select(const torch::Tensor& scores,
   const auto probabilities = unnormalized / unnormalized.sum(-1, true);
   const auto hard_indices = std::get<1>(scores.max(-1, false));
   const auto hard = at::one_hot(hard_indices, scores.size(-1)).to(scores.scalar_type());
-  const auto straight_through = ExactHardSoftBackward::apply(hard, probabilities);
+  const auto straight_through = exact_hard_soft_selection(hard, probabilities);
   return {probabilities, hard_indices, hard, straight_through};
 }
 

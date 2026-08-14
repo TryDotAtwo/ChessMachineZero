@@ -287,6 +287,14 @@ The recurrent `ChessRingState` contains:
      graph is executed or accepted as evidence.
 35. Dense ST attention is the training/reference backend and computes exact
     stable-softmax surrogate gradients.
+35a. The exact block backend consumes the same `Wq/Wk/Wv` as dense attention.
+     Its immutable plan contains row routers, globally ordered key identifiers
+     and contiguous query-group offsets. It performs a global two-pass stable
+     normalization across every key block in a query group. Hard selection is
+     lexicographic by global key index; `V/Wv` receive the hard-selection
+     gradient while scores, Q and K receive the identical dense surrogate
+     gradient. Block membership is structural and never selected from tensor
+     values.
 36. The convex-hull 2D KV backend is an inference backend for exact hard lookup
     and must match dense forward, including lowest-index ties.
 37. No claim is made that exact dense softmax normalization is `O(log n)`.

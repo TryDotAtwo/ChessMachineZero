@@ -38,7 +38,11 @@ FORBIDDEN_PATTERNS = (
     (re.compile(r"\.detach\s*\("), "autograd detach"),
     (re.compile(r"torch::(?:where|nonzero)\s*\("), "dynamic tensor routing"),
     (re.compile(r"\.index_(?:put|select)_?\s*\("), "in-place semantic write"),
+    (re.compile(r"\.(?:gather|nonzero|sort|topk)\s*\("), "dynamic tensor routing"),
+    (re.compile(r"\.(?:gt|ge|lt|le|eq)\s*\("), "state-dependent mask"),
     (re.compile(r"torch::relu\s*\(|\.relu\s*\("), "unregistered tensor operation"),
+    (re.compile(r"\b(?:NoGradGuard|cudaStreamSynchronize|synchronize|host_callback)\b"),
+     "host or autograd escape"),
 )
 
 CHESS_WORD = re.compile(
@@ -57,6 +61,7 @@ ALLOWED_TORCH_OPERATIONS = {
     "torch::exp",
     "torch::matmul",
     "torch::ones_like",
+    "torch::stack",
 }
 
 
@@ -118,7 +123,7 @@ def target_is_declared(cmake_text: str, target: str) -> bool:
 
 def compiler_is_linked(cmake_text: str) -> bool:
     match = re.search(
-        r"target_link_libraries\(\s*cmz_vm3_executor\s+INTERFACE\s+(.*?)\)",
+        r"target_link_libraries\(\s*cmz_vm3_executor\s+(?:INTERFACE|PUBLIC|PRIVATE)\s+(.*?)\)",
         cmake_text,
         re.DOTALL,
     )

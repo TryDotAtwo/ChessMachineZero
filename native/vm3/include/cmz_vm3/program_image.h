@@ -50,9 +50,13 @@ struct Attention2dBlock {
   torch::Tensor output_router;
   torch::Tensor fixed_mask;
   torch::Tensor fixed_eligibility;
+  torch::Tensor global_key_ids;
 };
 
-struct Attention2dPlan { std::vector<Attention2dBlock> blocks; };
+struct Attention2dPlan {
+  std::vector<Attention2dBlock> blocks;
+  std::vector<std::int64_t> query_group_offsets;
+};
 
 struct FrozenStage {
   torch::Tensor wq;

@@ -180,9 +180,13 @@ struct SelectorScoreCertificate {
   std::int64_t sentinel_row;
 };
 struct Attention2dBlock {
-  Tensor query_router, key_router, output_router, fixed_mask, fixed_eligibility;
+  Tensor query_router, key_router, output_router, fixed_mask, fixed_eligibility,
+         global_key_ids;
 };
-struct Attention2dPlan { std::vector<Attention2dBlock> blocks; };
+struct Attention2dPlan {
+  std::vector<Attention2dBlock> blocks;
+  std::vector<std::int64_t> query_group_offsets;
+};
 struct FrozenStage {
   Tensor wq, wk, wv, fixed_mask, row_router, feature_router;
   Attention2dPlan attention_plan;
@@ -453,8 +457,8 @@ DenseAttention2dResult dense_attention2d(Tensor x, Tensor wq, Tensor wk,
                                          Tensor wv, Tensor fixed_mask,
                                          Tensor fixed_eligibility,
                                          double temperature);
-Attention2dOutput block_attention2d(Tensor x, const Attention2dPlan&,
-                                    double temperature);
+Attention2dOutput block_attention2d(Tensor x, Tensor wq, Tensor wk, Tensor wv,
+                                    const Attention2dPlan&, double temperature);
 ```
 
 `wq` and `wk` must have final dimension exactly two; leading batch and head
@@ -490,7 +494,11 @@ selection = deterministic_st_select(scores, fixed_eligibility, temperature);
 output = torch::matmul(selection.straight_through, v);
 ```
 
-The block path streams the compiler-fixed key blocks twice: pass one computes
+The block plan groups contiguous, globally key-ordered blocks with immutable
+`query_group_offsets`. Every block carries fixed row routers and explicit
+`global_key_ids`; it does not choose routes from tensor values. The block path
+uses the same `wq/wk/wv` tensors as dense attention and streams the
+compiler-fixed key blocks twice: pass one computes
 each query's global finite max and lexicographic `(score, -global_index)` hard
 winner over enabled rows; pass two computes the global shifted exponential
 denominator and the score-surrogate reductions. A dedicated
@@ -968,7 +976,8 @@ compile-time auto/requested policy variants.
 
 ```cpp
 Tensor execute_stage(const Tensor& x, const FrozenStage& s, double tau) {
-  const auto y = block_attention2d(x, s.attention_plan, tau).output;
+  const auto y = block_attention2d(
+      x, s.wq, s.wk, s.wv, s.attention_plan, tau).output;
   return x + torch::matmul(torch::matmul(s.row_router, y - x),
                            s.feature_router);
 }

@@ -1,5 +1,19 @@
 # Change history
 
+## 2026-08-14 — exact batched two-dimensional ST attention
+
+- Added dense `d_head=2` attention and a two-pass immutable key-block path with
+  global stable normalization, global lowest-index tie handling and no
+  tensor-selected block routing.
+- Extended the frozen program ABI with ordered query-group offsets and verified
+  global key-ID tensors, and corrected the approved design/plan interfaces so
+  dense and block paths consume identical `Wq/Wk/Wv` tensors.
+- Added batched multi-head, masked, tie and invalid-head tests. Exact hard
+  forward and gradients for X/Q/K/V/Wq/Wk/Wv match on CPU and an RTX 3070 at
+  `1e-12`; the full Python suite reports 40 passing tests.
+- Expanded purity mutations to reject gather, top-k/sort, comparison-derived
+  masks, NoGrad and host synchronization escapes.
+
 ## 2026-08-14 — begin native VM3 implementation
 
 - Added the independent `native/vm3` target graph, exact ABI constants and an

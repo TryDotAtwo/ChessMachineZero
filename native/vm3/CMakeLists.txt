@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # These explicit manifests are consumed by the purity auditor. Every future
 # runtime source must belong to exactly one target closure.
 set(CMZ_VM3_EXECUTOR_SOURCES
+  src/attention2d.cpp
 )
 set(CMZ_VM3_POLICY_SOURCES
   src/st_selector.cpp
@@ -32,9 +33,9 @@ target_link_libraries(cmz_vm3_policy PUBLIC ${TORCH_LIBRARIES})
 add_library(cmz_vm3_compiler INTERFACE)
 target_include_directories(cmz_vm3_compiler INTERFACE include)
 
-add_library(cmz_vm3_executor INTERFACE)
-target_include_directories(cmz_vm3_executor INTERFACE include)
-target_link_libraries(cmz_vm3_executor INTERFACE cmz_vm3_policy cmz_vm3_program_loader)
+add_library(cmz_vm3_executor STATIC ${CMZ_VM3_EXECUTOR_SOURCES})
+target_include_directories(cmz_vm3_executor PUBLIC include ${TORCH_INCLUDE_DIRS})
+target_link_libraries(cmz_vm3_executor PUBLIC cmz_vm3_policy cmz_vm3_program_loader ${TORCH_LIBRARIES})
 
 add_executable(cmz_vm3_contract tests/test_contract.cpp)
 target_include_directories(cmz_vm3_contract PRIVATE include)
@@ -47,3 +48,7 @@ add_test(NAME cmz_vm3_program_loader COMMAND cmz_vm3_test_program_loader)
 add_executable(cmz_vm3_test_st_selector tests/test_st_selector.cpp)
 target_link_libraries(cmz_vm3_test_st_selector PRIVATE cmz_vm3_executor ${TORCH_LIBRARIES})
 add_test(NAME cmz_vm3_st_selector COMMAND cmz_vm3_test_st_selector)
+
+add_executable(cmz_vm3_test_attention2d tests/test_attention2d.cpp)
+target_link_libraries(cmz_vm3_test_attention2d PRIVATE cmz_vm3_executor ${TORCH_LIBRARIES})
+add_test(NAME cmz_vm3_attention2d COMMAND cmz_vm3_test_attention2d)

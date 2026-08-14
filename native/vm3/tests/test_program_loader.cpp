@@ -119,7 +119,10 @@ std::filesystem::path write_artifact(const std::string& name,
   // One ordered stage and one block, all referencing verified payloads.
   for (int i = 0; i < 6; ++i) write_string(out, "scale");
   write_value(out, std::uint32_t{1});
-  for (int i = 0; i < 5; ++i) write_string(out, "scale");
+  for (int i = 0; i < 6; ++i) write_string(out, "scale");
+  write_value(out, std::uint32_t{2});
+  write_value(out, std::int64_t{0});
+  write_value(out, std::int64_t{1});
 
   out.close();
   return path;
@@ -162,6 +165,9 @@ int main() {
   ok &= require(program.pre_policy_stages.size() == 1, "pre stage order");
   ok &= require(program.pre_policy_stages.front().attention_plan.blocks.size() == 1,
                 "attention block order");
+  ok &= require(program.pre_policy_stages.front().attention_plan.query_group_offsets ==
+                    std::vector<std::int64_t>({0, 1}),
+                "query group offsets");
   ok &= require(program.post_policy_stages.empty(), "post stages empty");
   const auto margin = program.tensors.at("margin");
   ok &= require(margin.device().is_cpu(), "requested device");

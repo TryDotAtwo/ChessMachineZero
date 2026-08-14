@@ -79,6 +79,9 @@ def test_vm3_auditor_accepts_the_declared_target_closure() -> None:
         ("void f(Tensor x) { torch::where(x > 0, x, x); }", "dynamic tensor routing"),
         ("void f(Tensor x) { torch::nonzero(x); }", "dynamic tensor routing"),
         ("void f(Tensor x) { x.index_put_({0}, 1); }", "in-place semantic write"),
+        ("void f(Tensor x) { x.gather(0, x); }", "dynamic tensor routing"),
+        ("void f(Tensor x) { x.gt(0); }", "state-dependent mask"),
+        ("void f() { torch::NoGradGuard guard; }", "host or autograd escape"),
         ("void f(Tensor x) { torch::relu(x); }", "unregistered tensor operation"),
         ("void f(Tensor x) { torch::sort(x); }", "operation is not allowlisted"),
         (
@@ -107,8 +110,8 @@ def test_vm3_auditor_rejects_compiler_in_executor_link_closure(
     text = cmake.read_text(encoding="utf-8")
     cmake.write_text(
         text.replace(
-            "target_link_libraries(cmz_vm3_executor INTERFACE cmz_vm3_policy cmz_vm3_program_loader)",
-            "target_link_libraries(cmz_vm3_executor INTERFACE cmz_vm3_policy cmz_vm3_program_loader cmz_vm3_compiler)",
+            "target_link_libraries(cmz_vm3_executor PUBLIC cmz_vm3_policy cmz_vm3_program_loader ${TORCH_LIBRARIES})",
+            "target_link_libraries(cmz_vm3_executor PUBLIC cmz_vm3_policy cmz_vm3_program_loader cmz_vm3_compiler ${TORCH_LIBRARIES})",
             1,
         ),
         encoding="utf-8",

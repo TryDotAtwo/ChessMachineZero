@@ -1,5 +1,14 @@
 # Project memory
 
+- 2026-08-14: VM3 now has true physical `d_head=2` dense attention and an
+  immutable grouped key-block backend. Both use the same `Wq/Wk/Wv`; block
+  routing is fixed by row routers, query-group offsets and global key IDs.
+  Forward hard winners and outputs are exact, including lowest global-index
+  ties. The block surrogate normalizes across the complete query group;
+  scores/Q/K receive dense-soft gradients while V/Wv receive hard-selection
+  gradients. Batched CPU and RTX 3070 tests prove dense/block parity for
+  X/Q/K/V/Wq/Wk/Wv at `1e-12` tolerance.
+
 - 2026-08-14: VM3 implementation has started with the frozen tensor contract,
   generic checksum/interval/certificate program loader, adversarial runtime
   purity and operation-manifest gate, and the canonical deterministic
