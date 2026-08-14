@@ -1,5 +1,29 @@
 # Project memory
 
+- 2026-08-14: a full architecture/autograd audit supersedes VM2 as the active
+  implementation target, while preserving it as historical slice evidence.
+  VM2 hard `max -> one_hot` cuts gradients to Q/K and policy logits; pawn and
+  knight have incompatible layouts; the legal-set test is synthetic; policy is
+  not connected to one common recurrent board write; trajectory, complete
+  state, terminal logic and whole-game BPTT are absent; current heads are not
+  physically `d_head=2`; the block path is not candidate-batch safe; and the
+  main purity audit covers only four generic files.
+- 2026-08-14: the active target is the clean `native/vm3` ring specified in
+  `docs/superpowers/specs/2026-08-14-differentiable-recurrent-chess-machine-design.md`
+  and sequenced in
+  `docs/superpowers/plans/2026-08-14-differentiable-recurrent-chess-machine.md`.
+  Its fixed contract is: one immutable rule image; byte-exact lowest-index hard
+  forward with custom stable eligibility-weighted softmax surrogate backward at
+  every selector; machine-checkable frozen-selector interval proofs; bounded
+  trainable policy parameters/activations with pre-launch numeric validation;
+  frozen rule weights and trainable trace-policy weights; no recurrent detach;
+  same-ABI output-to-input recurrence; one MOVE token per committed ply;
+  complete move legality plus explicitly declared metadata, claim and terminal
+  routing (without overclaiming general FIDE dead-position recognition); true
+  `d_head=2` dense training/reference attention; and a separately proven exact
+  hard-forward HullKV inference backend. Public claims remain at the VM2
+  pawn/isolated-knight boundary until corresponding VM3 native gates pass.
+
 - 2026-08-14: the preclassified knight circuit and browser mirror are removed.
   They encoded the final legal class in X and are invalid evidence. Correct
   knight work must derive geometry from coordinate tokens via reusable frozen

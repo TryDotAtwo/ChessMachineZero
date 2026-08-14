@@ -1,5 +1,12 @@
 # Percepta Transformer VM architecture
 
+> **Status:** historical VM2 reference, superseded as the implementation target
+> by
+> `docs/superpowers/specs/2026-08-14-differentiable-recurrent-chess-machine-design.md`.
+> The equations below describe VM2 hard-forward slice evidence only. They do
+> not establish differentiable selection, one common full-chess ring,
+> physically two-dimensional heads, whole-game BPTT or a host-free GPU rollout.
+
 ## Hard boundary
 
 The production transition is domain-agnostic. It receives a token matrix and

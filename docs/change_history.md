@@ -1,5 +1,23 @@
 # Change history
 
+## 2026-08-14 — differentiable recurrent VM3 architecture audit
+
+- Audited the current VM2 runtime, rule slices, policy, legal-set bridge,
+  autograd boundaries, state contract, trajectory requirements and terminal
+  rules. The audit records that current hard selection is not differentiable
+  through Q/K or policy logits and that no unified whole-game ring exists yet.
+- Selected a clean `native/vm3` target beside frozen VM2 evidence and fixed the
+  exact hard-forward/custom-soft-backward, 4272-move plus claim/halt routing,
+  full-state recurrence, append-only trajectory, full-game BPTT, `d_head=2`
+  and GPU-residency invariants.
+- Added the architecture design and an 18-task TDD execution plan. This is a
+  docs/audit milestone only: it makes no new full-chess, end-to-end-gradient,
+  GPU-residency or performance claim.
+- Independent plan review found and closed selector-mask stability,
+  dense/block V-gradient parity, disabled-route coupling, score-certificate ABI
+  and trainable-policy overflow gaps. The final plan gate approved the corrected
+  eligibility-weighted selector and bounded policy numeric contract.
+
 ## 2026-08-14 — withdraw preclassified knight circuit
 
 - Removed the native and browser knight classifiers from the build and source

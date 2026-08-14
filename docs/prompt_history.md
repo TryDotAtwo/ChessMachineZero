@@ -1,5 +1,14 @@
 # Prompt history
 
+- 2026-08-14: User required a code-and-idea audit followed by a detailed plan
+  without an approval stop. The corrected target is a same-ABI recurrent ring:
+  output board/state feeds the same system again; the compact append-only move
+  trajectory remains input; promotion, check safety, castling, en passant,
+  repetition and 50/75-move semantics are rule-computed; deterministic hard
+  forward has a stable-softmax surrogate through the whole game; and after
+  initialization no host code interprets chess state. User explicitly asked to
+  replace the previous goal and preserve these invariants.
+
 - 2026-08-13: User requested implementing the discussed understandable and
   animated full-trace debugger, not only the knight walkthrough.
 
