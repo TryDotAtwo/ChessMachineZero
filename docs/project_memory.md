@@ -105,3 +105,12 @@
   derive chess legality in TypeScript.
 - The former browser-side knight demo is withdrawn from public evidence because
   its input token already contained the classified geometry label.
+- The knight circuit is now compiled once independently of source/target; board,
+  side and desired move live only in input tokens, so every move uses identical
+  frozen weights and masks.
+- Dense hardmax attention accepts a leading candidate batch dimension, enabling
+  candidate transitions to run in parallel without per-candidate host dispatch.
+- The temporary move policy consumes rule-emitted `[NOT_LEGAL, LEGAL]` predicate
+  tokens, applies frozen matrix projections and hardmax-selects the first legal
+  trace candidate. Its candidate-score tensor contract is intentionally the
+  replacement seam for a future trained transformer policy.

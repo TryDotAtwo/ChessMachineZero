@@ -59,3 +59,6 @@
 
 - Fix the broken matrix layout visible in the deployed site and verify the
   complete frontend across desktop and mobile viewports.
+- Add a temporary move chooser, but isolate it behind a tensor contract so a
+  trained transformer policy can replace it later without changing rule
+  inference; keep rule legality and selection free of host chess logic.

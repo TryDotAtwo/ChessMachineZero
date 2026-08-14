@@ -54,6 +54,16 @@ def test_knight_runtime_is_only_fixed_attention_and_matrix_write() -> None:
         assert forbidden not in transition.lower()
 
 
+def test_temporary_move_policy_is_only_matrix_scores_and_hardmax() -> None:
+    source = (ROOT / "native/vm2/src/move_policy.cpp").read_text(encoding="utf-8")
+    runtime = source.split("MovePolicyResult run_move_policy", 1)[1]
+    assert runtime.count("torch::matmul(") == 2
+    assert ".max(0, false)" in runtime
+    assert "one_hot(" in runtime
+    for forbidden in ("if (", "switch (", ".item<", "index_put_", "where(", "nonzero("):
+        assert forbidden not in runtime
+
+
 @pytest.mark.parametrize(
     ("injected", "message"),
     [

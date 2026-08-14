@@ -159,3 +159,9 @@
 - Fixed the responsive matrix-equation grid: the seven-part Q x K^T + M = S
   expression now uses an explicit class instead of a brittle DOM-position
   selector, and all matrix columns are allowed to shrink without collapsing.
+- Removed source/target from knight circuit compilation and moved them into the
+  input binder; one immutable circuit now handles all requested moves.
+- Generalized dense self-attention to exact batched candidate inference.
+- Added a swappable tensor-only move-policy contract. The current frozen
+  fallback chooses the first rule-emitted legal candidate; a trained scorer can
+  replace its projection without changing the rule VM or transition interface.

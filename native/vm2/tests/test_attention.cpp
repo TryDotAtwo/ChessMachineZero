@@ -34,6 +34,14 @@ int main() {
             "hardmax must use lowest-index tie break");
         require(torch::equal(out.output, x), "AV must route the hardmax-selected values");
 
+        const auto batched_x = torch::stack({x, x.flip(0)});
+        const auto batched = cmz::vm2::self_attention(batched_x, eye, eye, eye, mask);
+        require(torch::equal(batched.output.index({0}), out.output),
+                "batched attention must equal independent inference for batch item zero");
+        const auto flipped = cmz::vm2::self_attention(x.flip(0), eye, eye, eye, mask);
+        require(torch::equal(batched.output.index({1}), flipped.output),
+                "batched attention must equal independent inference for batch item one");
+
         cmz::vm2::AttentionBlock first{
             torch::tensor({{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}}, options),
             torch::tensor({{1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}}, options),

@@ -65,7 +65,7 @@ def main() -> int:
             "torch::matmul(x, wq)",
             "torch::matmul(x, wk)",
             "torch::matmul(x, wv)",
-            "torch::matmul(q, k.t())",
+            "torch::matmul(q, k.transpose(-2, -1))",
             "torch::matmul(one_hot, v)",
         )
     )
@@ -80,6 +80,7 @@ def main() -> int:
         "size",
         "squeeze",
         "t",
+        "transpose",
         "to",
         "unsqueeze",
     }

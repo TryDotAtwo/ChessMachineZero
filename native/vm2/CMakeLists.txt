@@ -33,9 +33,20 @@ target_compile_options(cmz_vm2_knight_circuit PRIVATE "${TORCH_CXX_FLAGS}")
 
 add_executable(cmz_vm2_test_knight_circuit tests/test_knight_circuit.cpp)
 target_include_directories(cmz_vm2_test_knight_circuit PRIVATE include)
-target_link_libraries(cmz_vm2_test_knight_circuit PRIVATE cmz_vm2_knight_circuit)
+target_link_libraries(cmz_vm2_test_knight_circuit PRIVATE cmz_vm2_knight_circuit cmz_vm2_move_policy)
 target_compile_options(cmz_vm2_test_knight_circuit PRIVATE "${TORCH_CXX_FLAGS}")
 add_test(NAME cmz_vm2_knight_circuit COMMAND cmz_vm2_test_knight_circuit)
+
+add_library(cmz_vm2_move_policy STATIC src/move_policy.cpp)
+target_include_directories(cmz_vm2_move_policy PUBLIC include)
+target_link_libraries(cmz_vm2_move_policy PUBLIC ${TORCH_LIBRARIES})
+target_compile_options(cmz_vm2_move_policy PRIVATE "${TORCH_CXX_FLAGS}")
+
+add_executable(cmz_vm2_test_move_policy tests/test_move_policy.cpp)
+target_include_directories(cmz_vm2_test_move_policy PRIVATE include)
+target_link_libraries(cmz_vm2_test_move_policy PRIVATE cmz_vm2_move_policy)
+target_compile_options(cmz_vm2_test_move_policy PRIVATE "${TORCH_CXX_FLAGS}")
+add_test(NAME cmz_vm2_move_policy COMMAND cmz_vm2_test_move_policy)
 
 add_library(cmz_vm2_attention_cost STATIC src/attention_cost.cpp)
 target_include_directories(cmz_vm2_attention_cost PUBLIC include)
