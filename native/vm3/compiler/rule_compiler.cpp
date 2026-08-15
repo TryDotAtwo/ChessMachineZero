@@ -268,6 +268,9 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
   FrozenChessProgram program;
   program.schema_version = 1;
   const auto bank = compile_candidate_bank();
+  auto special = compile_special_move_tensors(bank);
+  for (auto& [name, tensor] : special)
+    program.tensors.emplace(name, std::move(tensor));
   add_pseudo_legal_tensors(program, bank);
   const auto pawn = compile_pawn_geometry(bank);
   const auto knight = compile_knight_geometry(bank);
@@ -281,7 +284,9 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
             .select(-1, extended_piece_ids[index]));
   const auto geometry = torch::cat(
       {knight, pawn, extended_geometry,
-       program.tensors.at("between_absent").transpose(0, 1)}, -1);
+       program.tensors.at("between_absent").transpose(0, 1),
+       program.tensors.at("candidate_castle_geometry"),
+       program.tensors.at("candidate_castle_empty_absent")}, -1);
   for (const auto* intermediate : {"candidate_piece_geometry", "between_absent"})
     program.tensors.erase(intermediate);
 
@@ -315,6 +320,8 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
   for (std::int64_t slot = 0; slot < 6; ++slot) {
     packet.index_put_({kBetweenBegin + slot, kConst}, 1.0);
   }
+  for (std::int64_t row = kEpMatchRow; row < kPacketRows; ++row)
+    packet.index_put_({row, kConst}, 1.0);
   for (std::int64_t side = 0; side < 2; ++side) {
     packet.index_put_({kSideBegin + side, kConst}, 1.0);
     packet.index_put_({kSideBegin + side, kSideWhite + side}, 1.0);
@@ -362,10 +369,23 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
        {kGeomBq, kGeomBq}, {kGeomBk, kGeomBk},
        {kBetweenEmpty0, kBetweenEmpty0}, {kBetweenEmpty1, kBetweenEmpty1},
        {kBetweenEmpty2, kBetweenEmpty2}, {kBetweenEmpty3, kBetweenEmpty3},
-       {kBetweenEmpty4, kBetweenEmpty4}, {kBetweenEmpty5, kBetweenEmpty5}}));
+       {kBetweenEmpty4, kBetweenEmpty4}, {kBetweenEmpty5, kBetweenEmpty5},
+       {kGeomCastle, kGeomCastle}, {kCastleEmpty0, kCastleEmpty0},
+       {kCastleEmpty1, kCastleEmpty1}, {kCastleEmpty2, kCastleEmpty2}}));
   for (std::int64_t slot = 0; slot < 6; ++slot)
     program.pre_policy_stages.push_back(single_copy(
         kBetweenBegin + slot, {{kPieceEmpty, kBetweenEmpty0 + slot}}));
+  program.pre_policy_stages.push_back(single_copy(
+      kEpMatchRow, {{kEpTargetMatch, kEpTargetMatch}}));
+  program.pre_policy_stages.push_back(single_copy(
+      kEpCapturedRow, {{kPieceWp, kEpCapturedWp}, {kPieceBp, kEpCapturedBp}}));
+  program.pre_policy_stages.push_back(single_copy(
+      kCastleRightRow, {{kCastleRightMatch, kCastleRightMatch}}));
+  program.pre_policy_stages.push_back(single_copy(
+      kCastleRookRow, {{kPieceWr, kCastleRookWr}, {kPieceBr, kCastleRookBr}}));
+  for (std::int64_t slot = 0; slot < 3; ++slot)
+    program.pre_policy_stages.push_back(single_copy(
+        kCastleEmptyBegin + slot, {{kPieceEmpty, kCastleEmpty0 + slot}}));
 
   const std::array<std::array<std::int64_t, 3>, 4> actor_gates{{
       {{kSideWhite, kSourceWp, kActorWp}},
@@ -463,6 +483,35 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
     }
     branches = std::move(next);
   }
+  program.pre_policy_stages.push_back(truth_gate(kWpcGeom, kTargetEmpty, kEpW0, true));
+  program.pre_policy_stages.push_back(truth_gate(kEpW0, kEpTargetMatch, kEpW1, true));
+  program.pre_policy_stages.push_back(truth_gate(kEpW1, kEpCapturedBp, kEpWLegal, true));
+  program.pre_policy_stages.push_back(truth_gate(kBpcGeom, kTargetEmpty, kEpB0, true));
+  program.pre_policy_stages.push_back(truth_gate(kEpB0, kEpTargetMatch, kEpB1, true));
+  program.pre_policy_stages.push_back(truth_gate(kEpB1, kEpCapturedWp, kEpBLegal, true));
+  program.pre_policy_stages.push_back(
+      truth_gate(kCastleEmpty0, kCastleEmpty1, kCastleEmpty01, true));
+  program.pre_policy_stages.push_back(
+      truth_gate(kCastleEmpty01, kCastleEmpty2, kCastleEmpty, true));
+  program.pre_policy_stages.push_back(truth_gate(kActorWk, kGeomCastle, kCastleW0, true));
+  program.pre_policy_stages.push_back(
+      truth_gate(kCastleW0, kCastleRightMatch, kCastleW1, true));
+  program.pre_policy_stages.push_back(
+      truth_gate(kCastleW1, kCastleRookWr, kCastleW2, true));
+  program.pre_policy_stages.push_back(
+      truth_gate(kCastleW2, kCastleEmpty, kCastleWLegal, true));
+  program.pre_policy_stages.push_back(truth_gate(kActorBk, kGeomCastle, kCastleB0, true));
+  program.pre_policy_stages.push_back(
+      truth_gate(kCastleB0, kCastleRightMatch, kCastleB1, true));
+  program.pre_policy_stages.push_back(
+      truth_gate(kCastleB1, kCastleRookBr, kCastleB2, true));
+  program.pre_policy_stages.push_back(
+      truth_gate(kCastleB2, kCastleEmpty, kCastleBLegal, true));
+  program.pre_policy_stages.push_back(truth_gate(kEpWLegal, kEpBLegal, kEpAny, false));
+  program.pre_policy_stages.push_back(
+      truth_gate(kCastleWLegal, kCastleBLegal, kCastleAny, false));
+  program.pre_policy_stages.push_back(truth_gate(kEpAny, kCastleAny, kSpecialAny, false));
+  program.pre_policy_stages.push_back(truth_gate(kLegal, kSpecialAny, kPseudoLegal, false));
 
   auto middle = zeros({kMoveCandidateCount, 64});
   auto descriptors = zeros({kMoveCandidateCount, 3});
@@ -503,17 +552,33 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
   side_rows.index_put_({1, kSideBegin + 1}, 1.0);
   auto geometry_row = zeros({kPacketRows, 1});
   geometry_row.index_put_({kGeometryRow, 0}, 1.0);
-  auto geometry_features = zeros({21, kFeatureCount});
+  auto geometry_features = zeros({25, kFeatureCount});
   for (std::int64_t feature = 0; feature < 7; ++feature)
     geometry_features.index_put_({feature, kGeomKnight + feature}, 1.0);
   for (std::int64_t feature = 0; feature < 8; ++feature)
     geometry_features.index_put_({7 + feature, kGeomWb + feature}, 1.0);
   for (std::int64_t slot = 0; slot < 6; ++slot)
     geometry_features.index_put_({15 + slot, kBetweenEmpty0 + slot}, 1.0);
+  geometry_features.index_put_({21, kGeomCastle}, 1.0);
+  for (std::int64_t slot = 0; slot < 3; ++slot)
+    geometry_features.index_put_({22 + slot, kCastleEmpty0 + slot}, 1.0);
   auto active_feature = zeros({kFeatureCount});
   active_feature.index_put_({kActive}, 1.0);
   auto empty_feature = zeros({kFeatureCount});
   empty_feature.index_put_({kPieceEmpty}, 1.0);
+  auto piece_feature_router = zeros({13, kFeatureCount});
+  const std::array<std::int64_t, 13> raw_piece_features{{
+      kPieceEmpty, kPieceWp, kPieceWn, kPieceWb, kPieceWr, kPieceWq, kPieceWk,
+      kPieceBp, kPieceBn, kPieceBb, kPieceBr, kPieceBq, kPieceBk}};
+  for (std::int64_t piece = 0; piece < 13; ++piece)
+    piece_feature_router.index_put_({piece, raw_piece_features[piece]}, 1.0);
+  auto special_rows = zeros({7, kPacketRows});
+  for (std::int64_t row = 0; row < 7; ++row)
+    special_rows.index_put_({row, kEpMatchRow + row}, 1.0);
+  auto ep_match_feature = zeros({kFeatureCount});
+  ep_match_feature.index_put_({kEpTargetMatch}, 1.0);
+  auto castle_right_feature = zeros({kFeatureCount});
+  castle_right_feature.index_put_({kCastleRightMatch}, 1.0);
 
   program.tensors.emplace("state_template", zeros({kStateCoreRows, kFeatureCount}));
   program.tensors.emplace("state_layout", canonical_state_layout({}));
@@ -535,6 +600,10 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
   program.tensors.emplace("geometry_feature_router", geometry_features);
   program.tensors.emplace("packet_active_feature", active_feature);
   program.tensors.emplace("packet_empty_feature", empty_feature);
+  program.tensors.emplace("piece_feature_router", piece_feature_router);
+  program.tensors.emplace("special_packet_rows", special_rows);
+  program.tensors.emplace("ep_match_feature", ep_match_feature);
+  program.tensors.emplace("castle_right_feature", castle_right_feature);
   program.tensors.emplace("candidate_broadcast", torch::ones({kMoveCandidateCount, 1}, torch::kFloat64));
   program.tensors.emplace("empty_piece", at::one_hot(torch::tensor(0), 13).to(torch::kFloat64));
   program.tensors.emplace("side_flip", torch::tensor({{0.0, 1.0}, {1.0, 0.0}}, torch::kFloat64));
@@ -545,10 +614,25 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
   auto side_state_rows = zeros({2, kStateCoreRows});
   side_state_rows.index_put_({0, kSideOffset}, 1.0);
   side_state_rows.index_put_({1, kSideOffset + 1}, 1.0);
+  const auto field_state_rows = [&](std::int64_t rows, std::int64_t offset) {
+    auto routing = zeros({rows, kStateCoreRows});
+    routing.index_put_({torch::indexing::Slice(),
+                        torch::indexing::Slice(offset, offset + rows)},
+                       torch::eye(rows, torch::kFloat64));
+    return routing;
+  };
   auto state_active_feature = zeros({kFeatureCount});
   state_active_feature.index_put_({kStateActiveFeature}, 1.0);
   program.tensors.emplace("board_state_rows", board_rows);
   program.tensors.emplace("side_state_rows", side_state_rows);
+  program.tensors.emplace("castling_state_rows",
+                          field_state_rows(kCastlingRows, kCastlingOffset));
+  program.tensors.emplace("raw_ep_state_rows",
+                          field_state_rows(kRawEpRows, kRawEpOffset));
+  program.tensors.emplace("halfmove_state_rows",
+                          field_state_rows(kHalfmoveRows, kHalfmoveOffset));
+  program.tensors.emplace("fullmove_state_rows",
+                          field_state_rows(kFullmoveRows, kFullmoveOffset));
   program.tensors.emplace("state_active_feature", state_active_feature);
   program.tensors.emplace("trajectory_pad_token", zeros({1, 3}));
   program.tensors.emplace("zero_bit", zeros({1, 1}));

@@ -8,7 +8,7 @@ from pathlib import Path
 import chess
 import pytest
 
-from test_vm3_state_oracle import PIECE_CODE, ROOT, encode_board
+from test_vm3_state_oracle import ROOT, castling_code, encode_board
 
 
 def oracle_binary() -> Path:
@@ -25,11 +25,7 @@ def oracle_binary() -> Path:
 
 
 def expected_moves(board: chess.Board) -> set[str]:
-    return {
-        move.uci()
-        for move in board.generate_pseudo_legal_moves()
-        if not board.is_castling(move) and not board.is_en_passant(move)
-    }
+    return {move.uci() for move in board.generate_pseudo_legal_moves()}
 
 
 def positions() -> list[chess.Board]:
@@ -38,10 +34,15 @@ def positions() -> list[chess.Board]:
         chess.Board("8/P6k/8/8/8/8/7p/K7 w - - 0 1"),
         chess.Board("8/P6k/8/8/8/8/7p/K7 b - - 0 1"),
         chess.Board("4k3/8/3p4/3R1n2/3B4/8/8/4K3 w - - 0 1"),
+        chess.Board("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"),
+        chess.Board("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1"),
+        chess.Board("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1"),
+        chess.Board("4k3/8/8/8/3Pp3/8/8/4K3 b - d3 0 1"),
     ]
+    target_count = len(result) + 512
     rng = random.Random(0xC0DE4272)
     board = chess.Board()
-    while len(result) < 516:
+    while len(result) < target_count:
         board.castling_rights = chess.BB_EMPTY
         board.ep_square = None
         result.append(board.copy(stack=False))
@@ -56,7 +57,8 @@ def positions() -> list[chess.Board]:
 def test_native_pseudo_legal_set_matches_python_chess() -> None:
     boards = positions()
     payload = "".join(
-        f"{','.join(map(str, encode_board(board)))}|{0 if board.turn else 1}|\n"
+        f"{','.join(map(str, encode_board(board)))}|{0 if board.turn else 1}|"
+        f"{castling_code(board)}|{-1 if board.ep_square is None else board.ep_square}|\n"
         for board in boards
     )
     binary = oracle_binary()

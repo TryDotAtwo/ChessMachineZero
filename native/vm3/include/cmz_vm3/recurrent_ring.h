@@ -19,6 +19,18 @@ torch::Tensor compute_rule_legal(const FrozenChessProgram& program,
 torch::Tensor compute_rule_legal_batch(const FrozenChessProgram& program,
                                        const torch::Tensor& state_batch);
 
+struct TrialTransitionBatch {
+  torch::Tensor pseudo_legal;
+  torch::Tensor board;
+  torch::Tensor castling;
+  torch::Tensor raw_ep;
+  torch::Tensor halfmove;
+  torch::Tensor fullmove_digits;
+};
+
+TrialTransitionBatch compute_trial_transitions(
+    const FrozenChessProgram& program, const torch::Tensor& state_tokens);
+
 StepResult recurrent_step(const FrozenChessProgram& program,
                           PolicyPair policies,
                           const ChessRingState& state);

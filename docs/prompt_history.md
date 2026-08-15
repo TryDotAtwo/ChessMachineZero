@@ -76,3 +76,11 @@
 - Begin the approved VM3 implementation now, set the corrected persistent goal,
   and keep implementing the full differentiable recurrent attention-only chess
   machine under the previously fixed invariants and evidence gates.
+
+## 2026-08-15
+
+- Continue the approved VM3 implementation without subagents; the primary agent
+  performs implementation and verification directly.
+- Normal checked pushes of `codex/percepta-transformer-vm` to the scoped
+  ChessMachineZero GitHub repository are standing-authorized; destructive
+  history changes and unrelated publication remain outside that permission.

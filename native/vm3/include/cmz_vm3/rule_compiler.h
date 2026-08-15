@@ -6,8 +6,11 @@
 
 namespace cmz::vm3 {
 
+using FrozenTensorMap = std::unordered_map<std::string, torch::Tensor>;
+
 torch::Tensor compile_pawn_geometry(const CandidateBank& bank);
 torch::Tensor compile_knight_geometry(const CandidateBank& bank);
+FrozenTensorMap compile_special_move_tensors(const CandidateBank& bank);
 FrozenChessProgram compile_minimal_rule_program(
     const torch::TensorOptions& options = torch::TensorOptions().dtype(torch::kFloat64));
 void save_frozen_program(const FrozenChessProgram& program,

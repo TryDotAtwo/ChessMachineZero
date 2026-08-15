@@ -1,5 +1,18 @@
 # Project memory
 
+- 2026-08-15: VM3 Task 10 adds special pseudo-legal transitions to the same
+  immutable rule image. Every one of 4272 candidates now runs an identical
+  60-token packet through 112 frozen physical `d_head=2` attention stages;
+  state-dependent en-passant and castling predicates are computed from board,
+  side, rights and raw-EP tokens. Candidate-batched matrix writes produce the
+  full trial board plus castling, EP and move-clock fields. `recurrent_step`
+  selects that complete trial tensor, so promotion, en-passant capture and
+  castling are not reconstructed by host chess branches. Native CTest is 11/11,
+  both current special/backward and full-ring tests pass on RTX 3070, source and
+  public gates are 51/51, and the exact GPU oracle covers 520 positions. The
+  boundary remains pseudo-legal: king safety, attacked castling, check/mate and
+  terminal adjudication are still pending Task 11+.
+
 - 2026-08-14: VM3 ordinary pseudo-legality now covers pawns, knights, bishops,
   rooks, queens, kings and all four promotions in the same 4272-candidate rule
   image. Identical 53-token packets run 85 frozen physical `d_head=2` Q/K/V

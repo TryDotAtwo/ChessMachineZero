@@ -1,5 +1,18 @@
 # Change history
 
+## 2026-08-15 — special-move trial transitions and recurrent write
+
+- Expanded the immutable VM3 image to 112 physical `d_head=2` stages over
+  60-token packets, adding frozen en-passant and castling predicates beside the
+  ordinary universal move circuit.
+- Added candidate-batched trial states for board, castling rights, raw EP,
+  halfmove and radix fullmove fields. The recurrent step now selects and writes
+  the complete trial tensor, including promotion, off-target EP capture and rook
+  relocation, instead of reimplementing special moves on the host.
+- Added exact native special-move/gradient tests and a 520-position GPU
+  pseudo-legal oracle. This task does not claim king safety, attacked-castling
+  filtering, checkmate or terminal-game completion.
+
 ## 2026-08-14 — ordinary pseudo-legal frozen attention graph
 
 - Expanded the single VM3 rule image to 85 physical `d_head=2` stages over

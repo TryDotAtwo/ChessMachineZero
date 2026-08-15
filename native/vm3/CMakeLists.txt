@@ -31,6 +31,7 @@ set(CMZ_VM3_COMPILER_SOURCES
   compiler/piece_rules.cpp
   compiler/rule_image_writer.cpp
   compiler/rule_compiler.cpp
+  compiler/special_move_rules.cpp
 )
 
 add_library(cmz_vm3_program_loader STATIC ${CMZ_VM3_LOADER_SOURCES})
@@ -97,3 +98,7 @@ add_executable(cmz_vm3_pseudo_legal_oracle_cli tests/pseudo_legal_oracle_cli.cpp
 target_link_libraries(cmz_vm3_pseudo_legal_oracle_cli PRIVATE cmz_vm3_executor cmz_vm3_compiler ${TORCH_LIBRARIES})
 add_dependencies(cmz_vm3_test_pseudo_legal cmz_vm3_pseudo_legal_oracle_cli)
 add_test(NAME cmz_vm3_pseudo_legal COMMAND cmz_vm3_test_pseudo_legal)
+
+add_executable(cmz_vm3_test_special_moves tests/test_special_moves.cpp)
+target_link_libraries(cmz_vm3_test_special_moves PRIVATE cmz_vm3_executor cmz_vm3_compiler ${TORCH_LIBRARIES})
+add_test(NAME cmz_vm3_special_moves COMMAND cmz_vm3_test_special_moves)

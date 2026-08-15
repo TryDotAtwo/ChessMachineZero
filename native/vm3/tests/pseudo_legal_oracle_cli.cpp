@@ -37,8 +37,12 @@ int main(int argc, char**) {
     std::stringstream record(line);
     std::string board_field;
     std::string side_field;
+    std::string castling_field;
+    std::string ep_field;
     if (!std::getline(record, board_field, '|') ||
-        !std::getline(record, side_field, '|')) return 2;
+        !std::getline(record, side_field, '|') ||
+        !std::getline(record, castling_field, '|') ||
+        !std::getline(record, ep_field, '|')) return 2;
     cmz::vm3::InitialPosition input{};
     input.board.fill(cmz::vm3::PieceState::Empty);
     std::stringstream board_stream(board_field);
@@ -51,8 +55,8 @@ int main(int argc, char**) {
     }
     if (square != 64) return 4;
     input.side = static_cast<cmz::vm3::Side>(std::stoll(side_field));
-    input.castling = 0;
-    input.ep_square = -1;
+    input.castling = static_cast<std::uint8_t>(std::stoll(castling_field));
+    input.ep_square = std::stoll(ep_field);
     input.fullmove = 1;
     input.claim_mode = cmz::vm3::ClaimMode::LiteralClaim;
     states.push_back(cmz::vm3::bind_initial_state(program, input).tokens);

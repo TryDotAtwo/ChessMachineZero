@@ -4,8 +4,8 @@
 
 namespace cmz::vm3::rule {
 
-inline constexpr std::int64_t kPacketRows = 53;
-inline constexpr std::int64_t kFeatureCount = 160;
+inline constexpr std::int64_t kPacketRows = 60;
+inline constexpr std::int64_t kFeatureCount = 192;
 inline constexpr std::int64_t kQueryRow = 0;
 inline constexpr std::int64_t kSourceBegin = 1;
 inline constexpr std::int64_t kTargetBegin = 14;
@@ -14,6 +14,11 @@ inline constexpr std::int64_t kSideBegin = 40;
 inline constexpr std::int64_t kGeometryRow = 42;
 inline constexpr std::int64_t kTruthBegin = 43;
 inline constexpr std::int64_t kBetweenBegin = 47;
+inline constexpr std::int64_t kEpMatchRow = 53;
+inline constexpr std::int64_t kEpCapturedRow = 54;
+inline constexpr std::int64_t kCastleRightRow = 55;
+inline constexpr std::int64_t kCastleRookRow = 56;
+inline constexpr std::int64_t kCastleEmptyBegin = 57;
 
 inline constexpr std::int64_t kConst = 0;
 inline constexpr std::int64_t kActive = 1;
@@ -146,5 +151,37 @@ inline constexpr std::int64_t kRayAnd2 = 127;
 inline constexpr std::int64_t kRayAnd3 = 128;
 inline constexpr std::int64_t kRayClear = 129;
 inline constexpr std::int64_t kExtOrBegin = 130;
+inline constexpr std::int64_t kEpTargetMatch = 145;
+inline constexpr std::int64_t kEpCapturedWp = 146;
+inline constexpr std::int64_t kEpCapturedBp = 147;
+inline constexpr std::int64_t kEpW0 = 148;
+inline constexpr std::int64_t kEpW1 = 149;
+inline constexpr std::int64_t kEpW2 = 150;
+inline constexpr std::int64_t kEpWLegal = 151;
+inline constexpr std::int64_t kEpB0 = 152;
+inline constexpr std::int64_t kEpB1 = 153;
+inline constexpr std::int64_t kEpB2 = 154;
+inline constexpr std::int64_t kEpBLegal = 155;
+inline constexpr std::int64_t kGeomCastle = 156;
+inline constexpr std::int64_t kCastleRightMatch = 157;
+inline constexpr std::int64_t kCastleRookWr = 158;
+inline constexpr std::int64_t kCastleRookBr = 159;
+inline constexpr std::int64_t kCastleEmpty0 = 160;
+inline constexpr std::int64_t kCastleEmpty1 = 161;
+inline constexpr std::int64_t kCastleEmpty2 = 162;
+inline constexpr std::int64_t kCastleEmpty01 = 163;
+inline constexpr std::int64_t kCastleEmpty = 164;
+inline constexpr std::int64_t kCastleW0 = 165;
+inline constexpr std::int64_t kCastleW1 = 166;
+inline constexpr std::int64_t kCastleW2 = 167;
+inline constexpr std::int64_t kCastleWLegal = 168;
+inline constexpr std::int64_t kCastleB0 = 169;
+inline constexpr std::int64_t kCastleB1 = 170;
+inline constexpr std::int64_t kCastleB2 = 171;
+inline constexpr std::int64_t kCastleBLegal = 172;
+inline constexpr std::int64_t kEpAny = 173;
+inline constexpr std::int64_t kCastleAny = 174;
+inline constexpr std::int64_t kSpecialAny = 175;
+inline constexpr std::int64_t kPseudoLegal = 176;
 
 }  // namespace cmz::vm3::rule

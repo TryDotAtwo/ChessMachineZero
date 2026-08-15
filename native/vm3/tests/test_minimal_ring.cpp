@@ -59,8 +59,8 @@ int main(int argc, char**) {
   cmz::vm3::save_frozen_program(compiled, image_path);
   const auto program = cmz::vm3::load_frozen_program(image_path, device);
   std::filesystem::remove(image_path);
-  ok &= require(!program.manifest.empty() && program.pre_policy_stages.size() == 85,
-                "compiler emits one hashed immutable 85-stage rule image");
+  ok &= require(!program.manifest.empty() && program.pre_policy_stages.size() == 112,
+                "compiler emits one hashed immutable 112-stage rule image");
   if (!use_cuda) {
     for (const auto& entry : program.manifest) {
       ok &= require(cmz::vm3::tensor_sha256(program.tensors.at(entry.name)) ==
