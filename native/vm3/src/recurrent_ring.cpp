@@ -110,23 +110,104 @@ torch::Tensor execute_rule_query(const FrozenChessProgram& program,
   return query;
 }
 
+torch::Tensor attention_at_least(const FrozenChessProgram& program,
+                                 const torch::Tensor& value,
+                                 const char* frozen_keys) {
+  const auto query = torch::stack({value, torch::ones_like(value)}, -1);
+  const auto scores = torch::matmul(
+      query.unsqueeze(-2), program.tensors.at(frozen_keys).transpose(0, 1));
+  const auto selection = deterministic_st_select(
+      scores, program.tensors.at("boolean_class_eligibility"), 1.0)
+                             .straight_through;
+  return torch::matmul(
+             selection, program.tensors.at("boolean_class_value").unsqueeze(-1))
+      .squeeze(-1).squeeze(-1);
+}
+
+torch::Tensor attention_not(const FrozenChessProgram& program,
+                            const torch::Tensor& value) {
+  return attention_at_least(program, 1.0 - value, "boolean_keys_half");
+}
+
+torch::Tensor own_king_attacked(const FrozenChessProgram& program,
+                                const torch::Tensor& board,
+                                const torch::Tensor& side) {
+  const auto white = side.select(-1, 0).unsqueeze(-1).unsqueeze(-1);
+  const auto black = side.select(-1, 1).unsqueeze(-1).unsqueeze(-1);
+  const auto own_king = white * board.select(-1, 6) +
+                        black * board.select(-1, 12);
+  const auto opponent = [&](std::int64_t white_piece,
+                            std::int64_t black_piece) {
+    return white * board.select(-1, black_piece) +
+           black * board.select(-1, white_piece);
+  };
+  const auto q = torch::matmul(
+      own_king, program.tensors.at("attack_square_code")).unsqueeze(-2);
+  const auto scores = torch::matmul(
+      q, program.tensors.at("attack_square_code").transpose(0, 1));
+  const auto king_square_selection = deterministic_st_select(
+      scores, program.tensors.at("attack_square_eligibility"), 1.0)
+                                         .straight_through;
+  const auto geometry = [&](const char* name) {
+    return torch::matmul(
+        king_square_selection,
+        program.tensors.at(name).transpose(0, 1)).squeeze(-2);
+  };
+  const auto occupied = 1.0 - board.select(-1, 0);
+  const auto selected_between = torch::matmul(
+      king_square_selection,
+      program.tensors.at("attack_between_all")
+          .permute({1, 0, 2})
+          .reshape({64, 64 * 64}))
+                                    .view({board.size(0), board.size(1), 64, 64});
+  const auto blocker_count =
+      (selected_between * occupied.unsqueeze(-2)).sum(-1);
+  const auto path_clear = attention_not(
+      program, attention_at_least(
+                   program, blocker_count, "boolean_keys_half"));
+  const auto pawn_geometry = white * geometry("attack_pawn_black") +
+                             black * geometry("attack_pawn_white");
+  const auto pawn = attention_at_least(
+      program, opponent(1, 7) + pawn_geometry, "boolean_keys_one_half");
+  const auto knight = attention_at_least(program,
+      opponent(2, 8) + geometry("attack_knight"), "boolean_keys_one_half");
+  const auto king = attention_at_least(program,
+      opponent(6, 12) + geometry("attack_king"), "boolean_keys_one_half");
+  const auto rook = attention_at_least(program,
+      opponent(4, 10) + opponent(5, 11) +
+          geometry("attack_rook") + path_clear,
+      "boolean_keys_two_half");
+  const auto bishop = attention_at_least(program,
+      opponent(3, 9) + opponent(5, 11) +
+          geometry("attack_bishop") + path_clear,
+      "boolean_keys_two_half");
+  return attention_at_least(program,
+      (pawn + knight + king + rook + bishop).sum(-1), "boolean_keys_half");
+}
+
 }  // namespace
 
 torch::Tensor compute_rule_legal(const FrozenChessProgram& program,
                                  const torch::Tensor& state_tokens) {
-  return compute_rule_legal_batch(program, state_tokens.unsqueeze(0));
+  return compute_trial_transitions(program, state_tokens).legal;
 }
 
 torch::Tensor compute_rule_legal_batch(const FrozenChessProgram& program,
                                        const torch::Tensor& state_batch) {
-  return execute_rule_query(program, state_batch).select(-1, rule::kPseudoLegal);
+  return compute_trial_transitions_batch(program, state_batch).legal;
 }
 
 TrialTransitionBatch compute_trial_transitions(
     const FrozenChessProgram& program, const torch::Tensor& state_tokens) {
-  const auto batch = state_tokens.unsqueeze(0);
+  return compute_trial_transitions_batch(program, state_tokens.unsqueeze(0));
+}
+
+TrialTransitionBatch compute_trial_transitions_batch(
+    const FrozenChessProgram& program, const torch::Tensor& batch) {
+  const auto batch_size = batch.size(0);
   const auto active = batch.select(-1, kStateActiveFeature);
-  const auto board = active.narrow(-1, kBoardOffset, kBoardRows).view({1, 64, 13});
+  const auto board = active.narrow(-1, kBoardOffset, kBoardRows)
+                         .view({batch_size, 64, 13});
   const auto side = active.narrow(-1, kSideOffset, kSideRows);
   const auto query = execute_rule_query(program, batch);
   const auto pseudo = query.select(-1, rule::kPseudoLegal);
@@ -198,7 +279,7 @@ TrialTransitionBatch compute_trial_transitions(
       (1.0 - reset).unsqueeze(-1) * quiet_halfmove.unsqueeze(1);
 
   const auto fullmove = active.narrow(-1, kFullmoveOffset, kFullmoveRows)
-                            .view({1, 2, 128});
+                            .view({batch_size, 2, 128});
   const auto black = side.select(-1, 1).unsqueeze(-1);
   const auto incremented_low =
       torch::matmul(fullmove.select(-2, 0), program.tensors.at("radix_increment"));
@@ -211,8 +292,37 @@ TrialTransitionBatch compute_trial_transitions(
                          carry * incremented_high;
   const auto next_fullmove = torch::stack({next_low, next_high}, -2)
                                  .unsqueeze(1)
-                                 .expand({1, kMoveCandidateCount, 2, 128});
-  return {pseudo, trial_board, next_castling, next_ep,
+                                 .expand({batch_size, kMoveCandidateCount, 2, 128});
+  const auto final_attacked = own_king_attacked(program, trial_board, side);
+  const auto origin_attacked = own_king_attacked(
+      program, board.unsqueeze(1), side).squeeze(1);
+  const auto castle_active =
+      program.tensors.at("candidate_castle_active").transpose(0, 1);
+  const auto& castle_ids = program.tensors.at("castle_candidate_ids");
+  const auto castle_source = torch::index_select(source, 0, castle_ids);
+  const auto castle_moving_piece = torch::index_select(source_piece, 1, castle_ids);
+  const auto transit = torch::index_select(
+      program.tensors.at("candidate_castle_transit"), 0, castle_ids)
+                           .unsqueeze(0).unsqueeze(-1);
+  const auto transit_source_mask = castle_source.unsqueeze(0).unsqueeze(-1);
+  const auto transit_board =
+      (1.0 - transit_source_mask - transit) * board.unsqueeze(1) +
+      transit_source_mask * program.tensors.at("empty_piece") +
+      transit * castle_moving_piece.unsqueeze(-2);
+  const auto transit_attacked = torch::matmul(
+      own_king_attacked(program, transit_board, side),
+      program.tensors.at("castle_candidate_route"));
+  const auto castle_attacked = attention_at_least(
+      program, origin_attacked.unsqueeze(-1) + transit_attacked,
+      "boolean_keys_half");
+  const auto castle_hazard = attention_at_least(
+      program, castle_active + castle_attacked, "boolean_keys_one_half");
+  const auto castle_safe = attention_not(program, castle_hazard);
+  const auto legal = attention_at_least(
+      program, pseudo + attention_not(program, final_attacked) + castle_safe,
+      "boolean_keys_two_half");
+  return {pseudo, legal, origin_attacked, final_attacked,
+          trial_board, next_castling, next_ep,
           next_halfmove, next_fullmove};
 }
 
@@ -220,7 +330,7 @@ StepResult recurrent_step(const FrozenChessProgram& program,
                           PolicyPair policies,
                           const ChessRingState& state) {
   const auto trials = compute_trial_transitions(program, state.tokens);
-  const auto legal = trials.pseudo_legal;
+  const auto legal = trials.legal;
   const auto& zero = program.tensors.at("zero_bit");
   PolicyInput input{state.tokens.unsqueeze(0),
                     program.tensors.at("candidate_tokens").unsqueeze(0),

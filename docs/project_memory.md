@@ -1,5 +1,19 @@
 # Project memory
 
+- 2026-08-20: VM3 now computes own-king safety from candidate-batched trial
+  boards. A frozen 64-cell circular key bank performs physical `QK^T -> ST
+  hardmax`; `AV` carries piece attack relations and the complete between-square
+  mask; frozen two-class `d_head=2` selectors reduce blocker, piece-attack,
+  castling-safety and final LEGAL predicates. Selector keys live in the hashed
+  program image, not runtime-created tensors. Fixed HullKV routing evaluates
+  transit attacks only for the four universal castle candidates. Exact tests
+  cover pins, king adjacency, en-passant discovered check, and castling from,
+  through and into attack; final legal sets match `python-chess` on 520 GPU
+  positions. Current gates: native 12/12, Python 52/52, purity/public 22/22 and
+  GPU king-safety backward. This is not yet the complete Task-11 acceptance:
+  start/Kiwipete perft depth gates remain pending because the dense reference
+  graph is not yet fast enough for depth 4.
+
 - 2026-08-15: VM3 Task 10 adds special pseudo-legal transitions to the same
   immutable rule image. Every one of 4272 candidates now runs an identical
   60-token packet through 112 frozen physical `d_head=2` attention stages;

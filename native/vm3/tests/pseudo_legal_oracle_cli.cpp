@@ -23,8 +23,13 @@ std::string square_name(std::int64_t square) {
 }
 }  // namespace
 
-int main(int argc, char**) {
-  const auto use_cuda = argc > 1;
+int main(int argc, char** argv) {
+  bool use_cuda = false;
+  bool final_legal = false;
+  for (int index = 1; index < argc; ++index) {
+    use_cuda = use_cuda || std::string(argv[index]) == "--cuda";
+    final_legal = final_legal || std::string(argv[index]) == "--legal";
+  }
   TORCH_CHECK(!use_cuda || torch::cuda::is_available(),
               "CUDA pseudo-legal oracle requested without GPU");
   const auto options = torch::TensorOptions().dtype(torch::kFloat64).device(
@@ -67,8 +72,10 @@ int main(int argc, char**) {
     const auto count = std::min<std::int64_t>(batch_size, states.size() - begin);
     std::vector<torch::Tensor> chunk(states.begin() + begin,
                                      states.begin() + begin + count);
-    const auto legal_batch = cmz::vm3::compute_rule_legal_batch(
-        program, torch::stack(chunk)).to(torch::kCPU);
+    const auto trials = cmz::vm3::compute_trial_transitions_batch(
+        program, torch::stack(chunk));
+    const auto legal_batch =
+        (final_legal ? trials.legal : trials.pseudo_legal).to(torch::kCPU);
     for (std::int64_t item = 0; item < count; ++item) {
       const auto legal = legal_batch.select(0, item);
       std::cout << "CMZ|";

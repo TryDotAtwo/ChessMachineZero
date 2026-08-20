@@ -25,6 +25,7 @@ set(CMZ_VM3_LOADER_SOURCES
   src/program_loader.cpp
 )
 set(CMZ_VM3_COMPILER_SOURCES
+  compiler/attack_rules.cpp
   compiler/candidate_bank.cpp
   compiler/initial_state_binder.cpp
   compiler/pawn_rules.cpp
@@ -102,3 +103,7 @@ add_test(NAME cmz_vm3_pseudo_legal COMMAND cmz_vm3_test_pseudo_legal)
 add_executable(cmz_vm3_test_special_moves tests/test_special_moves.cpp)
 target_link_libraries(cmz_vm3_test_special_moves PRIVATE cmz_vm3_executor cmz_vm3_compiler ${TORCH_LIBRARIES})
 add_test(NAME cmz_vm3_special_moves COMMAND cmz_vm3_test_special_moves)
+
+add_executable(cmz_vm3_test_king_safety tests/test_king_safety.cpp)
+target_link_libraries(cmz_vm3_test_king_safety PRIVATE cmz_vm3_executor cmz_vm3_compiler ${TORCH_LIBRARIES})
+add_test(NAME cmz_vm3_king_safety COMMAND cmz_vm3_test_king_safety)

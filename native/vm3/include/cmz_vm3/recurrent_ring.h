@@ -21,6 +21,9 @@ torch::Tensor compute_rule_legal_batch(const FrozenChessProgram& program,
 
 struct TrialTransitionBatch {
   torch::Tensor pseudo_legal;
+  torch::Tensor legal;
+  torch::Tensor side_in_check;
+  torch::Tensor own_king_attacked;
   torch::Tensor board;
   torch::Tensor castling;
   torch::Tensor raw_ep;
@@ -30,6 +33,8 @@ struct TrialTransitionBatch {
 
 TrialTransitionBatch compute_trial_transitions(
     const FrozenChessProgram& program, const torch::Tensor& state_tokens);
+TrialTransitionBatch compute_trial_transitions_batch(
+    const FrozenChessProgram& program, const torch::Tensor& state_batch);
 
 StepResult recurrent_step(const FrozenChessProgram& program,
                           PolicyPair policies,

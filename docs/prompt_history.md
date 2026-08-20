@@ -1,5 +1,10 @@
 # Prompt history
 
+## 2026-08-20
+
+- Continue VM3 implementation from the interrupted king-safety regression,
+  without subagents and under the established attention-only invariants.
+
 - 2026-08-14: User required a code-and-idea audit followed by a detailed plan
   without an approval stop. The corrected target is a same-ABI recurrent ring:
   output board/state feeds the same system again; the compact append-only move

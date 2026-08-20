@@ -271,6 +271,9 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
   auto special = compile_special_move_tensors(bank);
   for (auto& [name, tensor] : special)
     program.tensors.emplace(name, std::move(tensor));
+  auto attack = compile_attack_tensors(bank);
+  for (auto& [name, tensor] : attack)
+    program.tensors.emplace(name, std::move(tensor));
   add_pseudo_legal_tensors(program, bank);
   const auto pawn = compile_pawn_geometry(bank);
   const auto knight = compile_knight_geometry(bank);

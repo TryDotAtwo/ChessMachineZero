@@ -1,5 +1,16 @@
 # Change history
 
+## 2026-08-20 — attention-only own-king safety filter
+
+- Added frozen attack geometry, between-square value tables and physical
+  `d_head=2` Q/K selectors for king-square lookup and Boolean attack reduction.
+- Final `LEGAL` is now selected from every complete trial board, including
+  en-passant discovered checks and castling origin/transit/destination safety.
+  The recurrent policy consumes this final tensor rather than pseudo-legality.
+- Added exact native pin/king/EP/castling/gradient tests and a 520-position GPU
+  legal-set oracle against `python-chess`. Full VM3 CTest is 12/12 and Python is
+  52/52. Planned perft depth 1–4 remains open and is not claimed here.
+
 ## 2026-08-15 — special-move trial transitions and recurrent write
 
 - Expanded the immutable VM3 image to 112 physical `d_head=2` stages over
