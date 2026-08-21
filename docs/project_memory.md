@@ -1,5 +1,18 @@
 # Project memory
 
+- 2026-08-21: VM3 adds the first minimal terminal/absorbing slice. The compiler
+  emits frozen terminal/result row routers, a fixed legal-count reducer,
+  halfmove-150 detector and an 8-row terminal lookup table whose hard
+  `d_head=2` selector maps tensor facts to RUNNING, WHITE/BLACK_CHECKMATED,
+  STALEMATE or SEVENTY_FIVE_MOVE plus result and commit gate. The executor no
+  longer hand-computes mate/stalemate branches; it forms the terminal query via
+  fixed matmul row projections, applies deterministic ST selection, writes
+  terminal/result back into the same state ABI, and appends only inactive MOVE
+  padding for terminal states. Exact native CPU gates cover black checkmate,
+  stalemate, automatic 75-move draw and absorbing recurrence. Repetition,
+  claim-draw modes, insufficient-material subsets and GPU evidence for this
+  terminal slice remain open.
+
 - 2026-08-21: VM3 now has the first accepted perft gate around VM tensor
   outputs. A bounded batched sparse-hard path evaluates up to 16 states with
   compiler-frozen attack offsets, and `materialize_selected_trial_state` writes

@@ -636,6 +636,142 @@ FrozenChessProgram compile_minimal_rule_program(const torch::TensorOptions& opti
                           field_state_rows(kHalfmoveRows, kHalfmoveOffset));
   program.tensors.emplace("fullmove_state_rows",
                           field_state_rows(kFullmoveRows, kFullmoveOffset));
+  program.tensors.emplace("terminal_state_rows",
+                          field_state_rows(kTerminalRows, kTerminalOffset));
+  program.tensors.emplace("result_state_rows",
+                          field_state_rows(kResultRows, kResultOffset));
+  const auto terminal_one_hot = [](TerminalKind kind) {
+    return at::one_hot(torch::tensor(static_cast<std::int64_t>(kind)),
+                       kTerminalRows).to(torch::kFloat64).unsqueeze(0);
+  };
+  const auto result_one_hot = [](GameResult result) {
+    return at::one_hot(torch::tensor(static_cast<std::int64_t>(result)),
+                       kResultRows).to(torch::kFloat64).unsqueeze(0);
+  };
+  const auto terminal_running = terminal_one_hot(TerminalKind::Running);
+  const auto terminal_white_checkmated =
+      terminal_one_hot(TerminalKind::WhiteCheckmated);
+  const auto terminal_black_checkmated =
+      terminal_one_hot(TerminalKind::BlackCheckmated);
+  const auto terminal_stalemate = terminal_one_hot(TerminalKind::Stalemate);
+  const auto terminal_seventy_five =
+      terminal_one_hot(TerminalKind::SeventyFiveMove);
+  const auto result_running = result_one_hot(GameResult::Running);
+  const auto result_white_win = result_one_hot(GameResult::WhiteWin);
+  const auto result_black_win = result_one_hot(GameResult::BlackWin);
+  const auto result_draw = result_one_hot(GameResult::Draw);
+  program.tensors.emplace("terminal_running", terminal_running);
+  program.tensors.emplace("terminal_white_checkmated",
+                          terminal_white_checkmated);
+  program.tensors.emplace("terminal_black_checkmated",
+                          terminal_black_checkmated);
+  program.tensors.emplace("terminal_stalemate", terminal_stalemate);
+  program.tensors.emplace("terminal_seventy_five", terminal_seventy_five);
+  program.tensors.emplace("result_running", result_running);
+  program.tensors.emplace("result_white_win", result_white_win);
+  program.tensors.emplace("result_black_win", result_black_win);
+  program.tensors.emplace("result_draw", result_draw);
+  program.tensors.emplace("candidate_any_legal_reduce",
+                          torch::ones({kMoveCandidateCount, 1}, torch::kFloat64));
+  auto halfmove_automatic_terminal = zeros({kHalfmoveRows, 1});
+  halfmove_automatic_terminal.index_put_({kHalfmoveAutomaticLimit, 0}, 1.0);
+  program.tensors.emplace("halfmove_automatic_terminal",
+                          halfmove_automatic_terminal);
+  auto terminal_lookup_keys = zeros({8, 14});
+  const auto constrain = [&](std::int64_t row, std::int64_t fact, double value) {
+    terminal_lookup_keys.index_put_({row, fact + (value == 0.0 ? 7 : 0)}, 1.0);
+  };
+  constrain(0, 0, 1.0);  // WHITE_TO_MOVE RUNNING
+  constrain(0, 1, 1.0);
+  constrain(0, 4, 1.0);  // at least one legal move
+  constrain(0, 6, 0.0);  // automatic draw clock inactive
+  constrain(1, 0, 1.0);  // BLACK_TO_MOVE RUNNING
+  constrain(1, 2, 1.0);
+  constrain(1, 4, 1.0);
+  constrain(1, 6, 0.0);
+  constrain(2, 0, 1.0);  // WHITE_CHECKMATED
+  constrain(2, 1, 1.0);
+  constrain(2, 3, 1.0);
+  constrain(2, 5, 1.0);
+  constrain(3, 0, 1.0);  // BLACK_CHECKMATED
+  constrain(3, 2, 1.0);
+  constrain(3, 3, 1.0);
+  constrain(3, 5, 1.0);
+  constrain(4, 0, 1.0);  // WHITE_TO_MOVE STALEMATE
+  constrain(4, 1, 1.0);
+  constrain(4, 3, 0.0);
+  constrain(4, 5, 1.0);
+  constrain(5, 0, 1.0);  // BLACK_TO_MOVE STALEMATE
+  constrain(5, 2, 1.0);
+  constrain(5, 3, 0.0);
+  constrain(5, 5, 1.0);
+  constrain(6, 0, 1.0);  // WHITE_TO_MOVE SEVENTY_FIVE_MOVE
+  constrain(6, 1, 1.0);
+  constrain(6, 4, 1.0);
+  constrain(6, 6, 1.0);
+  constrain(7, 0, 1.0);  // BLACK_TO_MOVE SEVENTY_FIVE_MOVE
+  constrain(7, 2, 1.0);
+  constrain(7, 4, 1.0);
+  constrain(7, 6, 1.0);
+  auto terminal_lookup_values = zeros({8, kTerminalRows + kResultRows + 1});
+  terminal_lookup_values.index_put_({0, torch::indexing::Slice(0, kTerminalRows)},
+                                    terminal_running.squeeze(0));
+  terminal_lookup_values.index_put_(
+      {0, torch::indexing::Slice(kTerminalRows, kTerminalRows + kResultRows)},
+      result_running.squeeze(0));
+  terminal_lookup_values.index_put_({0, kTerminalRows + kResultRows}, 1.0);
+  terminal_lookup_values.index_put_({1, torch::indexing::Slice(0, kTerminalRows)},
+                                    terminal_running.squeeze(0));
+  terminal_lookup_values.index_put_(
+      {1, torch::indexing::Slice(kTerminalRows, kTerminalRows + kResultRows)},
+      result_running.squeeze(0));
+  terminal_lookup_values.index_put_({1, kTerminalRows + kResultRows}, 1.0);
+  terminal_lookup_values.index_put_({2, torch::indexing::Slice(0, kTerminalRows)},
+                                    terminal_white_checkmated.squeeze(0));
+  terminal_lookup_values.index_put_(
+      {2, torch::indexing::Slice(kTerminalRows, kTerminalRows + kResultRows)},
+      result_black_win.squeeze(0));
+  terminal_lookup_values.index_put_({3, torch::indexing::Slice(0, kTerminalRows)},
+                                    terminal_black_checkmated.squeeze(0));
+  terminal_lookup_values.index_put_(
+      {3, torch::indexing::Slice(kTerminalRows, kTerminalRows + kResultRows)},
+      result_white_win.squeeze(0));
+  terminal_lookup_values.index_put_({4, torch::indexing::Slice(0, kTerminalRows)},
+                                    terminal_stalemate.squeeze(0));
+  terminal_lookup_values.index_put_(
+      {4, torch::indexing::Slice(kTerminalRows, kTerminalRows + kResultRows)},
+      result_draw.squeeze(0));
+  terminal_lookup_values.index_put_({5, torch::indexing::Slice(0, kTerminalRows)},
+                                    terminal_stalemate.squeeze(0));
+  terminal_lookup_values.index_put_(
+      {5, torch::indexing::Slice(kTerminalRows, kTerminalRows + kResultRows)},
+      result_draw.squeeze(0));
+  terminal_lookup_values.index_put_({6, torch::indexing::Slice(0, kTerminalRows)},
+                                    terminal_seventy_five.squeeze(0));
+  terminal_lookup_values.index_put_(
+      {6, torch::indexing::Slice(kTerminalRows, kTerminalRows + kResultRows)},
+      result_draw.squeeze(0));
+  terminal_lookup_values.index_put_({7, torch::indexing::Slice(0, kTerminalRows)},
+                                    terminal_seventy_five.squeeze(0));
+  terminal_lookup_values.index_put_(
+      {7, torch::indexing::Slice(kTerminalRows, kTerminalRows + kResultRows)},
+      result_draw.squeeze(0));
+  program.tensors.emplace("terminal_lookup_keys", terminal_lookup_keys);
+  program.tensors.emplace("terminal_lookup_values", terminal_lookup_values);
+  program.tensors.emplace("terminal_lookup_eligibility",
+                          torch::ones({1, 8}, torch::kFloat64));
+  for (std::int64_t fact = 0; fact < 7; ++fact) {
+    auto positive_row = zeros({1, 14});
+    auto negative_row = zeros({1, 14});
+    positive_row.index_put_({0, fact}, 1.0);
+    negative_row.index_put_({0, fact + 7}, 1.0);
+    program.tensors.emplace("terminal_query_fact_" + std::to_string(fact) +
+                                "_positive",
+                            positive_row);
+    program.tensors.emplace("terminal_query_fact_" + std::to_string(fact) +
+                                "_negative",
+                            negative_row);
+  }
   program.tensors.emplace("state_active_feature", state_active_feature);
   program.tensors.emplace("trajectory_pad_token", zeros({1, 3}));
   program.tensors.emplace("zero_bit", zeros({1, 1}));

@@ -104,3 +104,7 @@
   the primary agent alone edits and verifies the code. Preserve every
   attention-only, deterministic-ST, same-ABI recurrent and evidence-boundary
   invariant while implementing the next approved plan step.
+- Continue implementation after the perft harness by adding the next strict
+  rule-machine slice under the same invariant audit discipline; if terminal
+  behavior is added, it must remain frozen lookup/attention inference rather
+  than host-side chess branching.

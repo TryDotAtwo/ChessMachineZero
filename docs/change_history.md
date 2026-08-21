@@ -1,5 +1,17 @@
 # Change history
 
+## 2026-08-21 — minimal frozen terminal lookup
+
+- Added compiler-frozen terminal/result routers, legal-count and halfmove-150
+  reducers, and an 8-row terminal lookup selected by the same deterministic ST
+  attention machinery.
+- Recurrent execution now gates move commits through the lookup result, writes
+  terminal/result into the same canonical state tensor, and keeps already
+  terminal states absorbing while appending inactive trajectory padding.
+- Added exact native terminal tests for checkmate, stalemate, automatic
+  75-move draw and absorbing recurrence. This does not yet claim repetition,
+  claim-draw handling, insufficient-material subsets or GPU terminal evidence.
+
 ## 2026-08-21 — accepted batched sparse perft harness
 
 - Added a bounded batched sparse hard-forward transition entry point and

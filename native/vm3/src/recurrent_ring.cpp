@@ -469,10 +469,13 @@ StepResult recurrent_step(const FrozenChessProgram& program,
   const auto trials = compute_trial_transitions(program, state.tokens);
   const auto legal = trials.legal;
   const auto& zero = program.tensors.at("zero_bit");
+  const auto current_terminal = terminal_view(state.tokens).unsqueeze(0);
+  const auto current_result = result_view(state.tokens).unsqueeze(0);
+  const auto current_running = current_terminal.narrow(-1, 0, 1);
   PolicyInput input{state.tokens.unsqueeze(0),
                     program.tensors.at("candidate_tokens").unsqueeze(0),
                     legal,
-                    zero,
+                    1.0 - current_running,
                     zero * legal,
                     zero,
                     zero,
@@ -483,60 +486,83 @@ StepResult recurrent_step(const FrozenChessProgram& program,
       routed.selected.move_selection.narrow(-1, 0, kMoveCandidateCount);
   const auto selected_move = torch::matmul(
       real_selection, program.tensors.at("candidate_descriptors"));
-  const auto commit = routed.selected.control_selection.narrow(-1, 0, 1);
+
+  const auto side_in_check = trials.side_in_check.view({1, 1});
+  const auto any_legal = attention_at_least(
+      program, torch::matmul(legal, program.tensors.at("candidate_any_legal_reduce")),
+      "boolean_keys_half");
+  const auto no_legal = attention_not(program, any_legal);
+  const auto white_to_move = side.narrow(-1, 0, 1);
+  const auto black_to_move = side.narrow(-1, 1, 1);
+  const auto current_halfmove = halfmove_view(state.tokens).unsqueeze(0);
+  const auto auto_seventy_five =
+      torch::matmul(current_halfmove,
+                    program.tensors.at("halfmove_automatic_terminal"));
+  const auto terminal_query =
+      torch::matmul(current_running,
+                    program.tensors.at("terminal_query_fact_0_positive")) +
+      torch::matmul(1.0 - current_running,
+                    program.tensors.at("terminal_query_fact_0_negative")) +
+      torch::matmul(white_to_move,
+                    program.tensors.at("terminal_query_fact_1_positive")) +
+      torch::matmul(1.0 - white_to_move,
+                    program.tensors.at("terminal_query_fact_1_negative")) +
+      torch::matmul(black_to_move,
+                    program.tensors.at("terminal_query_fact_2_positive")) +
+      torch::matmul(1.0 - black_to_move,
+                    program.tensors.at("terminal_query_fact_2_negative")) +
+      torch::matmul(side_in_check,
+                    program.tensors.at("terminal_query_fact_3_positive")) +
+      torch::matmul(1.0 - side_in_check,
+                    program.tensors.at("terminal_query_fact_3_negative")) +
+      torch::matmul(any_legal,
+                    program.tensors.at("terminal_query_fact_4_positive")) +
+      torch::matmul(1.0 - any_legal,
+                    program.tensors.at("terminal_query_fact_4_negative")) +
+      torch::matmul(no_legal,
+                    program.tensors.at("terminal_query_fact_5_positive")) +
+      torch::matmul(1.0 - no_legal,
+                    program.tensors.at("terminal_query_fact_5_negative")) +
+      torch::matmul(auto_seventy_five,
+                    program.tensors.at("terminal_query_fact_6_positive")) +
+      torch::matmul(1.0 - auto_seventy_five,
+                    program.tensors.at("terminal_query_fact_6_negative"));
+  const auto terminal_scores = torch::matmul(
+      terminal_query.unsqueeze(-2),
+      program.tensors.at("terminal_lookup_keys").transpose(0, 1));
+  const auto terminal_selection = deterministic_st_select(
+      terminal_scores, program.tensors.at("terminal_lookup_eligibility"), 1.0)
+                                      .straight_through;
+  const auto terminal_lookup = torch::matmul(
+      terminal_selection, program.tensors.at("terminal_lookup_values"))
+                                   .squeeze(-2);
+  const auto computed_terminal =
+      terminal_lookup.narrow(-1, 0, kTerminalRows);
+  const auto computed_result =
+      terminal_lookup.narrow(-1, kTerminalRows, kResultRows);
+  const auto commit_allowed =
+      terminal_lookup.narrow(-1, kTerminalRows + kResultRows, 1);
+  const auto next_terminal =
+      (1.0 - current_running) * current_terminal +
+      current_running * computed_terminal;
+  const auto next_result =
+      (1.0 - current_running) * current_result +
+      current_running * computed_result;
+  const auto commit =
+      routed.selected.control_selection.narrow(-1, 0, 1) *
+      current_running * commit_allowed;
   const auto move_slot = make_training_move_slot(program, selected_move, commit);
   const auto policy_kv = encode_policy_pair_move(policies, side, move_slot);
 
-  const auto current_board = board_state_view(state.tokens).unsqueeze(0);
-  const auto selected_board =
-      (real_selection.unsqueeze(-1).unsqueeze(-1) * trials.board).sum(1);
-  const auto next_board = commit.unsqueeze(-1) * selected_board +
-                          (1.0 - commit).unsqueeze(-1) * current_board;
-  const auto select_trial = [&](const torch::Tensor& trial) {
-    return (real_selection.unsqueeze(-1) * trial).sum(1);
-  };
-  const auto current_castling = castling_view(state.tokens).unsqueeze(0);
-  const auto current_raw_ep = raw_ep_view(state.tokens).unsqueeze(0);
-  const auto current_halfmove = halfmove_view(state.tokens).unsqueeze(0);
-  const auto current_fullmove = fullmove_digits_view(state.tokens)
-                                    .flatten()
-                                    .unsqueeze(0);
-  const auto selected_castling = select_trial(trials.castling);
-  const auto selected_raw_ep = select_trial(trials.raw_ep);
-  const auto selected_halfmove = select_trial(trials.halfmove);
-  const auto selected_fullmove = select_trial(
-      trials.fullmove_digits.flatten(-2, -1));
-  const auto next_castling = commit * selected_castling +
-                             (1.0 - commit) * current_castling;
-  const auto next_raw_ep = commit * selected_raw_ep +
-                           (1.0 - commit) * current_raw_ep;
-  const auto next_halfmove = commit * selected_halfmove +
-                             (1.0 - commit) * current_halfmove;
-  const auto next_fullmove = commit * selected_fullmove +
-                             (1.0 - commit) * current_fullmove;
-  const auto flipped_side = torch::matmul(side, program.tensors.at("side_flip"));
-  const auto next_side = commit * flipped_side + (1.0 - commit) * side;
-
-  const auto board_delta = torch::matmul(
-      (next_board - current_board).flatten(1),
-      program.tensors.at("board_state_rows"));
-  const auto side_delta = torch::matmul(
-      next_side - side, program.tensors.at("side_state_rows"));
-  const auto castling_delta = torch::matmul(
-      next_castling - current_castling,
-      program.tensors.at("castling_state_rows"));
-  const auto raw_ep_delta = torch::matmul(
-      next_raw_ep - current_raw_ep, program.tensors.at("raw_ep_state_rows"));
-  const auto halfmove_delta = torch::matmul(
-      next_halfmove - current_halfmove,
-      program.tensors.at("halfmove_state_rows"));
-  const auto fullmove_delta = torch::matmul(
-      next_fullmove - current_fullmove,
-      program.tensors.at("fullmove_state_rows"));
-  const auto next_tokens =
-      state.tokens.unsqueeze(0) +
-      (board_delta + side_delta + castling_delta + raw_ep_delta +
-       halfmove_delta + fullmove_delta).unsqueeze(-1) *
+  auto next_tokens = materialize_selected_trial_state(
+      program, state.tokens.unsqueeze(0), trials, real_selection, commit);
+  const auto terminal_delta = torch::matmul(
+      next_terminal - current_terminal,
+      program.tensors.at("terminal_state_rows"));
+  const auto result_delta = torch::matmul(
+      next_result - current_result, program.tensors.at("result_state_rows"));
+  next_tokens = next_tokens +
+      (terminal_delta + result_delta).unsqueeze(-1) *
           program.tensors.at("state_active_feature");
   auto trajectory = state.trajectory;
   trajectory.move_slots.push_back(move_slot);

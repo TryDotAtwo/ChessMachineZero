@@ -110,3 +110,7 @@ add_test(NAME cmz_vm3_king_safety COMMAND cmz_vm3_test_king_safety)
 add_executable(cmz_vm3_perft_oracle_cli tests/perft_oracle_cli.cpp)
 target_link_libraries(cmz_vm3_perft_oracle_cli PRIVATE cmz_vm3_executor cmz_vm3_compiler ${TORCH_LIBRARIES})
 add_dependencies(cmz_vm3_test_king_safety cmz_vm3_perft_oracle_cli)
+
+add_executable(cmz_vm3_test_terminal tests/test_terminal.cpp)
+target_link_libraries(cmz_vm3_test_terminal PRIVATE cmz_vm3_executor cmz_vm3_compiler ${TORCH_LIBRARIES})
+add_test(NAME cmz_vm3_terminal COMMAND cmz_vm3_test_terminal)
