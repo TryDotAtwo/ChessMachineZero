@@ -1,5 +1,13 @@
 # Prompt history
 
+## 2026-08-21
+
+- Continue VM3 implementation with the project commandments repeated and then
+  monitored by a separate invariant audit: no chess-aware runtime branches,
+  loops, scalar reads, CPU/detach or false HullKV claims; compiler-only
+  universal relations; fixed `d_head=2` attention/tensor execution; perft host
+  recursion may exist only as test harness evidence, not runtime semantics.
+
 ## 2026-08-20
 
 - Continue VM3 implementation from the interrupted king-safety regression,

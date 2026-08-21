@@ -35,8 +35,16 @@ TrialTransitionBatch compute_trial_transitions(
     const FrozenChessProgram& program, const torch::Tensor& state_tokens);
 TrialTransitionBatch compute_trial_transitions_hard_forward(
     const FrozenChessProgram& program, const torch::Tensor& state_tokens);
+TrialTransitionBatch compute_trial_transitions_hard_forward_batch(
+    const FrozenChessProgram& program, const torch::Tensor& state_batch);
 TrialTransitionBatch compute_trial_transitions_batch(
     const FrozenChessProgram& program, const torch::Tensor& state_batch);
+torch::Tensor materialize_selected_trial_state(
+    const FrozenChessProgram& program,
+    const torch::Tensor& state_batch,
+    const TrialTransitionBatch& trials,
+    const torch::Tensor& move_selection,
+    const torch::Tensor& commit);
 
 StepResult recurrent_step(const FrozenChessProgram& program,
                           PolicyPair policies,

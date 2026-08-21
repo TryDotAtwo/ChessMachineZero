@@ -1,5 +1,17 @@
 # Project memory
 
+- 2026-08-21: VM3 now has the first accepted perft gate around VM tensor
+  outputs. A bounded batched sparse-hard path evaluates up to 16 states with
+  compiler-frozen attack offsets, and `materialize_selected_trial_state` writes
+  a selected trial board/side/castling/EP/clocks/fullmove result back into the
+  same canonical state ABI through fixed tensor arithmetic and frozen row
+  routers. The perft recursion is explicitly a test oracle harness, not runtime
+  chess semantics. CUDA pytest evidence passes start position depths 1-3
+  (20/400/8902), canonical Kiwipete depths 1-2 (48/2039), and depth-1
+  promotion, en-passant and castling cases. Source purity remains clean with no
+  new runtime operation classes. Terminal/repetition and genuine HullKV remain
+  open.
+
 - 2026-08-21: VM3 adds an exact single-state sparse hard-forward attack
   backend beside the unchanged dense/ST training path. It selects frozen
   between-square IDs and gathers only six possible ray blockers per

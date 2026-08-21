@@ -176,6 +176,22 @@ int main(int argc, char**) {
                 "double pawn push exposes e3 and resets clock");
   ok &= require(selected(metadata_trial.castling.index({0, a1a2})) == 9,
                 "original rook move clears only its own right");
+  const auto materialized = cmz::vm3::materialize_selected_trial_state(
+      program,
+      cmz::vm3::bind_initial_state(program, metadata).tokens.unsqueeze(0),
+      metadata_trial,
+      torch::one_hot(torch::tensor({e2e4}, options.dtype(torch::kInt64)),
+                     cmz::vm3::kMoveCandidateCount).to(options),
+      torch::ones({1, 1}, options));
+  const auto materialized_board = cmz::vm3::board_state_view(materialized.squeeze(0))
+                                      .argmax(-1);
+  ok &= require(materialized_board.index({12}).item<std::int64_t>() == 0 &&
+                    materialized_board.index({28}).item<std::int64_t>() ==
+                        static_cast<std::int64_t>(cmz::vm3::PieceState::WP) &&
+                    selected(cmz::vm3::raw_ep_view(materialized.squeeze(0))) == 21 &&
+                    selected(cmz::vm3::side_view(materialized.squeeze(0))) ==
+                        static_cast<std::int64_t>(cmz::vm3::Side::Black),
+                "tensor materializer commits the selected trial into same ABI state");
 
   auto capture_rook = empty_position(cmz::vm3::Side::White);
   capture_rook.board[4] = cmz::vm3::PieceState::WK;

@@ -61,6 +61,28 @@ int main(int argc, char**) {
                     torch::equal(pin_sparse.own_king_attacked,
                                  pin_trial.own_king_attacked),
                 "sparse hard-forward attack path is exact with dense attention");
+
+  auto batch_peer = empty_position();
+  batch_peer.board[4] = cmz::vm3::PieceState::WK;
+  batch_peer.board[20] = cmz::vm3::PieceState::BK;
+  const auto batch_tokens = torch::stack(
+      {cmz::vm3::bind_initial_state(program, pin).tokens,
+       cmz::vm3::bind_initial_state(program, batch_peer).tokens});
+  const auto dense_batch =
+      cmz::vm3::compute_trial_transitions_batch(program, batch_tokens);
+  const auto sparse_batch =
+      cmz::vm3::compute_trial_transitions_hard_forward_batch(program,
+                                                             batch_tokens);
+  ok &= require(torch::equal(sparse_batch.legal, dense_batch.legal) &&
+                    torch::equal(sparse_batch.board, dense_batch.board) &&
+                    torch::equal(sparse_batch.castling,
+                                 dense_batch.castling) &&
+                    torch::equal(sparse_batch.raw_ep, dense_batch.raw_ep) &&
+                    torch::equal(sparse_batch.halfmove,
+                                 dense_batch.halfmove) &&
+                    torch::equal(sparse_batch.fullmove_digits,
+                                 dense_batch.fullmove_digits),
+                "batched sparse hard-forward exactly matches dense trials");
   const auto e2f2 = move_id(bank, 12, 13);
   const auto e2e3 = move_id(bank, 12, 20);
   ok &= require(bit(pin_trial.pseudo_legal, e2f2) &&

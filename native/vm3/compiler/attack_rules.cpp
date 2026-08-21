@@ -90,13 +90,18 @@ FrozenTensorMap compile_attack_tensors(const CandidateBank& bank) {
   tensors.emplace("attack_between_all", between_all);
   tensors.emplace("attack_between_ids", between_ids);
   tensors.emplace("attack_between_valid", between_valid);
+  const auto batch_ids =
+      torch::arange(kSparseHardForwardMaxBatch, torch::kInt64)
+          .view({kSparseHardForwardMaxBatch, 1, 1, 1});
+  const auto batched_offsets = [&](std::int64_t count) {
+    const auto item_ids =
+        torch::arange(count, torch::kInt64).view({1, count, 1, 1});
+    return (batch_ids * count + item_ids) * 64;
+  };
   tensors.emplace("attack_offsets_candidates",
-                  torch::arange(kMoveCandidateCount, torch::kInt64)
-                      .view({kMoveCandidateCount, 1, 1}) * 64);
-  tensors.emplace("attack_offsets_castles",
-                  torch::arange(4, torch::kInt64).view({4, 1, 1}) * 64);
-  tensors.emplace("attack_offsets_single",
-                  torch::zeros({1, 1, 1}, torch::kInt64));
+                  batched_offsets(kMoveCandidateCount));
+  tensors.emplace("attack_offsets_castles", batched_offsets(4));
+  tensors.emplace("attack_offsets_single", batched_offsets(1));
   tensors.emplace("candidate_castle_active", castle_active);
   tensors.emplace("candidate_castle_transit", castle_transit);
   const auto castle_id_tensor = torch::tensor(castle_ids, torch::kInt64);

@@ -16,5 +16,6 @@ inline constexpr std::int64_t kHalfmoveAutomaticLimit = 150;
 inline constexpr std::int64_t kMaxOrthodoxGamePlies = 19050;
 inline constexpr std::int64_t kMaxOrthodoxRingSteps =
     kMaxOrthodoxGamePlies + 1;
+inline constexpr std::int64_t kSparseHardForwardMaxBatch = 16;
 
 }  // namespace cmz::vm3

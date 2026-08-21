@@ -25,5 +25,19 @@ over 64 keys; there is no convex-hull support query or certificate yet.
 
 ## Open boundary
 
-Perft depth gates, batched sparse execution, terminal/repetition rules and a
-genuine certified HullKV backend remain unproved and unclaimed.
+Terminal/repetition rules and a genuine certified HullKV backend remain
+unproved and unclaimed.
+
+## Batched perft follow-up
+
+- Added a bounded batched sparse-hard transition entry point and frozen batched
+  attack offsets for up to 16 states.
+- Added a tensor-only selected-trial materializer for test harness recursion.
+  It consumes one-hot move selections and writes board, side, castling, EP,
+  halfmove and fullmove fields back into the same state ABI through fixed
+  tensor arithmetic and frozen row routers.
+- Added exact CUDA perft oracle tests. Accepted counts: start depths 1-3
+  (20/400/8902), canonical Kiwipete depths 1-2 (48/2039), and depth-1
+  promotion, en-passant and castling cases. The perft recursion is test-only
+  host orchestration over VM-produced legal/trial tensors; it is not runtime
+  chess semantics.

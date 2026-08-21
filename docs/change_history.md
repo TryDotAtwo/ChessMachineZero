@@ -1,5 +1,18 @@
 # Change history
 
+## 2026-08-21 — accepted batched sparse perft harness
+
+- Added a bounded batched sparse hard-forward transition entry point and
+  compiler-frozen batched attack offsets for up to 16 states.
+- Added `materialize_selected_trial_state`, which writes a selected VM trial
+  back into the same canonical tensor ABI through fixed tensor arithmetic and
+  frozen row routers.
+- Added a test-only native perft oracle CLI and exact pytest cases for start,
+  canonical Kiwipete, promotion, en-passant and castling positions. CUDA pytest
+  now accepts start depths 1-3, Kiwipete depths 1-2 and the depth-1 special
+  cases. The CLI remains a test harness around VM tensor outputs, not runtime
+  chess semantics.
+
 ## 2026-08-21 — exact sparse hard-forward attack backend
 
 - Added compiler-frozen between-square IDs and offsets so hard inference

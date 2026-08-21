@@ -206,24 +206,25 @@ torch::Tensor own_king_attacked_sparse_hard(const FrozenChessProgram& program,
                                              const torch::Tensor& board,
                                              const torch::Tensor& side,
                                              const char* offsets_name) {
-  TORCH_CHECK(board.size(0) == 1,
-              "sparse hard-forward attack inference requires one recurrent "
-              "state");
+  TORCH_CHECK(board.size(0) <= kSparseHardForwardMaxBatch,
+              "sparse hard-forward batch exceeds frozen offset capacity");
   const auto selection = select_king_square(program, board, side);
   const auto target_ids = selection.hard_indices.squeeze(-1).flatten();
   const auto between_ids = torch::index_select(
       program.tensors.at("attack_between_ids"), 0, target_ids)
-                               .view({board.size(1), 64, 6});
+                               .view({board.size(0), board.size(1), 64, 6});
   const auto between_valid = torch::index_select(
       program.tensors.at("attack_between_valid"), 0, target_ids)
-                                 .view({board.size(1), 64, 6});
-  const auto flat_ids = between_ids + program.tensors.at(offsets_name);
+                                 .view({board.size(0), board.size(1), 64, 6});
+  const auto flat_ids =
+      between_ids + program.tensors.at(offsets_name).narrow(
+                        0, 0, board.size(0));
   const auto occupied = 1.0 - board.select(-1, 0);
   const auto between_occupied = torch::index_select(
       occupied.flatten(), 0, flat_ids.flatten())
-                                    .view({1, board.size(1), 64, 6});
+                                    .view({board.size(0), board.size(1), 64, 6});
   const auto blocker_count =
-      (between_occupied * between_valid.unsqueeze(0)).sum(-1);
+      (between_occupied * between_valid).sum(-1);
   return finish_attack_reduction(
       program, board, side, selection.hard, blocker_count);
 }
@@ -255,13 +256,83 @@ TrialTransitionBatch compute_trial_transitions(
 
 TrialTransitionBatch compute_trial_transitions_hard_forward(
     const FrozenChessProgram& program, const torch::Tensor& state_tokens) {
+  return compute_trial_transitions_hard_forward_batch(
+      program, state_tokens.unsqueeze(0));
+}
+
+TrialTransitionBatch compute_trial_transitions_hard_forward_batch(
+    const FrozenChessProgram& program, const torch::Tensor& state_batch) {
   return compute_trial_transitions_batch_impl(
-      program, state_tokens.unsqueeze(0), own_king_attacked_sparse_hard);
+      program, state_batch, own_king_attacked_sparse_hard);
 }
 
 TrialTransitionBatch compute_trial_transitions_batch(
     const FrozenChessProgram& program, const torch::Tensor& batch) {
   return compute_trial_transitions_batch_impl(program, batch, own_king_attacked);
+}
+
+torch::Tensor materialize_selected_trial_state(
+    const FrozenChessProgram& program,
+    const torch::Tensor& state_batch,
+    const TrialTransitionBatch& trials,
+    const torch::Tensor& move_selection,
+    const torch::Tensor& commit) {
+  const auto batch_size = state_batch.size(0);
+  const auto active = state_batch.select(-1, kStateActiveFeature);
+  const auto current_board =
+      active.narrow(-1, kBoardOffset, kBoardRows).view({batch_size, 64, 13});
+  const auto selected_board =
+      (move_selection.unsqueeze(-1).unsqueeze(-1) * trials.board).sum(1);
+  const auto next_board = commit.unsqueeze(-1) * selected_board +
+                          (1.0 - commit).unsqueeze(-1) * current_board;
+  const auto select_trial = [&](const torch::Tensor& trial) {
+    return (move_selection.unsqueeze(-1) * trial).sum(1);
+  };
+  const auto current_side = active.narrow(-1, kSideOffset, kSideRows);
+  const auto current_castling =
+      active.narrow(-1, kCastlingOffset, kCastlingRows);
+  const auto current_raw_ep = active.narrow(-1, kRawEpOffset, kRawEpRows);
+  const auto current_halfmove =
+      active.narrow(-1, kHalfmoveOffset, kHalfmoveRows);
+  const auto current_fullmove =
+      active.narrow(-1, kFullmoveOffset, kFullmoveRows);
+  const auto selected_castling = select_trial(trials.castling);
+  const auto selected_raw_ep = select_trial(trials.raw_ep);
+  const auto selected_halfmove = select_trial(trials.halfmove);
+  const auto selected_fullmove =
+      select_trial(trials.fullmove_digits.flatten(-2, -1));
+  const auto next_castling = commit * selected_castling +
+                             (1.0 - commit) * current_castling;
+  const auto next_raw_ep = commit * selected_raw_ep +
+                           (1.0 - commit) * current_raw_ep;
+  const auto next_halfmove = commit * selected_halfmove +
+                             (1.0 - commit) * current_halfmove;
+  const auto next_fullmove = commit * selected_fullmove +
+                             (1.0 - commit) * current_fullmove;
+  const auto flipped_side =
+      torch::matmul(current_side, program.tensors.at("side_flip"));
+  const auto next_side = commit * flipped_side + (1.0 - commit) * current_side;
+
+  const auto board_delta = torch::matmul(
+      (next_board - current_board).flatten(1),
+      program.tensors.at("board_state_rows"));
+  const auto side_delta = torch::matmul(
+      next_side - current_side, program.tensors.at("side_state_rows"));
+  const auto castling_delta = torch::matmul(
+      next_castling - current_castling,
+      program.tensors.at("castling_state_rows"));
+  const auto raw_ep_delta = torch::matmul(
+      next_raw_ep - current_raw_ep, program.tensors.at("raw_ep_state_rows"));
+  const auto halfmove_delta = torch::matmul(
+      next_halfmove - current_halfmove,
+      program.tensors.at("halfmove_state_rows"));
+  const auto fullmove_delta = torch::matmul(
+      next_fullmove - current_fullmove,
+      program.tensors.at("fullmove_state_rows"));
+  return state_batch +
+         (board_delta + side_delta + castling_delta + raw_ep_delta +
+          halfmove_delta + fullmove_delta).unsqueeze(-1) *
+             program.tensors.at("state_active_feature");
 }
 
 namespace {

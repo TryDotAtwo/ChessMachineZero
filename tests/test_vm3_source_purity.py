@@ -28,7 +28,11 @@ def clone_vm3(tmp_path: Path) -> Path:
     broken_root = tmp_path / "repo"
     (broken_root / "native").mkdir(parents=True)
     shutil.copy2(ROOT / "CMakeLists.txt", broken_root / "CMakeLists.txt")
-    shutil.copytree(ROOT / "native/vm3", broken_root / "native/vm3")
+    shutil.copytree(
+        ROOT / "native/vm3",
+        broken_root / "native/vm3",
+        ignore=shutil.ignore_patterns("build", "build-*", "__pycache__"),
+    )
     return broken_root
 
 
