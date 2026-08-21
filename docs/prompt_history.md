@@ -89,3 +89,10 @@
 - Normal checked pushes of `codex/percepta-transformer-vm` to the scoped
   ChessMachineZero GitHub repository are standing-authorized; destructive
   history changes and unrelated publication remain outside that permission.
+
+## 2026-08-21
+
+- Continue VM3 implementation with one separate read-only invariant auditor;
+  the primary agent alone edits and verifies the code. Preserve every
+  attention-only, deterministic-ST, same-ABI recurrent and evidence-boundary
+  invariant while implementing the next approved plan step.

@@ -59,3 +59,28 @@ def test_native_final_legal_set_matches_python_chess() -> None:
         observed = set(filter(None, line.split(',')))
         expected = {move.uci() for move in board.legal_moves}
         assert observed == expected, f"position {index}: {board.fen()}"
+
+
+def test_sparse_hard_forward_matches_dense_on_full_oracle_corpus() -> None:
+    boards = positions()
+    payload = "".join(
+        f"{','.join(map(str, encode_board(board)))}|{0 if board.turn else 1}|"
+        f"{castling_code(board)}|{-1 if board.ep_square is None else board.ep_square}|\n"
+        for board in boards
+    )
+    binary = oracle_binary()
+    relative = binary.relative_to(ROOT).as_posix()
+    base = [
+        "docker", "run", "--rm", "-i", "--gpus", "all", "-v",
+        f"{ROOT}:/work", "-w", "/work", "cmz-native-dev:2026-05-26",
+        f"/work/{relative}", "--cuda", "--legal",
+    ] if os.name == "nt" else [str(binary), "--legal"]
+    dense = subprocess.run(base, input=payload, check=True, capture_output=True,
+                           text=True, timeout=900)
+    sparse = subprocess.run([*base, "--sparse-hard"], input=payload, check=True,
+                            capture_output=True, text=True, timeout=900)
+    dense_lines = [line for line in dense.stdout.splitlines()
+                   if line.startswith("CMZ|")]
+    sparse_lines = [line for line in sparse.stdout.splitlines()
+                    if line.startswith("CMZ|")]
+    assert sparse_lines == dense_lines

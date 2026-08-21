@@ -31,6 +31,8 @@ FrozenTensorMap compile_attack_tensors(const CandidateBank& bank) {
       zeros({64, 64, 64}), zeros({64, 64, 64}),
       zeros({64, 64, 64}), zeros({64, 64, 64})};
   auto between_all = zeros({64, 64, 64});
+  auto between_ids = torch::zeros({64, 64, 6}, torch::kInt64);
+  auto between_valid = zeros({64, 64, 6});
   for (std::int64_t attacker = 0; attacker < 64; ++attacker) {
     const auto af = attacker % 8;
     const auto ar = attacker / 8;
@@ -59,6 +61,8 @@ FrozenTensorMap compile_attack_tensors(const CandidateBank& bank) {
                               8 * (ar + (slot + 1) * step_r);
           between[slot].index_put_({attacker, target, square}, 1.0);
           between_all.index_put_({attacker, target, square}, 1.0);
+          between_ids.index_put_({target, attacker, slot}, square);
+          between_valid.index_put_({target, attacker, slot}, 1.0);
         }
       }
     }
@@ -84,6 +88,15 @@ FrozenTensorMap compile_attack_tensors(const CandidateBank& bank) {
   for (std::int64_t slot = 0; slot < 6; ++slot)
     tensors.emplace("attack_between_" + std::to_string(slot), between[slot]);
   tensors.emplace("attack_between_all", between_all);
+  tensors.emplace("attack_between_ids", between_ids);
+  tensors.emplace("attack_between_valid", between_valid);
+  tensors.emplace("attack_offsets_candidates",
+                  torch::arange(kMoveCandidateCount, torch::kInt64)
+                      .view({kMoveCandidateCount, 1, 1}) * 64);
+  tensors.emplace("attack_offsets_castles",
+                  torch::arange(4, torch::kInt64).view({4, 1, 1}) * 64);
+  tensors.emplace("attack_offsets_single",
+                  torch::zeros({1, 1, 1}, torch::kInt64));
   tensors.emplace("candidate_castle_active", castle_active);
   tensors.emplace("candidate_castle_transit", castle_transit);
   const auto castle_id_tensor = torch::tensor(castle_ids, torch::kInt64);

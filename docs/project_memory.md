@@ -1,11 +1,21 @@
 # Project memory
 
+- 2026-08-21: VM3 adds an exact single-state sparse hard-forward attack
+  backend beside the unchanged dense/ST training path. It selects frozen
+  between-square IDs and gathers only six possible ray blockers per
+  target/attacker pair, avoiding the dense 64-value attack payload. Dense and
+  sparse final legal tensors agree on the complete 520-position GPU oracle
+  corpus, including the curated pin, en-passant, promotion and castling cases.
+  This is explicitly not yet HullKV: king-square selection still performs a
+  dense 64-key QK operation, and no convex-hull support query or certificate is
+  claimed. Runtime purity remains clean; perft and genuine HullKV stay open.
+
 - 2026-08-20: VM3 now computes own-king safety from candidate-batched trial
   boards. A frozen 64-cell circular key bank performs physical `QK^T -> ST
   hardmax`; `AV` carries piece attack relations and the complete between-square
   mask; frozen two-class `d_head=2` selectors reduce blocker, piece-attack,
   castling-safety and final LEGAL predicates. Selector keys live in the hashed
-  program image, not runtime-created tensors. Fixed HullKV routing evaluates
+  program image, not runtime-created tensors. Fixed four-row routing evaluates
   transit attacks only for the four universal castle candidates. Exact tests
   cover pins, king adjacency, en-passant discovered check, and castling from,
   through and into attack; final legal sets match `python-chess` on 520 GPU

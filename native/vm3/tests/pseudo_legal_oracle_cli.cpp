@@ -26,9 +26,11 @@ std::string square_name(std::int64_t square) {
 int main(int argc, char** argv) {
   bool use_cuda = false;
   bool final_legal = false;
+  bool sparse_hard = false;
   for (int index = 1; index < argc; ++index) {
     use_cuda = use_cuda || std::string(argv[index]) == "--cuda";
     final_legal = final_legal || std::string(argv[index]) == "--legal";
+    sparse_hard = sparse_hard || std::string(argv[index]) == "--sparse-hard";
   }
   TORCH_CHECK(!use_cuda || torch::cuda::is_available(),
               "CUDA pseudo-legal oracle requested without GPU");
@@ -72,8 +74,26 @@ int main(int argc, char** argv) {
     const auto count = std::min<std::int64_t>(batch_size, states.size() - begin);
     std::vector<torch::Tensor> chunk(states.begin() + begin,
                                      states.begin() + begin + count);
-    const auto trials = cmz::vm3::compute_trial_transitions_batch(
-        program, torch::stack(chunk));
+    cmz::vm3::TrialTransitionBatch trials;
+    if (sparse_hard) {
+      std::vector<torch::Tensor> pseudo_legal;
+      std::vector<torch::Tensor> legal;
+      std::vector<torch::Tensor> side_in_check;
+      std::vector<torch::Tensor> own_king_attacked;
+      for (const auto& state : chunk) {
+        const auto item = cmz::vm3::compute_trial_transitions_hard_forward(
+            program, state);
+        pseudo_legal.push_back(item.pseudo_legal);
+        legal.push_back(item.legal);
+        side_in_check.push_back(item.side_in_check);
+        own_king_attacked.push_back(item.own_king_attacked);
+      }
+      trials = {torch::cat(pseudo_legal), torch::cat(legal),
+                torch::cat(side_in_check), torch::cat(own_king_attacked)};
+    } else {
+      trials = cmz::vm3::compute_trial_transitions_batch(program,
+                                                         torch::stack(chunk));
+    }
     const auto legal_batch =
         (final_legal ? trials.legal : trials.pseudo_legal).to(torch::kCPU);
     for (std::int64_t item = 0; item < count; ++item) {

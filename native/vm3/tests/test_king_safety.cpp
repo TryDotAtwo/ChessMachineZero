@@ -52,6 +52,15 @@ int main(int argc, char**) {
   pin.board[56] = cmz::vm3::PieceState::BK;
   const auto pin_trial = cmz::vm3::compute_trial_transitions(
       program, cmz::vm3::bind_initial_state(program, pin).tokens);
+  const auto pin_sparse = cmz::vm3::compute_trial_transitions_hard_forward(
+      program, cmz::vm3::bind_initial_state(program, pin).tokens);
+  ok &= require(torch::equal(pin_sparse.pseudo_legal, pin_trial.pseudo_legal) &&
+                    torch::equal(pin_sparse.legal, pin_trial.legal) &&
+                    torch::equal(pin_sparse.side_in_check,
+                                 pin_trial.side_in_check) &&
+                    torch::equal(pin_sparse.own_king_attacked,
+                                 pin_trial.own_king_attacked),
+                "sparse hard-forward attack path is exact with dense attention");
   const auto e2f2 = move_id(bank, 12, 13);
   const auto e2e3 = move_id(bank, 12, 20);
   ok &= require(bit(pin_trial.pseudo_legal, e2f2) &&

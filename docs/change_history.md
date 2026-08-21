@@ -1,5 +1,16 @@
 # Change history
 
+## 2026-08-21 — exact sparse hard-forward attack backend
+
+- Added compiler-frozen between-square IDs and offsets so hard inference
+  gathers at most six blockers instead of carrying a dense 64-value attack
+  payload; dense/ST remains the recurrent training/reference backend.
+- Added native and full 520-position GPU dense-vs-sparse exact parity gates.
+  Runtime purity remains clean and the executor remains compiler-independent.
+- This backend is named and documented as sparse hard-forward, not HullKV:
+  dense king-square QK remains, while perft and a certified convex-hull backend
+  are still pending.
+
 ## 2026-08-20 — attention-only own-king safety filter
 
 - Added frozen attack geometry, between-square value tables and physical
