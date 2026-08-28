@@ -1,5 +1,10 @@
 # Project Memory
 
+- static_site=`site/` is a responsive artifact inspector for the current clean VM branch; it replays an exact browser fixture and never claims to execute CUDA in JavaScript
+- site_contract=shows `[B,2048,128]` request-plus-context input, `[B,64,128]` reconstructed board, 45 generic ops, 2064 latest-event candidates, C++/CUDA runtime, and no host chess logic
+- site_boundary=`LEGAL_SET` and terminal status are named as next artifact stages, not complete runtime capabilities
+- site_deployment=GitHub Pages workflow publishes only `site/` after the change reaches `main` and the repository selects GitHub Actions as the Pages source
+
 - active_branch=codex/pure-frozen-transformer-vm-clean
 - origin=empty orphan branch; implementation is from scratch and must not migrate legacy runtime code
 - input=[B,2048,128] hard one-hot; requested move occupies first 3 rows

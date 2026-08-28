@@ -1,5 +1,12 @@
 # Change History
 
+## 2026-08-28 — Current-artifact VM inspector site
+
+- Added a responsive static VM inspector under `site/`, designed around the executable position reconstruction artifact rather than the retired dashboard architecture.
+- Pinned the visible contract to `[B,2048,128]` input, `[B,64,128]` position output, 45 generic SSA operations, and one 2D latest-event attention over 2064 events.
+- Made the browser/runtime boundary explicit: the UI replays an exact numeric-token fixture while the actual frozen artifact remains C++/CUDA.
+- Added a GitHub Pages Actions workflow and exact site contract tests; the UI explicitly marks `LEGAL_SET` and terminal status execution as subsequent artifact stages.
+
 ## 2026-08-28
 
 - Compiled the position rules into a 45-op executable frozen artifact: strided move routing, exact castling/en-passant pattern hardmax, parabolic 2D latest-event attention over 2064 events, generic C++ execution, and CUDA backward acceptance.
