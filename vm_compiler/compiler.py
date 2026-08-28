@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 
 from .artifact import Artifact, TensorRecord
+from .addressing import build_ring_address_record
 from .context import build_context_0
 from .fp4 import encode_e2m1
 
@@ -26,4 +27,11 @@ def build_context_0_record() -> TensorRecord:
 
 
 def build_bootstrap_artifact() -> Artifact:
-    return Artifact(tensors=(build_context_0_record(),), operations=())
+    return Artifact(
+        tensors=(
+            build_context_0_record(),
+            build_ring_address_record("vocabulary_addresses", 128),
+            build_ring_address_record("input_row_addresses", 2048),
+        ),
+        operations=(),
+    )

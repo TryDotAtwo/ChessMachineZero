@@ -17,10 +17,16 @@ def test_context_0_record_decodes_exactly_without_board_side_channel():
     assert numpy.array_equal(decoded, build_context_0())
 
 
-def test_bootstrap_artifact_round_trip_contains_only_immutable_context():
+def test_bootstrap_artifact_round_trip_contains_context_and_2d_address_weights():
     artifact = build_bootstrap_artifact()
     restored = Artifact.from_bytes(artifact.to_bytes())
 
     assert restored == artifact
-    assert [tensor.name for tensor in restored.tensors] == ["context_0"]
+    assert [tensor.name for tensor in restored.tensors] == [
+        "context_0",
+        "vocabulary_addresses",
+        "input_row_addresses",
+    ]
+    assert restored.tensors[1].shape == (128, 2)
+    assert restored.tensors[2].shape == (2048, 2)
     assert restored.operations == ()

@@ -2,6 +2,7 @@
 
 ## 2026-08-28
 
+- Added exact FP4-scaled convex-ring 2D addressing for every vocabulary channel and input row, with exhaustive self-address selection tests.
 - Added the exact board-free `context_0`, canonical FP4 bootstrap record, CUDA batch loader, and a development-only history-replay oracle for legal, illegal, and terminal transition acceptance.
 - Bound `HULL_ATTN_2D` to frozen 2D keys and cached nested-hull indices with batched dynamic values, then verified a complete artifact-declared Transformer block and input gradient on CUDA.
 - Replaced the placeholder unconditional recurrent slice with the first strict artifact-declared SSA executor: one-time FP4 CUDA materialization, generic row/GEMM/position/residual/gated-FFN/hardmax dispatch, and load-time graph validation.
