@@ -35,3 +35,9 @@ The canonical artifact stores `context_0` as an exact FP4 tensor. `FrozenVm::ini
 The offline compiler emits reusable binary tensors for king and knight adjacency, rook and bishop rays, color-indexed pawn step/double/attack geometry, and strict `between[source,destination,square]`. These are rule relations over all squares, not memorized boards or game continuations. Queen geometry is the union of the rook and bishop relations; occupancy, side-to-move, castling rights, en-passant state, checks, and legal filtering must be derived by later attention stages from history.
 
 The current rule image contains bootstrap, address, relation, initial-position, square-decoder, and castling-derived-event tensors but deliberately has an empty operation list. It is compiler input for the next circuit stage and is not yet presented as an executable chess VM artifact.
+
+## Executable position subgraph
+
+`build_position_reconstruction_artifact` emits a strict executable SSA graph whose final internal value is `[B,64,128]`. Strided row routing separates the 400 `FROM`, `TO`, and `RESULT_PIECE` rows. Frozen linear projections plus hardmax recognize the four castling triples and 28 en-passant pairs and emit their additional square events. No production opcode has chess-specific semantics.
+
+Every event square is projected to a two-dimensional parabola. For square coordinate `x`, query `(2x,-1)` and key `(x,x²-εt)` produce score `x_query²-(x_key-x_query)²+εt`; therefore a matching square dominates every different square and the latest matching timestamp wins. One dynamic `HULL_ATTN_2D` over 2064 candidate events returns the exact current board. `FrozenVm::execute_graph` exposes internal artifact outputs for composition/testing, while recurrent `forward` retains its strict `[B,2045,128]` contract.

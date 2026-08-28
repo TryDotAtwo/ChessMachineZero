@@ -18,6 +18,7 @@ class FrozenVm final {
 public:
     FrozenVm(Artifact artifact, const torch::Device& device);
     torch::Tensor initial_context(std::int64_t batch_size) const;
+    torch::Tensor execute_graph(const torch::Tensor& input) const;
     torch::Tensor forward(const torch::Tensor& input) const;
 
 private:

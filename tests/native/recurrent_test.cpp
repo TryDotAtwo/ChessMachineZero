@@ -94,6 +94,22 @@ cmz::Artifact dynamic_attention_graph() {
         });
 }
 
+cmz::Artifact strided_route_graph() {
+    std::vector<std::uint32_t> attributes = {2, 500};
+    for (std::uint32_t index = 0; index < 400; ++index) {
+        attributes.push_back(index);
+    }
+    return cmz::Artifact::from_records(
+        {query_projection()},
+        {
+            {cmz::OpCode::RowRoute, {0}, {1}, {3, 1203, 3}},
+            {cmz::OpCode::TokenProject, {1}, {2}, {0}},
+            {cmz::OpCode::RowRoute, {0}, {3}, {3, 2048}},
+            {cmz::OpCode::TokenProject, {3}, {4}, {0}},
+            {cmz::OpCode::HullAttention2D, {4, 2, 1}, {5}, std::move(attributes)},
+        });
+}
+
 }  // namespace
 
 int main() {
@@ -161,5 +177,20 @@ int main() {
     dynamic_output.index({0, torch::indexing::Slice(), 1}).sum().backward();
     TORCH_CHECK(dynamic_input.grad().defined());
     TORCH_CHECK(dynamic_input.grad().abs().sum().item<float>() > 0.0F);
+
+    auto strided_input = torch::zeros({1, 2048, 128}, options.requires_grad(false));
+    for (std::int64_t move = 0; move < 400; ++move) {
+        strided_input.index_put_({0, 3 + move * 3, 1}, static_cast<float>(move + 1));
+    }
+    strided_input.set_requires_grad(true);
+    cmz::FrozenVm strided_vm(strided_route_graph(), strided_input.device());
+    const auto strided_output = strided_vm.forward(strided_input);
+    const auto strided_expected = strided_input.index({0, 3})
+                                      .reshape({1, 1, 128})
+                                      .expand({1, 2045, 128});
+    TORCH_CHECK(torch::equal(strided_output, strided_expected));
+    strided_output.sum().backward();
+    TORCH_CHECK(strided_input.grad().defined());
+    TORCH_CHECK(strided_input.grad().index({0, 3}).abs().sum().item<float>() > 0.0F);
     return 0;
 }

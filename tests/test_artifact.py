@@ -30,7 +30,7 @@ def test_artifact_round_trip_preserves_explicit_graph_and_tensor_metadata():
         ),
         operations=(
             Operation(OpCode.TOKEN_PROJECT, inputs=(0,), outputs=(1,), attributes=(4,)),
-            Operation(OpCode.ROW_ROUTE, inputs=(1,), outputs=(2,), attributes=(2045, 2048)),
+            Operation(OpCode.ROW_ROUTE, inputs=(1,), outputs=(2,), attributes=(3, 1203, 3)),
         ),
     )
 

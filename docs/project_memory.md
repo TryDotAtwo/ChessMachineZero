@@ -21,3 +21,7 @@
 - move_language=every move is three hard one-hot rows `[FROM,TO,RESULT_PIECE]`; result piece uses channels 96..107 with color, and promotion directly names the promoted piece
 - position_reconstruction=board is not recurrent state; 64 square queries select their latest initial/FROM/TO/derived event in parallel, where FROM yields EMPTY and TO yields the declared result piece
 - special_events=castling rook effects are an exact four-pattern one-hot FP4 tensor; en-passant clearing is derived from the immediately previous opposing pawn double-step and current pawn diagonal-step relations before the same latest-event hardmax
+- executable_position_artifact=45-op generic SSA subgraph routes 400 move triples, recognizes 4 castling and 28 en-passant patterns with frozen linear/residual/hardmax blocks, then reconstructs `[B,64,128]` through one 2D latest-event attention over 2064 events
+- latest_event_addressing=parabolic 2D keys and query `(2x,-1)` give score `xq^2-(xk-xq)^2+epsilon*time`; exact per-element FP4 scales preserve the small chronological bias
+- generic_plumbing=ROW_ROUTE supports positive stride; FROZEN_EXPAND broadcasts immutable tensors over batch; ROW_CONCAT concatenates along rows; C++ implementations contain no chess branches
+- position_cuda_acceptance=RTX 3070 Laptop sm86 native artifact test compared complete boards for ordinary capture, castling, and en-passant and verified backward to RESULT_PIECE; exhaustive Python artifact gate covers all 32 compiled special patterns

@@ -17,6 +17,8 @@ enum class OpCode : std::uint16_t {
     OutputProject = 6,
     RowRoute = 7,
     HardmaxSte = 8,
+    FrozenExpand = 9,
+    RowConcat = 10,
 };
 
 struct TensorRecord {

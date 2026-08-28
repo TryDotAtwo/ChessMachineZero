@@ -56,8 +56,14 @@ void validate_graph(const cmz::Artifact& artifact) {
         }
         switch (operation.opcode) {
             case cmz::OpCode::RowRoute:
-                require_schema(operation, 1U, 1U, 2U);
+                TORCH_CHECK(
+                    operation.inputs.size() == 1U && operation.outputs.size() == 1U &&
+                        (operation.attributes.size() == 2U || operation.attributes.size() == 3U),
+                    "artifact RowRoute schema mismatch");
                 TORCH_CHECK(operation.attributes[0] < operation.attributes[1]);
+                if (operation.attributes.size() == 3U) {
+                    TORCH_CHECK(operation.attributes[2] > 0U, "RowRoute stride must be positive");
+                }
                 break;
             case cmz::OpCode::TokenProject:
             case cmz::OpCode::PositionAdd:
@@ -102,6 +108,16 @@ void validate_graph(const cmz::Artifact& artifact) {
                     TORCH_CHECK(operation.attributes[1] > 0U);
                     TORCH_CHECK(operation.attributes[0] <= operation.attributes.size() - 2U);
                 }
+                break;
+            case cmz::OpCode::FrozenExpand:
+                require_schema(operation, 1U, 1U, 1U);
+                TORCH_CHECK(operation.inputs[0] == 0U, "FrozenExpand batch source must be VM input");
+                TORCH_CHECK(operation.attributes[0] < artifact.tensors().size());
+                break;
+            case cmz::OpCode::RowConcat:
+                TORCH_CHECK(!operation.inputs.empty() && operation.outputs.size() == 1U &&
+                                operation.attributes.empty(),
+                            "artifact RowConcat schema mismatch");
                 break;
         }
         for (const auto output : operation.outputs) {
@@ -154,7 +170,7 @@ torch::Tensor FrozenVm::initial_context(std::int64_t batch_size) const {
         .clone();
 }
 
-torch::Tensor FrozenVm::forward(const torch::Tensor& input) const {
+torch::Tensor FrozenVm::execute_graph(const torch::Tensor& input) const {
     TORCH_CHECK(input.is_cuda(), "VM input must remain on CUDA");
     TORCH_CHECK(input.is_floating_point(), "VM input must use a floating dtype");
     TORCH_CHECK(input.dim() == 3, "VM input must have shape [B,2048,128]");
@@ -169,9 +185,11 @@ torch::Tensor FrozenVm::forward(const torch::Tensor& input) const {
         torch::Tensor result;
         switch (operation.opcode) {
             case OpCode::RowRoute: {
-                require_schema(operation, 1U, 1U, 2U);
+                const auto stride = operation.attributes.size() == 3U
+                    ? operation.attributes[2]
+                    : 1U;
                 result = values.at(operation.inputs[0]).slice(
-                    1, operation.attributes[0], operation.attributes[1]);
+                    1, operation.attributes[0], operation.attributes[1], stride);
                 break;
             }
             case OpCode::TokenProject:
@@ -227,13 +245,34 @@ torch::Tensor FrozenVm::forward(const torch::Tensor& input) const {
                 }
                 break;
             }
+            case OpCode::FrozenExpand: {
+                const auto batch_size = values.at(operation.inputs[0]).size(0);
+                const auto& frozen = tensors_.at(operation.attributes[0]);
+                std::vector<std::int64_t> shape = {batch_size};
+                shape.insert(shape.end(), frozen.sizes().begin(), frozen.sizes().end());
+                result = frozen.unsqueeze(0).expand(shape);
+                break;
+            }
+            case OpCode::RowConcat: {
+                std::vector<torch::Tensor> rows;
+                rows.reserve(operation.inputs.size());
+                for (const auto input_id : operation.inputs) {
+                    rows.push_back(values.at(input_id));
+                }
+                result = torch::cat(rows, 1);
+                break;
+            }
         }
         const auto inserted = values.emplace(operation.outputs[0], std::move(result));
         TORCH_CHECK(inserted.second, "artifact graph redefines an SSA value");
         final_output = operation.outputs[0];
     }
     TORCH_CHECK(final_output != 0U, "artifact graph is empty");
-    const auto& output = values.at(final_output);
+    return values.at(final_output);
+}
+
+torch::Tensor FrozenVm::forward(const torch::Tensor& input) const {
+    const auto output = execute_graph(input);
     TORCH_CHECK(
         output.dim() == 3 && output.size(1) == kContextRows && output.size(2) == kVocabulary,
         "artifact graph output must have shape [B,2045,128]");

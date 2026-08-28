@@ -6,10 +6,12 @@ from vm_compiler.compiler import (
     build_context_0_record,
     build_rule_image_artifact,
     build_rule_relation_records,
+    build_position_reconstruction_artifact,
     build_state_circuit_records,
 )
 from vm_compiler.context import build_context_0
 from vm_compiler.fp4 import decode_e2m1
+from vm_compiler.graph import OpCode
 
 
 def test_context_0_record_decodes_exactly_without_board_side_channel():
@@ -84,3 +86,26 @@ def test_state_circuit_constants_pack_exactly_as_fp4_records():
             numpy.frombuffer(record.packed, dtype=numpy.uint8), numpy.prod(record.shape)
         )
         assert set(numpy.unique(decoded)) == {0.0, 1.0}
+
+
+def test_position_reconstruction_artifact_is_an_executable_latest_event_attention_graph():
+    artifact = build_position_reconstruction_artifact()
+    restored = Artifact.from_bytes(artifact.to_bytes())
+
+    assert restored == artifact
+    assert set(operation.opcode for operation in artifact.operations).issubset(
+        {
+            OpCode.ROW_ROUTE,
+            OpCode.FROZEN_EXPAND,
+            OpCode.ROW_CONCAT,
+            OpCode.TOKEN_PROJECT,
+            OpCode.POSITION_ADD,
+            OpCode.RESIDUAL_ADD,
+            OpCode.HARDMAX_STE,
+            OpCode.HULL_ATTN_2D,
+        }
+    )
+    assert sum(op.opcode == OpCode.HARDMAX_STE for op in artifact.operations) == 2
+    assert artifact.operations[-1].outputs == (len(artifact.operations),)
+    assert artifact.operations[-1].attributes[:2] == (8, 500)
+    assert len(artifact.operations[-1].attributes[2:]) == 2064

@@ -25,3 +25,6 @@ add_test(NAME cmz_ste_test COMMAND cmz_ste_test)
 add_executable(cmz_hullkv_test tests/native/hullkv_test.cpp)
 target_link_libraries(cmz_hullkv_test PRIVATE cmz_pure_vm)
 add_test(NAME cmz_hullkv_test COMMAND cmz_hullkv_test)
+
+add_executable(cmz_position_artifact_test tests/native/position_artifact_test.cpp)
+target_link_libraries(cmz_position_artifact_test PRIVATE cmz_pure_vm)

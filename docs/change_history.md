@@ -2,6 +2,7 @@
 
 ## 2026-08-28
 
+- Compiled the position rules into a 45-op executable frozen artifact: strided move routing, exact castling/en-passant pattern hardmax, parabolic 2D latest-event attention over 2064 events, generic C++ execution, and CUDA backward acceptance.
 - Added latest-event reconstruction for castling rook movement and en-passant pawn removal; compiled all four castling transformations as an exact one-hot FP4 tensor.
 - Replaced the promotion/padding third move slot with a mandatory color-specific `RESULT_PIECE` token, removed the recurrent workspace bias, and added one-hard-attention latest-event position reconstruction for ordinary moves and captures.
 - Added the first position-reconstruction circuit constants: exact one-hot initial piece state, numeric square decoder, frozen service-row workspace bias, and a branch-free tensor reference transition for ordinary moves and captures.

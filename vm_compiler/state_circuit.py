@@ -21,6 +21,36 @@ CASTLING_EVENTS = (
 )
 
 
+def build_en_passant_event_patterns() -> tuple[tuple[int, ...], ...]:
+    patterns = []
+    for source_file in range(1, 9):
+        for destination_file in (source_file - 1, source_file + 1):
+            if 1 <= destination_file <= 8:
+                patterns.append(
+                    (
+                        source_file * 10 + 5,
+                        destination_file * 10 + 6,
+                        PIECE_CHANNELS["WHITE_PAWN"],
+                        destination_file * 10 + 7,
+                        destination_file * 10 + 5,
+                        PIECE_CHANNELS["BLACK_PAWN"],
+                        destination_file * 10 + 5,
+                    )
+                )
+                patterns.append(
+                    (
+                        source_file * 10 + 4,
+                        destination_file * 10 + 3,
+                        PIECE_CHANNELS["BLACK_PAWN"],
+                        destination_file * 10 + 2,
+                        destination_file * 10 + 4,
+                        PIECE_CHANNELS["WHITE_PAWN"],
+                        destination_file * 10 + 4,
+                    )
+                )
+    return tuple(patterns)
+
+
 def build_square_decoder() -> numpy.ndarray:
     decoder = numpy.zeros((VOCAB_SIZE, 64), dtype=numpy.float32)
     for file_index in range(1, 9):

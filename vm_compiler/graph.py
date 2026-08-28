@@ -15,6 +15,8 @@ class OpCode(IntEnum):
     OUTPUT_PROJECT = 6
     ROW_ROUTE = 7
     HARDMAX_STE = 8
+    FROZEN_EXPAND = 9
+    ROW_CONCAT = 10
 
 
 @dataclass(frozen=True)
