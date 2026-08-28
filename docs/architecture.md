@@ -10,6 +10,8 @@ The context contains chronological history (`1200` rows, 400 plies), sorted `LEG
 
 `context_0` contains no board matrix or board rows. Its history is padding, its `LEGAL_SET` is the exact 20 sorted opening moves in native three-token form, its status is `OK`, and its service rows are padding. The standard initial board is a frozen program constant; subsequent positions are reconstructed by the compiled circuit from chronological history.
 
+Inside the forward graph, 64 reserved service positions form a hidden position workspace. A frozen additive tensor replaces their padding activations with the exact initial piece one-hots; this workspace is not part of the recurrent board representation and must be reset to padding before output. Ordinary source clearing, destination replacement, and captures share one tensor selection/addition circuit with no piece-type or capture branch.
+
 Production C++ is restricted to generic tensor execution, recurrent concatenation, player transport, and inference-only status control. Chess semantics live only in immutable frozen weights and masks compiled offline. Python and `python-chess` are development/test tools and are never production dependencies.
 
 All attention heads have `d_head=2`. Exact hard attention uses 2D HullKV with lowest-index tie resolution; dense attention is a development equivalence oracle only. Canonical weights are packed FP4 with block scales and decode exactly to FP16/BF16 when native FP4 is unavailable. Forward values are hard; STE supplies a floating backward path through complete player/VM rollouts while VM weights stay frozen.
@@ -32,4 +34,4 @@ The canonical artifact stores `context_0` as an exact FP4 tensor. `FrozenVm::ini
 
 The offline compiler emits reusable binary tensors for king and knight adjacency, rook and bishop rays, color-indexed pawn step/double/attack geometry, and strict `between[source,destination,square]`. These are rule relations over all squares, not memorized boards or game continuations. Queen geometry is the union of the rook and bishop relations; occupancy, side-to-move, castling rights, en-passant state, checks, and legal filtering must be derived by later attention stages from history.
 
-The current rule image contains bootstrap, address, and relation tensors but deliberately has an empty operation list. It is compiler input for the next circuit stage and is not yet presented as an executable chess VM artifact.
+The current rule image contains bootstrap, address, relation, initial-position, square-decoder, and workspace-injection tensors but deliberately has an empty operation list. It is compiler input for the next circuit stage and is not yet presented as an executable chess VM artifact.
