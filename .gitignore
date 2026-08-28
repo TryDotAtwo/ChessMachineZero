@@ -1,0 +1,9 @@
+__pycache__/
+.pytest_cache/
+build/
+cmake-build-*/
+target/
+*.obj
+*.exp
+*.lib
+*.exe
