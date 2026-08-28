@@ -2,6 +2,7 @@
 
 ## 2026-08-28
 
+- Added fresh hardmax and FP4 custom-autograd STE primitives with exact Python references and real CUDA C++ tests.
 - Added a fresh strict FP4 graph artifact writer/parser and independent C++ loader with explicit opcodes and no tensor-count inference.
 - Added the fresh tensor-native LibTorch module and a real CUDA autograd test; no legacy executor or loader was copied.
 - Created an empty orphan implementation branch after the user rejected migration of the legacy prototype.
