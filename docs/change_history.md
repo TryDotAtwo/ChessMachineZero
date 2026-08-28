@@ -14,6 +14,13 @@
 - Made the browser/runtime boundary explicit: the UI replays an exact numeric-token fixture while the actual frozen artifact remains C++/CUDA.
 - Added a GitHub Pages Actions workflow and exact site contract tests; the UI explicitly marks `LEGAL_SET` and terminal status execution as subsequent artifact stages.
 
+## 2026-08-28 — Exact numerical matrix execution trace
+
+- Replaced the shape-only proof with a real fixed-fixture execution export from the development reference executor.
+- Published every frozen FP4-materialized matrix and every SSA input/output as exact zero-based COO values for all 45 operations.
+- Exposed the full `QKᵀ` score matrix, hard attention matrix, and `A×V` output, with arithmetic expansion of a selected output cell.
+- Added paginated matrix rendering so the complete 132,096-entry attention score matrix remains inspectable without freezing the browser.
+
 ## 2026-08-28
 
 - Compiled the position rules into a 45-op executable frozen artifact: strided move routing, exact castling/en-passant pattern hardmax, parabolic 2D latest-event attention over 2064 events, generic C++ execution, and CUDA backward acceptance.

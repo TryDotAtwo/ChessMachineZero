@@ -134,3 +134,104 @@ renderArtifactTrace().catch((error) => {
   const operationContainer = document.querySelector("#ssaOperations");
   operationContainer.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`;
 });
+
+function formatShape(shape) { return `[${shape.join(" × ")}]`; }
+
+const MATRIX_PAGE_SIZE = 200;
+
+function matrixView(name, matrix) {
+  const article = document.createElement("article");
+  article.className = "numeric-matrix";
+  const heading = document.createElement("h4");
+  heading.textContent = `${name} ${formatShape(matrix.shape)} · nnz=${matrix.nnz}`;
+  const scroller = document.createElement("div");
+  scroller.className = "matrix-values";
+  const table = document.createElement("table");
+  table.innerHTML = "<thead><tr><th>index</th><th>value</th></tr></thead>";
+  const body = document.createElement("tbody");
+  let page = 0;
+  const pager = document.createElement("div");
+  pager.className = "matrix-pager";
+  const previous = document.createElement("button");
+  previous.type = "button";
+  previous.textContent = "←";
+  const status = document.createElement("span");
+  const next = document.createElement("button");
+  next.type = "button";
+  next.textContent = "→";
+  function renderPage() {
+    const start = page * MATRIX_PAGE_SIZE;
+    const end = Math.min(start + MATRIX_PAGE_SIZE, matrix.entries.length);
+    body.replaceChildren(...matrix.entries.slice(start, end).map((entry) => {
+      const row = document.createElement("tr");
+      const index = document.createElement("td");
+      const value = document.createElement("td");
+      index.textContent = `[${entry.slice(0, -1).join(",")}]`;
+      value.textContent = String(entry.at(-1));
+      row.append(index, value);
+      return row;
+    }));
+    status.textContent = matrix.entries.length ? `${start + 1}–${end} / ${matrix.entries.length}` : "0 / 0";
+    previous.disabled = page === 0;
+    next.disabled = end === matrix.entries.length;
+  }
+  previous.addEventListener("click", () => { page -= 1; renderPage(); });
+  next.addEventListener("click", () => { page += 1; renderPage(); });
+  pager.append(previous, status, next);
+  renderPage();
+  table.append(body);
+  scroller.append(table);
+  article.append(heading, pager, scroller);
+  return article;
+}
+
+function renderCalculation(sample) {
+  const lines = [`output[${sample.output_index.join(",")}] = ${sample.output_value}`];
+  if (sample.identity) lines.push(sample.identity);
+  if (sample.terms && Array.isArray(sample.terms[0])) {
+    sample.terms.forEach(([k, left, right, product]) => lines.push(`k=${k}: ${left} × ${right} = ${product}`));
+    lines.push(`sum = ${sample.output_value}`);
+  } else if (sample.terms) lines.push(`${sample.terms.join(" + ")} = ${sample.output_value}`);
+  if (sample.score_terms) {
+    sample.score_terms.forEach(([d, q, k]) => lines.push(`d=${d}: Q=${q}, K=${k}, Q×K=${q * k}`));
+    lines.push(`winner=${sample.winner}, score=${sample.winner_score}`);
+    lines.push(`V[${sample.winner},${sample.output_index.at(-1)}] = ${sample.output_value}`);
+  }
+  return lines.join("\n");
+}
+
+async function renderNumericTrace() {
+  const response = await fetch("./numeric_trace.json");
+  if (!response.ok) throw new Error(`numeric trace request failed: ${response.status}`);
+  const trace = await response.json();
+  const picker = document.querySelector("#numericOperations");
+  trace.operations.forEach((operation, arrayIndex) => {
+    const option = document.createElement("option");
+    option.value = String(arrayIndex);
+    option.textContent = `${String(operation.index).padStart(2, "0")} · ${operation.opcode} · ${operation.equation}`;
+    picker.append(option);
+  });
+  function show(index) {
+    const bounded = Math.max(0, Math.min(trace.operations.length - 1, index));
+    picker.value = String(bounded);
+    const operation = trace.operations[bounded];
+    document.querySelector("#numericEquation").textContent = operation.equation;
+    const inputs = document.querySelector("#matrixInputs");
+    const weights = document.querySelector("#matrixWeights");
+    const intermediates = document.querySelector("#matrixIntermediates");
+    const output = document.querySelector("#matrixOutput");
+    inputs.replaceChildren(...operation.inputs.map((name) => matrixView(name, trace.values[name])));
+    weights.replaceChildren(...operation.frozen.map((name) => matrixView(`${name} · ${trace.tensors[name].name}`, trace.tensors[name])));
+    if (!operation.frozen.length) weights.textContent = "No frozen matrix operand for this operation.";
+    intermediates.replaceChildren(...operation.derived.map((name) => matrixView(name, trace.derived[name])));
+    if (!operation.derived.length) intermediates.textContent = "No hidden intermediate matrix for this operation.";
+    output.replaceChildren(matrixView(operation.output, trace.values[operation.output]));
+    document.querySelector("#matrixCalculation").textContent = renderCalculation(operation.sample);
+  }
+  picker.addEventListener("change", () => show(Number(picker.value)));
+  document.querySelector("#previousNumericOperation").addEventListener("click", () => show(Number(picker.value) - 1));
+  document.querySelector("#nextNumericOperation").addEventListener("click", () => show(Number(picker.value) + 1));
+  show(0);
+}
+
+renderNumericTrace().catch((error) => { document.querySelector("#numericEquation").textContent = error.message; });

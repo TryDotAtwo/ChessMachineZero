@@ -9,8 +9,41 @@
   --muted: #9aa2a7;
   --lime: #baf50f;
   --blue: #2d9cff;
+  --matrix-ink: #101416;
   --mono: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
   --sans: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.numeric-inspector { border: 2px solid var(--matrix-ink); background: #fff; color: var(--matrix-ink); padding: 22px; margin-bottom: 28px; }
+.numeric-inspector > header { display: flex; justify-content: space-between; gap: 24px; align-items: start; }
+.numeric-inspector > header h2 { margin: 3px 0 8px; }
+.numeric-inspector > header p { max-width: 850px; margin: 0; }
+.numeric-inspector > header a { color: var(--matrix-ink); font: 700 12px/1 var(--mono); white-space: nowrap; border-bottom: 2px solid var(--blue); padding-bottom: 5px; }
+.operation-picker { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; margin: 22px 0 10px; }
+.operation-picker label { font: 700 12px/1 var(--mono); text-transform: uppercase; }
+.operation-picker select, .operation-picker button { min-height: 38px; border: 1px solid var(--matrix-ink); border-radius: 0; background: #fff; color: var(--matrix-ink); font: 12px/1.25 var(--mono); padding: 8px; }
+.operation-picker button { cursor: pointer; font-weight: 700; }
+.numeric-equation, .calculation-proof pre { margin: 0; padding: 14px; background: var(--matrix-ink); color: #fff; overflow: auto; font: 13px/1.5 var(--mono); }
+.numeric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.numeric-grid > section { min-width: 0; border: 1px solid var(--matrix-ink); padding: 10px; }
+.numeric-grid h3, .calculation-proof h3 { margin: 0 0 9px; font: 700 12px/1 var(--mono); text-transform: uppercase; }
+.numeric-matrix + .numeric-matrix { margin-top: 12px; }
+.numeric-matrix h4 { overflow-wrap: anywhere; margin: 0 0 6px; font: 700 11px/1.35 var(--mono); }
+.matrix-values { max-height: 330px; overflow: auto; border-top: 1px solid var(--matrix-ink); }
+.matrix-values table { width: 100%; border-collapse: collapse; font: 11px/1.25 var(--mono); }
+.matrix-values th, .matrix-values td { padding: 4px 6px; border-bottom: 1px solid #ddd; text-align: left; }
+.matrix-values th { position: sticky; top: 0; background: #fff; }
+.matrix-pager { display: grid; grid-template-columns: 28px 1fr 28px; gap: 5px; align-items: center; margin-bottom: 5px; font: 10px/1 var(--mono); text-align: center; }
+.matrix-pager button { border: 1px solid var(--matrix-ink); background: #fff; color: var(--matrix-ink); cursor: pointer; height: 25px; }
+.matrix-pager button:disabled { opacity: .3; cursor: default; }
+.calculation-proof { margin-top: 10px; border: 1px solid var(--matrix-ink); padding: 10px; }
+
+@media (max-width: 850px) {
+  .numeric-inspector > header { display: block; }
+  .numeric-inspector > header a { display: inline-block; margin-top: 12px; }
+  .operation-picker { grid-template-columns: 1fr 1fr; }
+  .operation-picker label, .operation-picker select { grid-column: 1 / -1; }
+  .numeric-grid { grid-template-columns: 1fr; }
 }
 
 * { box-sizing: border-box; }
@@ -51,7 +84,8 @@ nav a { color: #b8bdc0; text-decoration: none; text-transform: uppercase; displa
 nav a:hover, nav a.active { color: var(--text); }
 nav a.active::after { content: ""; height: 2px; background: var(--lime); position: absolute; inset: auto 0 0; }
 
-main { max-width: 1536px; margin: auto; padding: 28px clamp(18px, 2vw, 32px) 0; }
+main { max-width: 1536px; margin: auto; padding: 28px clamp(18px, 2vw, 32px) 0; display: flex; flex-direction: column; }
+.numeric-inspector { order: -1; }
 .intro { display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; }
 h1 { margin: 0 0 8px; font-family: var(--sans); font-size: clamp(27px, 2.5vw, 36px); line-height: 1.08; letter-spacing: -.035em; }
 .intro p { margin: 0; color: #b8bdc0; font-size: clamp(14px, 1.3vw, 18px); }

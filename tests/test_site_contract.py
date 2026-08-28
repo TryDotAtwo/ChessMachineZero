@@ -2,11 +2,13 @@ import json
 from pathlib import Path
 
 from vm_compiler.compiler import build_position_reconstruction_artifact
+from vm_compiler.site_trace import build_numeric_site_trace
 
 
 ROOT = Path(__file__).parents[1]
 HTML = (ROOT / "site" / "index.html").read_text(encoding="utf-8")
 JS = (ROOT / "site" / "app.js").read_text(encoding="utf-8")
+CSS = (ROOT / "site" / "styles.css").read_text(encoding="utf-8")
 
 
 def test_site_describes_the_current_executable_artifact_exactly():
@@ -97,3 +99,45 @@ def test_site_maps_every_runtime_opcode_to_a_generic_tensor_primitive():
     )
     for equation in primitive_equations:
         assert equation in HTML
+
+
+def test_site_publishes_exact_numeric_matrices_from_a_real_execution():
+    numeric_path = ROOT / "site" / "numeric_trace.json"
+    assert numeric_path.exists(), "site must publish a numerical execution trace"
+
+    published = json.loads(numeric_path.read_text(encoding="utf-8"))
+    expected = build_numeric_site_trace()
+
+    assert published == expected
+    assert published["fixture"]["moves"] == [[52, 54, 96], [47, 45, 102], [54, 45, 96]]
+    assert len(published["operations"]) == 45
+    assert published["values"]["v0"]["shape"] == [1, 2048, 128]
+    assert published["values"]["v45"]["shape"] == [1, 64, 128]
+    assert published["operations"][-1]["equation"] == "v45 = hardmax(v41 @ transpose(v40)) @ v44"
+    assert published["operations"][-1]["output"] == "v45"
+    assert published["operations"][-1]["derived"] == ["op45_scores", "op45_attention"]
+    assert published["derived"]["op45_scores"]["shape"] == [1, 64, 2064]
+    assert published["derived"]["op45_attention"]["shape"] == [1, 64, 2064]
+    assert published["derived"]["op45_attention"]["nnz"] == 64
+    assert published["tensors"]["w0"]["name"] == "latest_square_key_projection"
+
+
+def test_site_renders_numeric_matrix_inspector_not_shape_only_cards():
+    for marker in (
+        'id="numericOperations"',
+        'id="matrixInputs"',
+        'id="matrixWeights"',
+        'id="matrixIntermediates"',
+        'id="matrixOutput"',
+        'id="matrixCalculation"',
+        "Exact numerical execution",
+        "COO: [index…] = value",
+    ):
+        assert marker in HTML
+
+    assert "numeric_trace.json" in JS
+    assert "renderNumericTrace" in JS
+    assert "MATRIX_PAGE_SIZE = 200" in JS
+    assert 'className = "matrix-pager"' in JS
+    assert "--matrix-ink: #101416" in CSS
+    assert "color: var(--matrix-ink)" in CSS

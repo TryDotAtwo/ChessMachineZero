@@ -19,7 +19,10 @@ def _materialize(record: TensorRecord, source: torch.Tensor) -> torch.Tensor:
     return torch.as_tensor(values, dtype=source.dtype, device=source.device)
 
 
-def execute_artifact_reference(artifact: Artifact, source: torch.Tensor) -> torch.Tensor:
+def execute_artifact_reference_values(
+    artifact: Artifact, source: torch.Tensor
+) -> tuple[torch.Tensor, dict[int, torch.Tensor], tuple[torch.Tensor, ...]]:
+    """Execute the graph and retain every SSA value for development inspection."""
     tensors = tuple(_materialize(record, source) for record in artifact.tensors)
     values: dict[int, torch.Tensor] = {0: source}
     final = 0
@@ -68,4 +71,9 @@ def execute_artifact_reference(artifact: Artifact, source: torch.Tensor) -> torc
         final = operation.outputs[0]
     if final == 0:
         raise ValueError("artifact graph is empty")
-    return values[final]
+    return values[final], values, tensors
+
+
+def execute_artifact_reference(artifact: Artifact, source: torch.Tensor) -> torch.Tensor:
+    result, _, _ = execute_artifact_reference_values(artifact, source)
+    return result

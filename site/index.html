@@ -90,6 +90,34 @@
         <p>Within context history: 1200 rows / 400 plies</p>
       </section>
 
+      <section class="numeric-inspector" aria-labelledby="numeric-title">
+          <header>
+            <div>
+              <p class="eyebrow">Exact numerical execution</p>
+              <h2 id="numeric-title">Every matrix, every operation, actual values</h2>
+              <p>Fixture input: <code>[52,54,96] [47,45,102] [54,45,96]</code>. Indices are zero-based. COO: [index…] = value; every omitted cell is exactly zero.</p>
+            </div>
+            <a href="./numeric_trace.json" download>Download complete trace JSON</a>
+          </header>
+          <div class="operation-picker">
+            <label for="numericOperations">Operation</label>
+            <select id="numericOperations" aria-label="Select one of 45 executed operations"></select>
+            <button id="previousNumericOperation" type="button">Previous</button>
+            <button id="nextNumericOperation" type="button">Next</button>
+          </div>
+          <pre class="numeric-equation" id="numericEquation">Loading numerical execution…</pre>
+          <div class="numeric-grid">
+            <section><h3>Input matrices</h3><div id="matrixInputs"></div></section>
+            <section><h3>Frozen weight matrices</h3><div id="matrixWeights"></div></section>
+            <section><h3>Intermediate matrices</h3><div id="matrixIntermediates"></div></section>
+            <section><h3>Output matrix</h3><div id="matrixOutput"></div></section>
+          </div>
+          <section class="calculation-proof">
+            <h3>One output cell expanded arithmetically</h3>
+            <pre id="matrixCalculation"></pre>
+          </section>
+      </section>
+
       <section class="tensor-proof" aria-labelledby="tensor-proof-title">
         <header class="proof-heading">
           <div>
