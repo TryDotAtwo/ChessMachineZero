@@ -126,6 +126,29 @@ OpCode checked_opcode(std::uint16_t value) {
     return static_cast<OpCode>(value);
 }
 
+void validate_tensor(const TensorRecord& tensor) {
+    if (tensor.name.empty() || tensor.shape.empty() || tensor.shape.size() > 8U ||
+        tensor.block_size == 0U || tensor.scales.empty()) {
+        throw std::runtime_error("invalid tensor metadata");
+    }
+    std::size_t elements = 1U;
+    for (const auto extent : tensor.shape) {
+        if (extent == 0U || elements > std::numeric_limits<std::size_t>::max() / extent) {
+            throw std::runtime_error("invalid tensor shape");
+        }
+        elements *= extent;
+    }
+    if (std::any_of(tensor.scales.begin(), tensor.scales.end(), [](float scale) {
+            return !std::isfinite(scale);
+        })) {
+        throw std::runtime_error("tensor scale is non-finite");
+    }
+    if (tensor.packed.size() != (elements + 1U) / 2U ||
+        tensor.scales.size() != (elements + tensor.block_size - 1U) / tensor.block_size) {
+        throw std::runtime_error("tensor FP4 payload layout mismatch");
+    }
+}
+
 }  // namespace
 
 Artifact Artifact::from_bytes(const std::uint8_t* data, std::size_t size) {
@@ -209,6 +232,17 @@ Artifact Artifact::from_bytes(const std::uint8_t* data, std::size_t size) {
     if (reader.remaining() != 0U) {
         throw std::runtime_error("artifact contains trailing bytes");
     }
+    return artifact;
+}
+
+Artifact Artifact::from_records(
+    std::vector<TensorRecord> tensors, std::vector<Operation> operations) {
+    for (const auto& tensor : tensors) {
+        validate_tensor(tensor);
+    }
+    Artifact artifact;
+    artifact.tensors_ = std::move(tensors);
+    artifact.operations_ = std::move(operations);
     return artifact;
 }
 

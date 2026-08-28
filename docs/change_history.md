@@ -2,6 +2,7 @@
 
 ## 2026-08-28
 
+- Replaced the placeholder unconditional recurrent slice with the first strict artifact-declared SSA executor: one-time FP4 CUDA materialization, generic row/GEMM/position/residual/gated-FFN/hardmax dispatch, and load-time graph validation.
 - Added exact 2D HullKV CUDA support routing and differentiable hard-attention backward over exact nested-hull top-k competitors.
 - Added deterministic dense-equivalence coverage for nested convex layers, including interior points, duplicate quantized keys, stable ties, and zero queries.
 - Added fresh hardmax and FP4 custom-autograd STE primitives with exact Python references and real CUDA C++ tests.

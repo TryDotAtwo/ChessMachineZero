@@ -37,6 +37,8 @@ struct Operation {
 class Artifact final {
 public:
     static Artifact from_bytes(const std::uint8_t* data, std::size_t size);
+    static Artifact from_records(
+        std::vector<TensorRecord> tensors, std::vector<Operation> operations);
 
     template <std::size_t Size>
     static Artifact from_bytes(const std::array<std::uint8_t, Size>& data) {
