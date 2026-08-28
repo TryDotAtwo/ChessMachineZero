@@ -17,3 +17,4 @@
 - development_oracle=python-chess reconstructs board only from history and verifies recurrent legal/illegal/terminal transitions; it is excluded from production runtime and artifacts
 - addressing=d_head=2 convex-ring keys with per-element FP4 scales give exact independently selectable float32 addresses; bootstrap artifact contains 128 vocabulary and 2048 input-row address tensors and their complete outer hulls
 - rule_relations=immutable binary FP4 king/knight, rook/bishop ray, white/black pawn step/double/attack, and strict `[64,64,64]` between tensors; reusable rules only, no finite board-position table; rule image op list remains empty until circuit compilation
+- dynamic_self_attention=HULL_ATTN_2D accepts SSA Q `[B,Q,2]`, K `[B,K,2]`, V `[B,K,D]`; CUDA scans artifact candidates within each batch, returns stable local indices, and custom backward reaches Q/K/V without dense QK storage

@@ -80,6 +80,20 @@ cmz::Artifact attention_graph() {
         });
 }
 
+cmz::Artifact dynamic_attention_graph() {
+    std::vector<std::uint32_t> attributes = {2, 500};
+    for (std::uint32_t index = 0; index < 2045; ++index) {
+        attributes.push_back(index);
+    }
+    return cmz::Artifact::from_records(
+        {query_projection()},
+        {
+            {cmz::OpCode::RowRoute, {0}, {1}, {3, 2048}},
+            {cmz::OpCode::TokenProject, {1}, {2}, {0}},
+            {cmz::OpCode::HullAttention2D, {2, 2, 1}, {3}, std::move(attributes)},
+        });
+}
+
 }  // namespace
 
 int main() {
@@ -136,5 +150,16 @@ int main() {
     attended.index({0, torch::indexing::Slice(), 2}).sum().backward();
     TORCH_CHECK(attention_input.grad().defined());
     TORCH_CHECK(attention_input.grad().abs().sum().item<float>() > 0.0F);
+
+    auto dynamic_input = attention_input.detach().clone().set_requires_grad(true);
+    cmz::FrozenVm dynamic_vm(dynamic_attention_graph(), dynamic_input.device());
+    const auto dynamic_output = dynamic_vm.forward(dynamic_input);
+    const auto dynamic_expected = dynamic_input.index({0, 3})
+                                      .reshape({1, 1, 128})
+                                      .expand({1, 2045, 128});
+    TORCH_CHECK(torch::equal(dynamic_output, dynamic_expected));
+    dynamic_output.index({0, torch::indexing::Slice(), 1}).sum().backward();
+    TORCH_CHECK(dynamic_input.grad().defined());
+    TORCH_CHECK(dynamic_input.grad().abs().sum().item<float>() > 0.0F);
     return 0;
 }

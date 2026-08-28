@@ -81,17 +81,26 @@ void validate_graph(const cmz::Artifact& artifact) {
                 TORCH_CHECK(operation.attributes[0] > 0U);
                 break;
             case cmz::OpCode::HullAttention2D:
-                TORCH_CHECK(operation.inputs.size() == 2U && operation.outputs.size() == 1U &&
-                            operation.attributes.size() >= 4U,
+                TORCH_CHECK((operation.inputs.size() == 2U || operation.inputs.size() == 3U) &&
+                            operation.outputs.size() == 1U,
                             "artifact HullAttention2D schema mismatch");
-                TORCH_CHECK(operation.attributes[0] < artifact.tensors().size());
-                TORCH_CHECK(operation.attributes[1] > 0U && operation.attributes[1] <= 32U);
-                TORCH_CHECK(operation.attributes[2] > 0U);
-                TORCH_CHECK(operation.attributes[1] <= operation.attributes.size() - 3U);
-                TORCH_CHECK(artifact.tensors()[operation.attributes[0]].shape.size() == 2U &&
-                            artifact.tensors()[operation.attributes[0]].shape[1] == 2U);
-                for (auto index = operation.attributes.begin() + 3; index != operation.attributes.end(); ++index) {
-                    TORCH_CHECK(*index < artifact.tensors()[operation.attributes[0]].shape[0]);
+                if (operation.inputs.size() == 2U) {
+                    TORCH_CHECK(operation.attributes.size() >= 4U);
+                    TORCH_CHECK(operation.attributes[0] < artifact.tensors().size());
+                    TORCH_CHECK(operation.attributes[1] > 0U && operation.attributes[1] <= 32U);
+                    TORCH_CHECK(operation.attributes[2] > 0U);
+                    TORCH_CHECK(operation.attributes[1] <= operation.attributes.size() - 3U);
+                    TORCH_CHECK(artifact.tensors()[operation.attributes[0]].shape.size() == 2U &&
+                                artifact.tensors()[operation.attributes[0]].shape[1] == 2U);
+                    for (auto index = operation.attributes.begin() + 3;
+                         index != operation.attributes.end(); ++index) {
+                        TORCH_CHECK(*index < artifact.tensors()[operation.attributes[0]].shape[0]);
+                    }
+                } else {
+                    TORCH_CHECK(operation.attributes.size() >= 3U);
+                    TORCH_CHECK(operation.attributes[0] > 0U && operation.attributes[0] <= 32U);
+                    TORCH_CHECK(operation.attributes[1] > 0U);
+                    TORCH_CHECK(operation.attributes[0] <= operation.attributes.size() - 2U);
                 }
                 break;
         }
@@ -127,8 +136,9 @@ FrozenVm::FrozenVm(Artifact artifact, const torch::Device& device)
     for (std::size_t index = 0; index < operations_.size(); ++index) {
         const auto& operation = operations_[index];
         if (operation.opcode == OpCode::HullAttention2D) {
+            const auto metadata_count = operation.inputs.size() == 2U ? 3U : 2U;
             std::vector<std::int64_t> indices(
-                operation.attributes.begin() + 3, operation.attributes.end());
+                operation.attributes.begin() + metadata_count, operation.attributes.end());
             routing_indices_[index] = torch::tensor(
                 indices, torch::TensorOptions().dtype(torch::kInt64).device(device));
         }
@@ -202,13 +212,19 @@ torch::Tensor FrozenVm::forward(const torch::Tensor& input) const {
                 break;
             }
             case OpCode::HullAttention2D: {
-                result = hull_attention_2d_batched_ste(
-                    values.at(operation.inputs[0]),
-                    tensors_.at(operation.attributes[0]),
-                    values.at(operation.inputs[1]),
-                    routing_indices_[operation_index],
-                    operation.attributes[1],
-                    static_cast<double>(operation.attributes[2]) / 1000.0);
+                if (operation.inputs.size() == 2U) {
+                    result = hull_attention_2d_batched_ste(
+                        values.at(operation.inputs[0]), tensors_.at(operation.attributes[0]),
+                        values.at(operation.inputs[1]), routing_indices_[operation_index],
+                        operation.attributes[1],
+                        static_cast<double>(operation.attributes[2]) / 1000.0);
+                } else {
+                    result = hull_attention_2d_dynamic_batched_ste(
+                        values.at(operation.inputs[0]), values.at(operation.inputs[1]),
+                        values.at(operation.inputs[2]), routing_indices_[operation_index],
+                        operation.attributes[0],
+                        static_cast<double>(operation.attributes[1]) / 1000.0);
+                }
                 break;
             }
         }

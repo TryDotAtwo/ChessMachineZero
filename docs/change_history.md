@@ -2,6 +2,7 @@
 
 ## 2026-08-28
 
+- Extended 2D HullKV and the artifact opcode to dynamic batched Q/K/V self-attention with exact per-batch routing and floating Q/K/V backward.
 - Compiled reusable chess geometry into exact binary FP4 relation tensors and combined them with bootstrap/address records in a strict non-executable rule image; vectorized exact E2M1 packing reduced relation compilation from seconds to milliseconds.
 - Added exact FP4-scaled convex-ring 2D addressing for every vocabulary channel and input row, with exhaustive self-address selection tests.
 - Added the exact board-free `context_0`, canonical FP4 bootstrap record, CUDA batch loader, and a development-only history-replay oracle for legal, illegal, and terminal transition acceptance.

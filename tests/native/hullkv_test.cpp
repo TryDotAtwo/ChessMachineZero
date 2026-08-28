@@ -51,5 +51,19 @@ int main() {
     TORCH_CHECK(batched_values.grad().defined());
     TORCH_CHECK(batched_queries.grad().abs().sum().item<float>() > 0.0F);
     TORCH_CHECK(batched_values.grad().abs().sum().item<float>() > 0.0F);
+
+    auto dynamic_queries = torch::tensor(
+        {{{1.0F, 0.0F}}, {{1.0F, 0.0F}}}, floats).set_requires_grad(true);
+    auto dynamic_keys = torch::stack({keys.detach(), -keys.detach()}).set_requires_grad(true);
+    auto dynamic_values = torch::stack({values.detach(), values.detach()}).set_requires_grad(true);
+    const auto dynamic = cmz::hull_attention_2d_dynamic_batched_ste(
+        dynamic_queries, dynamic_keys, dynamic_values, hull, 2, 0.5);
+    TORCH_CHECK(torch::equal(
+        dynamic,
+        torch::tensor({{{10.0F, 1.0F}}, {{-3.0F, 0.0F}}}, floats)));
+    dynamic.sum().backward();
+    TORCH_CHECK(dynamic_queries.grad().abs().sum().item<float>() > 0.0F);
+    TORCH_CHECK(dynamic_keys.grad().abs().sum().item<float>() > 0.0F);
+    TORCH_CHECK(dynamic_values.grad().abs().sum().item<float>() > 0.0F);
     return 0;
 }
