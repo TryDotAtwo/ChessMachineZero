@@ -67,3 +67,35 @@ def test_one_latest_event_attention_reconstructs_position_from_history():
     assert piece_at(board, 47) == EMPTY
     assert piece_at(board, 45) == PIECE_CHANNELS["WHITE_PAWN"]
     assert numpy.array_equal(board.sum(axis=1), numpy.ones(64, dtype=numpy.float32))
+
+
+def test_castling_move_derives_rook_events_for_latest_event_attention():
+    history = numpy.zeros((1200, 128), dtype=numpy.float32)
+    history[:, 0] = 1.0
+    history[:3] = encode_move_one_hot(51, 71, PIECE_CHANNELS["WHITE_KING"])
+
+    board = reconstruct_position_from_history(history)
+
+    assert piece_at(board, 51) == EMPTY
+    assert piece_at(board, 71) == PIECE_CHANNELS["WHITE_KING"]
+    assert piece_at(board, 81) == EMPTY
+    assert piece_at(board, 61) == PIECE_CHANNELS["WHITE_ROOK"]
+
+
+def test_en_passant_derives_captured_pawn_clear_event():
+    moves = (
+        encode_move_one_hot(52, 54, PIECE_CHANNELS["WHITE_PAWN"]),
+        encode_move_one_hot(17, 16, PIECE_CHANNELS["BLACK_PAWN"]),
+        encode_move_one_hot(54, 55, PIECE_CHANNELS["WHITE_PAWN"]),
+        encode_move_one_hot(47, 45, PIECE_CHANNELS["BLACK_PAWN"]),
+        encode_move_one_hot(55, 46, PIECE_CHANNELS["WHITE_PAWN"]),
+    )
+    history = numpy.zeros((1200, 128), dtype=numpy.float32)
+    history[:, 0] = 1.0
+    history[:15] = numpy.concatenate(moves)
+
+    board = reconstruct_position_from_history(history)
+
+    assert piece_at(board, 55) == EMPTY
+    assert piece_at(board, 45) == EMPTY
+    assert piece_at(board, 46) == PIECE_CHANNELS["WHITE_PAWN"]

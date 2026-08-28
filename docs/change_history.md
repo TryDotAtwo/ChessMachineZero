@@ -2,6 +2,7 @@
 
 ## 2026-08-28
 
+- Added latest-event reconstruction for castling rook movement and en-passant pawn removal; compiled all four castling transformations as an exact one-hot FP4 tensor.
 - Replaced the promotion/padding third move slot with a mandatory color-specific `RESULT_PIECE` token, removed the recurrent workspace bias, and added one-hard-attention latest-event position reconstruction for ordinary moves and captures.
 - Added the first position-reconstruction circuit constants: exact one-hot initial piece state, numeric square decoder, frozen service-row workspace bias, and a branch-free tensor reference transition for ordinary moves and captures.
 - Extended 2D HullKV and the artifact opcode to dynamic batched Q/K/V self-attention with exact per-batch routing and floating Q/K/V backward.

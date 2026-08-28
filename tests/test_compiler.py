@@ -64,20 +64,22 @@ def test_rule_image_serializes_bootstrap_and_reusable_relations_together():
     restored = Artifact.from_bytes(image.to_bytes())
 
     assert restored == image
-    assert len(restored.tensors) == 13
+    assert len(restored.tensors) == 14
     assert restored.tensors[0].name == "context_0"
-    assert restored.tensors[-1].name == "square_decoder"
+    assert restored.tensors[-1].name == "castling_derived_events"
     assert restored.operations == ()
 
 
 def test_state_circuit_constants_pack_exactly_as_fp4_records():
-    initial_state, decoder = build_state_circuit_records()
+    initial_state, decoder, castling = build_state_circuit_records()
 
     assert initial_state.name == "initial_piece_state"
     assert initial_state.shape == (64, 128)
     assert decoder.name == "square_decoder"
     assert decoder.shape == (128, 64)
-    for record in (initial_state, decoder):
+    assert castling.name == "castling_derived_events"
+    assert castling.shape == (4, 7, 128)
+    for record in (initial_state, decoder, castling):
         decoded = decode_e2m1(
             numpy.frombuffer(record.packed, dtype=numpy.uint8), numpy.prod(record.shape)
         )

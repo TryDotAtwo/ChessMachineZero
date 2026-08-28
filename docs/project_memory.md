@@ -19,4 +19,5 @@
 - rule_relations=immutable binary FP4 king/knight, rook/bishop ray, white/black pawn step/double/attack, and strict `[64,64,64]` between tensors; reusable rules only, no finite board-position table; rule image op list remains empty until circuit compilation
 - dynamic_self_attention=HULL_ATTN_2D accepts SSA Q `[B,Q,2]`, K `[B,K,2]`, V `[B,K,D]`; CUDA scans artifact candidates within each batch, returns stable local indices, and custom backward reaches Q/K/V without dense QK storage
 - move_language=every move is three hard one-hot rows `[FROM,TO,RESULT_PIECE]`; result piece uses channels 96..107 with color, and promotion directly names the promoted piece
-- position_reconstruction=board is not recurrent state; 64 square queries select their latest initial/FROM/TO event in parallel, where FROM yields EMPTY and TO yields the declared result piece; special-move derived events remain to be compiled
+- position_reconstruction=board is not recurrent state; 64 square queries select their latest initial/FROM/TO/derived event in parallel, where FROM yields EMPTY and TO yields the declared result piece
+- special_events=castling rook effects are an exact four-pattern one-hot FP4 tensor; en-passant clearing is derived from the immediately previous opposing pawn double-step and current pawn diagonal-step relations before the same latest-event hardmax

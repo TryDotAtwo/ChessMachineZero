@@ -13,6 +13,12 @@ from .protocol import (
 from .relations import square_index
 
 EMPTY = 95
+CASTLING_EVENTS = (
+    (51, 71, PIECE_CHANNELS["WHITE_KING"], 81, EMPTY, 61, PIECE_CHANNELS["WHITE_ROOK"]),
+    (51, 31, PIECE_CHANNELS["WHITE_KING"], 11, EMPTY, 41, PIECE_CHANNELS["WHITE_ROOK"]),
+    (58, 78, PIECE_CHANNELS["BLACK_KING"], 88, EMPTY, 68, PIECE_CHANNELS["BLACK_ROOK"]),
+    (58, 38, PIECE_CHANNELS["BLACK_KING"], 18, EMPTY, 48, PIECE_CHANNELS["BLACK_ROOK"]),
+)
 
 
 def build_square_decoder() -> numpy.ndarray:
@@ -22,6 +28,13 @@ def build_square_decoder() -> numpy.ndarray:
             channel = file_index * 10 + rank_index
             decoder[channel, square_index(channel)] = 1.0
     return decoder
+
+
+def build_castling_derived_events() -> numpy.ndarray:
+    table = numpy.zeros((4, 7, VOCAB_SIZE), dtype=numpy.float32)
+    for pattern_index, pattern in enumerate(CASTLING_EVENTS):
+        table[pattern_index, numpy.arange(7), pattern] = 1.0
+    return table
 
 
 def build_initial_piece_state() -> numpy.ndarray:
@@ -75,22 +88,97 @@ def reconstruct_position_from_history(history: numpy.ndarray) -> numpy.ndarray:
     decoder = build_square_decoder()
     source_targets = moves[:, 0] @ decoder
     destination_targets = moves[:, 1] @ decoder
+    derived_targets, derived_values, derived_times = _derive_special_events(moves)
     event_targets = numpy.concatenate(
-        (numpy.eye(64, dtype=numpy.float32), source_targets, destination_targets), axis=0
+        (
+            numpy.eye(64, dtype=numpy.float32),
+            source_targets,
+            destination_targets,
+            derived_targets,
+        ),
+        axis=0,
     )
     empty = numpy.zeros((moves.shape[0], VOCAB_SIZE), dtype=numpy.float32)
     empty[:, EMPTY] = 1.0
-    event_values = numpy.concatenate((build_initial_piece_state(), empty, moves[:, 2]), axis=0)
+    event_values = numpy.concatenate(
+        (build_initial_piece_state(), empty, moves[:, 2], derived_values), axis=0
+    )
     event_times = numpy.concatenate(
         (
             numpy.zeros(64, dtype=numpy.float32),
             numpy.arange(1, moves.shape[0] + 1, dtype=numpy.float32),
             numpy.arange(1, moves.shape[0] + 1, dtype=numpy.float32),
+            derived_times,
         )
     )
     matches = numpy.eye(64, dtype=numpy.float32) @ event_targets.T
     scores = numpy.where(matches == 1.0, event_times[None, :], -numpy.inf)
     return event_values[numpy.argmax(scores, axis=1)]
+
+
+def _derive_special_events(moves: numpy.ndarray) -> tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+    empty_value = numpy.zeros(VOCAB_SIZE, dtype=numpy.float32)
+    empty_value[EMPTY] = 1.0
+    targets: list[numpy.ndarray] = []
+    values: list[numpy.ndarray] = []
+    times: list[float] = []
+
+    castle_events = {
+        tuple(pattern[:3]): ((pattern[3], pattern[4]), (pattern[5], pattern[6]))
+        for pattern in CASTLING_EVENTS
+    }
+    decoded = numpy.argmax(moves, axis=2)
+    for move_index, native in enumerate(decoded):
+        event_time = float(move_index + 1)
+        for square, piece in castle_events.get(tuple(int(x) for x in native), ()):
+            targets.append(numpy.eye(64, dtype=numpy.float32)[square_index(square)])
+            value = empty_value.copy()
+            if piece != EMPTY:
+                value[:] = 0.0
+                value[piece] = 1.0
+            values.append(value)
+            times.append(event_time)
+
+        if move_index == 0:
+            continue
+        source, destination, piece = (int(x) for x in native)
+        previous_source, previous_destination, previous_piece = (
+            int(x) for x in decoded[move_index - 1]
+        )
+        direction = 1 if piece == PIECE_CHANNELS["WHITE_PAWN"] else -1
+        opponent = (
+            PIECE_CHANNELS["BLACK_PAWN"]
+            if direction == 1
+            else PIECE_CHANNELS["WHITE_PAWN"]
+        )
+        is_diagonal_pawn = (
+            piece in (PIECE_CHANNELS["WHITE_PAWN"], PIECE_CHANNELS["BLACK_PAWN"])
+            and abs(source // 10 - destination // 10) == 1
+            and destination % 10 - source % 10 == direction
+        )
+        previous_was_matching_double = (
+            previous_piece == opponent
+            and previous_destination // 10 == destination // 10
+            and previous_destination % 10 == source % 10
+            and abs(previous_destination % 10 - previous_source % 10) == 2
+        )
+        if is_diagonal_pawn and previous_was_matching_double:
+            captured = previous_destination
+            targets.append(numpy.eye(64, dtype=numpy.float32)[square_index(captured)])
+            values.append(empty_value.copy())
+            times.append(event_time)
+
+    if not targets:
+        return (
+            numpy.zeros((0, 64), dtype=numpy.float32),
+            numpy.zeros((0, VOCAB_SIZE), dtype=numpy.float32),
+            numpy.zeros(0, dtype=numpy.float32),
+        )
+    return (
+        numpy.stack(targets),
+        numpy.stack(values),
+        numpy.asarray(times, dtype=numpy.float32),
+    )
 
 
 def piece_at(board: numpy.ndarray, square: int) -> int:
