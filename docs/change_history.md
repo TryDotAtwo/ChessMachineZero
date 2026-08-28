@@ -1,5 +1,12 @@
 # Change History
 
+## 2026-08-28 — Bilingual interactive matrix provenance
+
+- Replaced COO tables as the primary UI with transformer-style matrix grids for every one of the 45 executed SSA operations.
+- Added RU/EN switching, semantic matrix names with secondary SSA IDs, selectable output coordinates, and per-cell provenance.
+- GEMM now highlights the exact input row and frozen-weight column and expands every visible dot-product term; attention exposes `Q×Kᵀ`, its hardmax winner, and `A×V`.
+- Added operation-specific provenance for row routing, concatenation, residual/position addition, frozen expansion, and hardmax rather than presenting every opcode as multiplication.
+
 ## 2026-08-28 — Matrix-level inference proof on the VM site
 
 - Added a six-stage executable tensor trace with the exact matrix shapes for history routing, castling and en-passant projections, 2064-event construction, 2D key projection, `QK^T` hardmax/STE, and `A×V` board reconstruction.

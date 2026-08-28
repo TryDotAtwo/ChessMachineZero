@@ -14,36 +14,76 @@
   --sans: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
-.numeric-inspector { border: 2px solid var(--matrix-ink); background: #fff; color: var(--matrix-ink); padding: 22px; margin-bottom: 28px; }
-.numeric-inspector > header { display: flex; justify-content: space-between; gap: 24px; align-items: start; }
-.numeric-inspector > header h2 { margin: 3px 0 8px; }
-.numeric-inspector > header p { max-width: 850px; margin: 0; }
-.numeric-inspector > header a { color: var(--matrix-ink); font: 700 12px/1 var(--mono); white-space: nowrap; border-bottom: 2px solid var(--blue); padding-bottom: 5px; }
-.operation-picker { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; margin: 22px 0 10px; }
-.operation-picker label { font: 700 12px/1 var(--mono); text-transform: uppercase; }
-.operation-picker select, .operation-picker button { min-height: 38px; border: 1px solid var(--matrix-ink); border-radius: 0; background: #fff; color: var(--matrix-ink); font: 12px/1.25 var(--mono); padding: 8px; }
-.operation-picker button { cursor: pointer; font-weight: 700; }
-.numeric-equation, .calculation-proof pre { margin: 0; padding: 14px; background: var(--matrix-ink); color: #fff; overflow: auto; font: 13px/1.5 var(--mono); }
-.numeric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
-.numeric-grid > section { min-width: 0; border: 1px solid var(--matrix-ink); padding: 10px; }
-.numeric-grid h3, .calculation-proof h3 { margin: 0 0 9px; font: 700 12px/1 var(--mono); text-transform: uppercase; }
-.numeric-matrix + .numeric-matrix { margin-top: 12px; }
-.numeric-matrix h4 { overflow-wrap: anywhere; margin: 0 0 6px; font: 700 11px/1.35 var(--mono); }
-.matrix-values { max-height: 330px; overflow: auto; border-top: 1px solid var(--matrix-ink); }
-.matrix-values table { width: 100%; border-collapse: collapse; font: 11px/1.25 var(--mono); }
-.matrix-values th, .matrix-values td { padding: 4px 6px; border-bottom: 1px solid #ddd; text-align: left; }
-.matrix-values th { position: sticky; top: 0; background: #fff; }
-.matrix-pager { display: grid; grid-template-columns: 28px 1fr 28px; gap: 5px; align-items: center; margin-bottom: 5px; font: 10px/1 var(--mono); text-align: center; }
-.matrix-pager button { border: 1px solid var(--matrix-ink); background: #fff; color: var(--matrix-ink); cursor: pointer; height: 25px; }
-.matrix-pager button:disabled { opacity: .3; cursor: default; }
-.calculation-proof { margin-top: 10px; border: 1px solid var(--matrix-ink); padding: 10px; }
+/* Interactive matrix trace, matched to the approved v2 concept. */
+body > .site-header { display: none; }
+main { padding-top: 20px; }
+.numeric-inspector { width: 100%; min-width: 0; overflow: hidden; background: var(--bg); color: var(--text); border: 1px solid var(--line); padding: 20px; margin-bottom: 28px; }
+.trace-header { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; border-bottom: 1px solid var(--line); padding-bottom: 15px; }
+.trace-header > div:first-child > strong { font-size: 19px; }
+.trace-header h2 { margin: 18px 0 5px; font: 700 clamp(22px, 2vw, 28px)/1.15 var(--sans); }
+.trace-header p { margin: 0; color: var(--muted); }
+.trace-actions { display: flex; align-items: center; gap: 10px; }
+.trace-actions > a { color: var(--blue); font-weight: 700; text-decoration: none; border-bottom: 1px solid currentColor; }
+.language-switch { display: flex; border: 1px solid var(--line); }
+.language-switch button { min-height: 34px; padding: 0 12px; border: 0; border-radius: 0; color: var(--muted); background: transparent; }
+.language-switch button.active { background: var(--lime); color: #071005; font-weight: 800; }
+.numeric-inspector .operation-picker { grid-template-columns: auto minmax(0, 1fr) 40px 40px; margin: 16px 0 10px; }
+.numeric-inspector .operation-picker select, .numeric-inspector .operation-picker button { color: var(--text); background: var(--surface); border-color: var(--line); }
+.numeric-inspector .operation-picker select { width: 100%; min-width: 0; max-width: 100%; text-overflow: ellipsis; }
+.operation-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; padding: 8px 0 12px; }
+.operation-heading h3 { margin: 0 0 4px; font: 700 20px/1.2 var(--sans); }
+.operation-heading p { margin: 0; color: var(--muted); }
+.operation-heading > strong { color: var(--blue); white-space: nowrap; }
+.numeric-inspector .numeric-equation { background: #0b1216; border: 1px solid var(--line); color: var(--text); padding: 12px 15px; }
+.cell-controls { display: grid; grid-template-columns: 150px 150px minmax(220px, 1fr); gap: 10px; margin: 12px 0; }
+.cell-controls label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; text-transform: uppercase; }
+.cell-controls input[type="number"] { width: 100%; height: 36px; padding: 5px 8px; color: var(--text); background: var(--surface); border: 1px solid var(--line); font: inherit; }
+.k-control { grid-template-columns: auto minmax(100px, 1fr) 55px; align-items: center; }
+.k-control span { grid-column: 1 / -1; }
+.k-control output { color: var(--lime); text-align: right; }
+.matrix-flow { display: grid; grid-template-columns: minmax(250px, 1fr) 34px minmax(230px, 1fr) 34px minmax(230px, 1fr); gap: 8px; align-items: center; overflow-x: auto; padding-bottom: 5px; }
+.matrix-flow.attention-flow { grid-template-columns: repeat(11, max-content); align-items: center; }
+.matrix-flow.attention-flow .matrix-card { width: 330px; }
+.matrix-sign { color: var(--blue); font-size: 26px; text-align: center; }
+.matrix-card { min-width: 0; border: 1px solid var(--line); background: var(--surface); padding: 11px; }
+.matrix-card > header { display: flex; justify-content: space-between; gap: 10px; min-height: 42px; }
+.matrix-card > header div { min-width: 0; }
+.matrix-card > header strong { display: block; overflow-wrap: anywhere; }
+.matrix-card > header small { display: block; color: var(--muted); margin-top: 2px; }
+.matrix-card > header > span { color: var(--muted); white-space: nowrap; }
+.matrix-axes { margin: 7px 0; color: var(--muted); font-size: 10px; }
+.matrix-table-viewport { overflow: auto; max-height: 330px; }
+.matrix-card table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 3px; font-size: 10px; }
+.matrix-card th { color: var(--muted); font-weight: 400; height: 18px; }
+.matrix-card td { height: 32px; padding: 2px; text-align: center; color: #718089; background: #17252d; border: 1px solid #263943; cursor: crosshair; overflow: hidden; text-overflow: ellipsis; }
+.matrix-card td.matrix-positive { color: #dfffa2; background: #20391c; }
+.matrix-card td.matrix-negative { color: #b9dcff; background: #18344b; }
+.matrix-card td.matrix-row-highlight { color: #eaffb3; background: #254119; border-top-color: var(--lime); border-bottom-color: var(--lime); box-shadow: inset 0 1px rgba(186,245,15,.15), inset 0 -1px rgba(186,245,15,.15); }
+.matrix-card td.matrix-column-highlight { color: #ffd29a; background: #4a3219; border-left-color: #ffb454; border-right-color: #ffb454; box-shadow: inset 1px 0 rgba(255,180,84,.18), inset -1px 0 rgba(255,180,84,.18); }
+.matrix-card td.matrix-cell-selected { outline: 2px solid var(--lime); outline-offset: 1px; color: var(--lime); font-weight: 800; }
+.matrix-card td:focus-visible { outline: 2px solid var(--blue); }
+.cell-explanation { margin-top: 12px; border: 1px solid var(--line); background: var(--surface); padding: 14px; }
+.cell-explanation h3 { margin: 0 0 10px; color: var(--muted); font-size: 12px; text-transform: uppercase; }
+.cell-explanation p { margin: 7px 0; }
+.cell-explanation strong { color: var(--lime); }
+.dot-terms { display: flex; flex-wrap: wrap; gap: 6px; }
+.dot-term { border: 1px solid var(--line); padding: 7px 9px; }
+.dot-term i { display: block; color: var(--blue); font-style: normal; font-size: 10px; }
+.dot-term b { color: var(--lime); }
 
-@media (max-width: 850px) {
-  .numeric-inspector > header { display: block; }
-  .numeric-inspector > header a { display: inline-block; margin-top: 12px; }
-  .operation-picker { grid-template-columns: 1fr 1fr; }
-  .operation-picker label, .operation-picker select { grid-column: 1 / -1; }
-  .numeric-grid { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .trace-header, .operation-heading { display: block; }
+  .trace-actions { margin-top: 12px; }
+  .operation-heading > strong { display: block; margin-top: 8px; }
+  .cell-controls { grid-template-columns: 1fr 1fr; }
+  .numeric-inspector .operation-picker { grid-template-columns: 1fr 1fr; }
+  .numeric-inspector .operation-picker label, .numeric-inspector .operation-picker select { grid-column: 1 / -1; }
+  .k-control { grid-column: 1 / -1; }
+  .matrix-flow { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr); overflow: visible; }
+  .matrix-flow.attention-flow { grid-template-columns: minmax(0, 1fr); }
+  .matrix-card { width: 100%; min-width: 0; }
+  .matrix-flow.attention-flow .matrix-card { width: auto; }
+  .matrix-sign { transform: rotate(90deg); }
 }
 
 * { box-sizing: border-box; }

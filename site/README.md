@@ -10,6 +10,12 @@ from `build_position_reconstruction_artifact()`. The site renders all 45 SSA
 operations from that file; the contract test rejects any stale or hand-edited
 trace.
 
+`numeric_trace.json` contains the exact executed COO values. The bilingual
+matrix inspector renders every operation as a semantic tensor transformation;
+for GEMM it highlights the contributing row and column and expands their dot
+product, while route, concat, add, hardmax, and attention show their exact
+operation-specific provenance.
+
 Serve locally from the repository root:
 
 ```powershell

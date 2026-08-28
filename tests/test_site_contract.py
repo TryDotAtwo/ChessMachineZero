@@ -1,4 +1,5 @@
 import json
+import subprocess
 from pathlib import Path
 
 from vm_compiler.compiler import build_position_reconstruction_artifact
@@ -125,19 +126,72 @@ def test_site_publishes_exact_numeric_matrices_from_a_real_execution():
 def test_site_renders_numeric_matrix_inspector_not_shape_only_cards():
     for marker in (
         'id="numericOperations"',
-        'id="matrixInputs"',
-        'id="matrixWeights"',
-        'id="matrixIntermediates"',
-        'id="matrixOutput"',
-        'id="matrixCalculation"',
-        "Exact numerical execution",
-        "COO: [index…] = value",
+        'id="matrixFlow"',
+        'id="cellExplanation"',
     ):
         assert marker in HTML
 
-    assert "numeric_trace.json" in JS
-    assert "renderNumericTrace" in JS
-    assert "MATRIX_PAGE_SIZE = 200" in JS
-    assert 'className = "matrix-pager"' in JS
     assert "--matrix-ink: #101416" in CSS
-    assert "color: var(--matrix-ink)" in CSS
+
+
+def test_matrix_inspector_explains_real_row_by_column_products_for_every_opcode():
+    script = r"""
+const inspector = require('./site/matrix_inspector.js');
+const trace = require('./site/numeric_trace.json');
+const left = {shape:[1,2,4], entries:[[0,0,1,3],[0,0,3,2]]};
+const weight = {shape:[4,2], entries:[[1,0,5],[3,0,-1]]};
+const dot = inspector.dotProduct(left, weight, 0, 0, 0);
+const concat = inspector.concatSource([{shape:[1,2,4]},{shape:[1,3,4]},{shape:[1,1,4]}], 4);
+const winner = inspector.hardmaxWinner({shape:[1,2,4],entries:[[0,1,2,1]]}, 0, 1);
+const models = [...new Set(trace.operations.map(op => op.opcode))].map(inspector.operationModel);
+console.log(JSON.stringify({
+  total: dot.total,
+  terms: dot.terms,
+  ruToken: inspector.tokenMeaning(52, 'ru'),
+  enToken: inspector.tokenMeaning(96, 'en'),
+  modelCount: models.filter(Boolean).length,
+  opcodeCount: new Set(trace.operations.map(op => op.opcode)).size
+  ,concat,
+  winner
+}));
+"""
+    completed = subprocess.run(
+        ["node", "-e", script],
+        cwd=ROOT,
+        check=True,
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+    )
+    result = json.loads(completed.stdout)
+
+    assert result == {
+        "total": 13,
+        "terms": [
+            {"k": 0, "left": 0, "right": 0, "product": 0},
+            {"k": 1, "left": 3, "right": 5, "product": 15},
+            {"k": 2, "left": 0, "right": 0, "product": 0},
+            {"k": 3, "left": 2, "right": -1, "product": -2},
+        ],
+        "ruToken": "клетка e2",
+        "enToken": "white pawn",
+        "modelCount": 8,
+        "opcodeCount": 8,
+        "concat": {"input": 1, "row": 2},
+        "winner": 2,
+    }
+
+
+def test_matrix_inspector_has_bilingual_cell_and_operation_controls():
+    required = (
+        'id="languageRu"',
+        'id="languageEn"',
+        'id="operationTitle"',
+        'id="matrixFlow"',
+        'id="cellExplanation"',
+        'id="outputRow"',
+        'id="outputColumn"',
+    )
+    for marker in required:
+        assert marker in HTML
+    assert '<script defer src="./matrix_inspector.js"></script>' in HTML

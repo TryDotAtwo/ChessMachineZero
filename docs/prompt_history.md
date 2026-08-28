@@ -1,5 +1,9 @@
 # Prompt History
 
+## 2026-08-28 — Transformer-style bilingual matrix explorer
+
+User required RU/EN switching, human-readable tensor meanings, conventional row-by-column matrix multiplication, and hover/click provenance for any cell of every operation from the beginning to the end of the artifact. Implemented the approved v2 matrix-flow concept across all 45 operations.
+
 ## 2026-08-28 — Show matrix multiplication proof on the site
 
 User required the website to show matrices and every inference stage in enough detail to prove that position reconstruction is only frozen tensor inference. Added exact equations, the generic C++ runtime primitive map, and a generated 45-operation SSA trace tied directly to the artifact compiler.
