@@ -35,5 +35,21 @@ int main() {
     TORCH_CHECK(queries.grad().abs().sum().item<float>() > 0.0F);
     TORCH_CHECK(keys.grad().abs().sum().item<float>() > 0.0F);
     TORCH_CHECK(values.grad().abs().sum().item<float>() > 0.0F);
+
+    auto batched_queries = queries.detach().reshape({1, 3, 2}).repeat({2, 1, 1})
+                               .set_requires_grad(true);
+    auto batched_values = values.detach().reshape({1, 6, 2}).repeat({2, 1, 1})
+                              .set_requires_grad(true);
+    const auto batched = cmz::hull_attention_2d_batched_ste(
+        batched_queries, keys.detach(), batched_values, hull, 2, 0.5);
+    TORCH_CHECK(batched.sizes() == torch::IntArrayRef({2, 3, 2}));
+    TORCH_CHECK(torch::equal(
+        batched[0],
+        torch::tensor({{10.0F, 1.0F}, {10.0F, 1.0F}, {0.0F, 0.0F}}, floats)));
+    batched.sum().backward();
+    TORCH_CHECK(batched_queries.grad().defined());
+    TORCH_CHECK(batched_values.grad().defined());
+    TORCH_CHECK(batched_queries.grad().abs().sum().item<float>() > 0.0F);
+    TORCH_CHECK(batched_values.grad().abs().sum().item<float>() > 0.0F);
     return 0;
 }

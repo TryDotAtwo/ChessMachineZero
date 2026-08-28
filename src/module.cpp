@@ -1,5 +1,6 @@
 #include "cmz/vm_module.h"
 
+#include "cmz/hullkv.h"
 #include "cmz/ste.h"
 
 #include <c10/cuda/CUDAGuard.h>
@@ -74,11 +75,24 @@ void validate_graph(const cmz::Artifact& artifact) {
                 }
                 break;
             case cmz::OpCode::HardmaxSte:
-                require_schema(operation, 2U, 1U, 1U);
+                TORCH_CHECK((operation.inputs.size() == 1U || operation.inputs.size() == 2U) &&
+                            operation.outputs.size() == 1U && operation.attributes.size() == 1U,
+                            "artifact HardmaxSte schema mismatch");
                 TORCH_CHECK(operation.attributes[0] > 0U);
                 break;
             case cmz::OpCode::HullAttention2D:
-                TORCH_CHECK(false, "HullAttention2D graph binding is not implemented");
+                TORCH_CHECK(operation.inputs.size() == 2U && operation.outputs.size() == 1U &&
+                            operation.attributes.size() >= 4U,
+                            "artifact HullAttention2D schema mismatch");
+                TORCH_CHECK(operation.attributes[0] < artifact.tensors().size());
+                TORCH_CHECK(operation.attributes[1] > 0U && operation.attributes[1] <= 32U);
+                TORCH_CHECK(operation.attributes[2] > 0U);
+                TORCH_CHECK(operation.attributes[1] <= operation.attributes.size() - 3U);
+                TORCH_CHECK(artifact.tensors()[operation.attributes[0]].shape.size() == 2U &&
+                            artifact.tensors()[operation.attributes[0]].shape[1] == 2U);
+                for (auto index = operation.attributes.begin() + 3; index != operation.attributes.end(); ++index) {
+                    TORCH_CHECK(*index < artifact.tensors()[operation.attributes[0]].shape[0]);
+                }
                 break;
         }
         for (const auto output : operation.outputs) {
@@ -102,6 +116,16 @@ FrozenVm::FrozenVm(Artifact artifact, const torch::Device& device)
     for (const auto& tensor : artifact.tensors()) {
         tensors_.push_back(materialize(tensor, device));
     }
+    routing_indices_.resize(operations_.size());
+    for (std::size_t index = 0; index < operations_.size(); ++index) {
+        const auto& operation = operations_[index];
+        if (operation.opcode == OpCode::HullAttention2D) {
+            std::vector<std::int64_t> indices(
+                operation.attributes.begin() + 3, operation.attributes.end());
+            routing_indices_[index] = torch::tensor(
+                indices, torch::TensorOptions().dtype(torch::kInt64).device(device));
+        }
+    }
 }
 
 torch::Tensor FrozenVm::forward(const torch::Tensor& input) const {
@@ -113,7 +137,8 @@ torch::Tensor FrozenVm::forward(const torch::Tensor& input) const {
     std::unordered_map<std::uint32_t, torch::Tensor> values;
     values.emplace(0U, input);
     std::uint32_t final_output = 0U;
-    for (const auto& operation : operations_) {
+    for (std::size_t operation_index = 0; operation_index < operations_.size(); ++operation_index) {
+        const auto& operation = operations_[operation_index];
         TORCH_CHECK(!operation.outputs.empty(), "artifact operation has no output");
         torch::Tensor result;
         switch (operation.opcode) {
@@ -150,16 +175,26 @@ torch::Tensor FrozenVm::forward(const torch::Tensor& input) const {
                 break;
             }
             case OpCode::HardmaxSte: {
-                require_schema(operation, 2U, 1U, 1U);
+                const auto& logits = values.at(operation.inputs[0]);
+                const auto mask = operation.inputs.size() == 2U
+                    ? values.at(operation.inputs[1]).to(torch::kBool)
+                    : torch::ones_like(logits, torch::TensorOptions().dtype(torch::kBool));
                 result = masked_hardmax_ste(
-                    values.at(operation.inputs[0]),
-                    values.at(operation.inputs[1]).to(torch::kBool),
+                    logits,
+                    mask,
                     static_cast<double>(operation.attributes[0]) / 1000.0);
                 break;
             }
-            case OpCode::HullAttention2D:
-                TORCH_CHECK(false, "HullAttention2D graph binding is not implemented");
+            case OpCode::HullAttention2D: {
+                result = hull_attention_2d_batched_ste(
+                    values.at(operation.inputs[0]),
+                    tensors_.at(operation.attributes[0]),
+                    values.at(operation.inputs[1]),
+                    routing_indices_[operation_index],
+                    operation.attributes[1],
+                    static_cast<double>(operation.attributes[2]) / 1000.0);
                 break;
+            }
         }
         const auto inserted = values.emplace(operation.outputs[0], std::move(result));
         TORCH_CHECK(inserted.second, "artifact graph redefines an SSA value");

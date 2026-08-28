@@ -21,6 +21,7 @@ public:
 private:
     std::vector<Operation> operations_;
     std::vector<torch::Tensor> tensors_;
+    std::vector<torch::Tensor> routing_indices_;
 };
 
 }  // namespace cmz

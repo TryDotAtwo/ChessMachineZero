@@ -22,12 +22,55 @@ cmz::TensorRecord projection(bool identity) {
     return {"projection", {128, 128}, std::move(packed), {1.0F}, 16384};
 }
 
+cmz::TensorRecord query_projection() {
+    std::vector<std::uint8_t> packed(128, 0);
+    packed[0] = 2U;
+    return {"query", {128, 2}, std::move(packed), {1.0F}, 256};
+}
+
+cmz::TensorRecord attention_keys() {
+    constexpr std::size_t rows = 2045;
+    std::vector<std::uint8_t> packed(rows, 0);
+    packed[0] = 2U;
+    for (std::size_t row = 1; row < rows; ++row) {
+        packed[row] = 10U;
+    }
+    return {"keys", {2045, 2}, std::move(packed), {1.0F}, 4090};
+}
+
+cmz::TensorRecord position_bias() {
+    std::vector<std::uint8_t> packed(64, 0);
+    packed[1] = 6U;
+    return {"position", {1, 128}, std::move(packed), {2.0F}, 128};
+}
+
 cmz::Artifact graph(bool identity) {
     return cmz::Artifact::from_records(
         {projection(identity)},
         {
             {cmz::OpCode::RowRoute, {0}, {1}, {3, 2048}},
             {cmz::OpCode::TokenProject, {1}, {2}, {0}},
+        });
+}
+
+cmz::Artifact attention_graph() {
+    std::vector<std::uint32_t> attributes = {1, 2, 500};
+    for (std::uint32_t index = 0; index < 2045; ++index) {
+        attributes.push_back(index);
+    }
+    return cmz::Artifact::from_records(
+        {query_projection(), attention_keys(), position_bias(), projection(false),
+         projection(false), projection(false), projection(true)},
+        {
+            {cmz::OpCode::RowRoute, {0}, {1}, {3, 2048}},
+            {cmz::OpCode::PositionAdd, {1}, {2}, {2}},
+            {cmz::OpCode::TokenProject, {2}, {3}, {0}},
+            {cmz::OpCode::HullAttention2D, {3, 2}, {4}, std::move(attributes)},
+            {cmz::OpCode::ResidualAdd, {2, 4}, {5}, {}},
+            {cmz::OpCode::GatedFfn, {5}, {6}, {3, 4, 5}},
+            {cmz::OpCode::ResidualAdd, {5, 6}, {7}, {}},
+            {cmz::OpCode::OutputProject, {7}, {8}, {6}},
+            {cmz::OpCode::HardmaxSte, {8}, {9}, {500}},
         });
 }
 
@@ -65,5 +108,18 @@ int main() {
         rejected_undefined_ssa = true;
     }
     TORCH_CHECK(rejected_undefined_ssa, "undefined SSA input must fail during VM loading");
+
+    auto attention_input = torch::zeros({1, 2048, 128}, options.requires_grad(false));
+    attention_input.index_put_({0, torch::indexing::Slice(3, 2048), 0}, 1.0F);
+    attention_input.index_put_({0, 3, 1}, 7.0F);
+    attention_input.set_requires_grad(true);
+    cmz::FrozenVm attention_vm(attention_graph(), attention_input.device());
+    const auto attended = attention_vm.forward(attention_input);
+    auto expected = torch::zeros_like(attended);
+    expected.index_put_({0, torch::indexing::Slice(), 2}, 1.0F);
+    TORCH_CHECK(torch::equal(attended, expected));
+    attended.index({0, torch::indexing::Slice(), 2}).sum().backward();
+    TORCH_CHECK(attention_input.grad().defined());
+    TORCH_CHECK(attention_input.grad().abs().sum().item<float>() > 0.0F);
     return 0;
 }
