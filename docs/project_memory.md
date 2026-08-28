@@ -16,3 +16,4 @@
 - context_0=exact hard one-hot `[2045,128]` stored as canonical FP4: empty chronological history, 20 sorted initial LEGAL_SET moves, OK status, padding service; no board rows; C++ expands the immutable CUDA tensor by batch
 - development_oracle=python-chess reconstructs board only from history and verifies recurrent legal/illegal/terminal transitions; it is excluded from production runtime and artifacts
 - addressing=d_head=2 convex-ring keys with per-element FP4 scales give exact independently selectable float32 addresses; bootstrap artifact contains 128 vocabulary and 2048 input-row address tensors and their complete outer hulls
+- rule_relations=immutable binary FP4 king/knight, rook/bishop ray, white/black pawn step/double/attack, and strict `[64,64,64]` between tensors; reusable rules only, no finite board-position table; rule image op list remains empty until circuit compilation

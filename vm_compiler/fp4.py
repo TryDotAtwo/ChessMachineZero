@@ -16,14 +16,17 @@ def encode_e2m1(values: numpy.ndarray) -> numpy.ndarray:
     if not numpy.isfinite(flat).all():
         raise ValueError("E2M1 values must be finite")
 
-    nibbles = numpy.empty(flat.size, dtype=numpy.uint8)
-    for index, value in enumerate(flat):
-        magnitude = abs(float(value))
-        matches = numpy.flatnonzero(_POSITIVE_LATTICE == magnitude)
-        if matches.size != 1:
-            raise ValueError(f"value is outside the exact E2M1 lattice: {value}")
-        sign = 0x8 if numpy.signbit(value) and magnitude != 0.0 else 0
-        nibbles[index] = int(matches[0]) | sign
+    magnitudes = numpy.abs(flat)
+    indices = numpy.searchsorted(_POSITIVE_LATTICE, magnitudes)
+    clipped = numpy.minimum(indices, len(_POSITIVE_LATTICE) - 1)
+    valid = (indices < len(_POSITIVE_LATTICE)) & (
+        _POSITIVE_LATTICE[clipped] == magnitudes
+    )
+    if not valid.all():
+        value = flat[int(numpy.flatnonzero(~valid)[0])]
+        raise ValueError(f"value is outside the exact E2M1 lattice: {value}")
+    signs = (numpy.signbit(flat) & (magnitudes != 0.0)).astype(numpy.uint8) << 3
+    nibbles = indices.astype(numpy.uint8) | signs
     return nibbles[0::2] | (nibbles[1::2] << 4)
 
 

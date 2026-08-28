@@ -25,3 +25,9 @@ Discrete vocabulary and row addresses are compiled as distinct vertices of a two
 `HARDMAX_STE` accepts logits plus an optional computed boolean mask. With no mask input every vocabulary channel is eligible. The final graph value must be `[B,2045,128]`; malformed schemas, undefined/redefined SSA values, invalid tensor references, and invalid hull indices are rejected during VM loading.
 
 The canonical artifact stores `context_0` as an exact FP4 tensor. `FrozenVm::initial_context` expands that immutable CUDA tensor over the requested batch; no host board construction is performed at runtime.
+
+## Frozen rule relations
+
+The offline compiler emits reusable binary tensors for king and knight adjacency, rook and bishop rays, color-indexed pawn step/double/attack geometry, and strict `between[source,destination,square]`. These are rule relations over all squares, not memorized boards or game continuations. Queen geometry is the union of the rook and bishop relations; occupancy, side-to-move, castling rights, en-passant state, checks, and legal filtering must be derived by later attention stages from history.
+
+The current rule image contains bootstrap, address, and relation tensors but deliberately has an empty operation list. It is compiler input for the next circuit stage and is not yet presented as an executable chess VM artifact.
