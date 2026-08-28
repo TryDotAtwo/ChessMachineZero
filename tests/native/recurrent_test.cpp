@@ -44,6 +44,12 @@ cmz::TensorRecord position_bias() {
     return {"position", {1, 128}, std::move(packed), {2.0F}, 128};
 }
 
+cmz::TensorRecord zero_context_record() {
+    constexpr std::size_t elements = 2045 * 128;
+    return {"context_0", {2045, 128}, std::vector<std::uint8_t>(elements / 2, 0),
+            std::vector<float>((elements + 4095) / 4096, 1.0F), 4096};
+}
+
 cmz::Artifact graph(bool identity) {
     return cmz::Artifact::from_records(
         {projection(identity)},
@@ -96,6 +102,15 @@ int main() {
     TORCH_CHECK(input.grad().defined());
     TORCH_CHECK(input.grad().slice(1, 0, 3).count_nonzero().item<std::int64_t>() == 0);
     TORCH_CHECK(input.grad().slice(1, 3, 2048).eq(1).all().item<bool>());
+
+    auto initial_artifact = graph(true);
+    initial_artifact = cmz::Artifact::from_records(
+        {projection(true), zero_context_record()}, initial_artifact.operations());
+    cmz::FrozenVm initial_vm(std::move(initial_artifact), input.device());
+    const auto initial = initial_vm.initial_context(3);
+    TORCH_CHECK(initial.sizes() == torch::IntArrayRef({3, 2045, 128}));
+    TORCH_CHECK(initial.is_cuda());
+    TORCH_CHECK(initial.count_nonzero().item<std::int64_t>() == 0);
 
     bool rejected_undefined_ssa = false;
     try {

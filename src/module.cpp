@@ -113,7 +113,14 @@ FrozenVm::FrozenVm(Artifact artifact, const torch::Device& device)
     validate_graph(artifact);
     c10::cuda::CUDAGuard guard(device);
     tensors_.reserve(artifact.tensors().size());
-    for (const auto& tensor : artifact.tensors()) {
+    for (std::size_t index = 0; index < artifact.tensors().size(); ++index) {
+        const auto& tensor = artifact.tensors()[index];
+        if (tensor.name == "context_0") {
+            TORCH_CHECK(!initial_context_index_.has_value(), "artifact defines context_0 twice");
+            TORCH_CHECK(tensor.shape == std::vector<std::uint32_t>({2045, 128}),
+                        "context_0 must have shape [2045,128]");
+            initial_context_index_ = index;
+        }
         tensors_.push_back(materialize(tensor, device));
     }
     routing_indices_.resize(operations_.size());
@@ -126,6 +133,15 @@ FrozenVm::FrozenVm(Artifact artifact, const torch::Device& device)
                 indices, torch::TensorOptions().dtype(torch::kInt64).device(device));
         }
     }
+}
+
+torch::Tensor FrozenVm::initial_context(std::int64_t batch_size) const {
+    TORCH_CHECK(initial_context_index_.has_value(), "artifact does not define context_0");
+    TORCH_CHECK(batch_size > 0, "initial context batch size must be positive");
+    return tensors_[*initial_context_index_]
+        .unsqueeze(0)
+        .expand({batch_size, kContextRows, kVocabulary})
+        .clone();
 }
 
 torch::Tensor FrozenVm::forward(const torch::Tensor& input) const {
