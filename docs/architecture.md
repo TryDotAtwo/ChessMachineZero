@@ -4,13 +4,13 @@ This branch is a from-scratch implementation. It does not inherit or adapt the p
 
 ## Runtime boundary
 
-One frozen Transformer maps a hard one-hot input tensor `[B,2048,128]` to a hard one-hot recurrent context `[B,2045,128]`. Input is the requested move `[B,3,128]` concatenated with the previous context. The standard initial position is represented by an immutable compiled `context_0` artifact.
+One frozen Transformer maps a hard one-hot input tensor `[B,2048,128]` to a hard one-hot recurrent context `[B,2045,128]`. Input is the requested move `[B,3,128]` concatenated with the previous context. A move is exactly `[FROM, TO, RESULT_PIECE]`; the third token is one of 12 color-specific piece channels, and promotion is represented directly by the promoted result piece. The standard initial position is represented by immutable compiled constants in the rule artifact.
 
 The context contains chronological history (`1200` rows, 400 plies), sorted `LEGAL_SET` (`768` rows, 256 move triples), one status row, and 76 reserved service rows. Status vocabulary channels are `89..94`.
 
 `context_0` contains no board matrix or board rows. Its history is padding, its `LEGAL_SET` is the exact 20 sorted opening moves in native three-token form, its status is `OK`, and its service rows are padding. The standard initial board is a frozen program constant; subsequent positions are reconstructed by the compiled circuit from chronological history.
 
-Inside the forward graph, 64 reserved service positions form a hidden position workspace. A frozen additive tensor replaces their padding activations with the exact initial piece one-hots; this workspace is not part of the recurrent board representation and must be reset to padding before output. Ordinary source clearing, destination replacement, and captures share one tensor selection/addition circuit with no piece-type or capture branch.
+The board is not recurrent state. For each of 64 square queries, frozen hard attention selects the chronologically latest history event affecting that square: the initial-position event supplies its starting value, `FROM` supplies `EMPTY`, and `TO` supplies `RESULT_PIECE`. Thus ordinary moves and captures are reconstructed in parallel without tracing piece identity through earlier source squares. Castling and en-passant require additional frozen derived-event masks in the later executable circuit stage.
 
 Production C++ is restricted to generic tensor execution, recurrent concatenation, player transport, and inference-only status control. Chess semantics live only in immutable frozen weights and masks compiled offline. Python and `python-chess` are development/test tools and are never production dependencies.
 
@@ -34,4 +34,4 @@ The canonical artifact stores `context_0` as an exact FP4 tensor. `FrozenVm::ini
 
 The offline compiler emits reusable binary tensors for king and knight adjacency, rook and bishop rays, color-indexed pawn step/double/attack geometry, and strict `between[source,destination,square]`. These are rule relations over all squares, not memorized boards or game continuations. Queen geometry is the union of the rook and bishop relations; occupancy, side-to-move, castling rights, en-passant state, checks, and legal filtering must be derived by later attention stages from history.
 
-The current rule image contains bootstrap, address, relation, initial-position, square-decoder, and workspace-injection tensors but deliberately has an empty operation list. It is compiler input for the next circuit stage and is not yet presented as an executable chess VM artifact.
+The current rule image contains bootstrap, address, relation, initial-position, and square-decoder tensors but deliberately has an empty operation list. It is compiler input for the next circuit stage and is not yet presented as an executable chess VM artifact.

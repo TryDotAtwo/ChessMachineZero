@@ -6,30 +6,13 @@ import numpy
 
 from .protocol import (
     HISTORY_ROWS,
-    INPUT_ROWS,
-    LEGAL_ROWS,
     MOVE_ROWS,
-    STATUS_ROWS,
+    PIECE_CHANNELS,
     VOCAB_SIZE,
 )
 from .relations import square_index
 
 EMPTY = 95
-WORKSPACE_INPUT_START = MOVE_ROWS + HISTORY_ROWS + LEGAL_ROWS + STATUS_ROWS
-PIECE_CHANNELS = {
-    "WHITE_PAWN": 96,
-    "WHITE_KNIGHT": 97,
-    "WHITE_BISHOP": 98,
-    "WHITE_ROOK": 99,
-    "WHITE_QUEEN": 100,
-    "WHITE_KING": 101,
-    "BLACK_PAWN": 102,
-    "BLACK_KNIGHT": 103,
-    "BLACK_BISHOP": 104,
-    "BLACK_ROOK": 105,
-    "BLACK_QUEEN": 106,
-    "BLACK_KING": 107,
-}
 
 
 def build_square_decoder() -> numpy.ndarray:
@@ -59,16 +42,6 @@ def build_initial_piece_state() -> numpy.ndarray:
     return board
 
 
-def build_initial_workspace_bias() -> numpy.ndarray:
-    """Frozen additive injection of the initial board into hidden service rows."""
-
-    bias = numpy.zeros((INPUT_ROWS, VOCAB_SIZE), dtype=numpy.float32)
-    workspace = slice(WORKSPACE_INPUT_START, WORKSPACE_INPUT_START + 64)
-    bias[workspace, 0] = -1.0
-    bias[workspace] += build_initial_piece_state()
-    return bias
-
-
 def normal_move_transition(board: numpy.ndarray, move: numpy.ndarray) -> numpy.ndarray:
     state = numpy.asarray(board, dtype=numpy.float32)
     request = numpy.asarray(move, dtype=numpy.float32)
@@ -79,7 +52,7 @@ def normal_move_transition(board: numpy.ndarray, move: numpy.ndarray) -> numpy.n
     destination = request[1] @ decoder
     if float(source @ destination) != 0.0:
         raise ValueError("normal transition source and destination must differ")
-    moving_piece = source @ state
+    moving_piece = request[2]
     empty_piece = numpy.zeros(VOCAB_SIZE, dtype=numpy.float32)
     empty_piece[EMPTY] = 1.0
     keep = 1.0 - source - destination
@@ -88,6 +61,36 @@ def normal_move_transition(board: numpy.ndarray, move: numpy.ndarray) -> numpy.n
         + source[:, None] * empty_piece[None, :]
         + destination[:, None] * moving_piece[None, :]
     ).astype(numpy.float32)
+
+
+def reconstruct_position_from_history(history: numpy.ndarray) -> numpy.ndarray:
+    """Dense development oracle for one latest-event hard-attention circuit."""
+
+    rows = numpy.asarray(history, dtype=numpy.float32)
+    if rows.shape != (HISTORY_ROWS, VOCAB_SIZE):
+        raise ValueError("history must have shape [1200,128]")
+    moves = rows.reshape(-1, MOVE_ROWS, VOCAB_SIZE)
+    active = moves[:, 0, 0] == 0.0
+    moves = moves[active]
+    decoder = build_square_decoder()
+    source_targets = moves[:, 0] @ decoder
+    destination_targets = moves[:, 1] @ decoder
+    event_targets = numpy.concatenate(
+        (numpy.eye(64, dtype=numpy.float32), source_targets, destination_targets), axis=0
+    )
+    empty = numpy.zeros((moves.shape[0], VOCAB_SIZE), dtype=numpy.float32)
+    empty[:, EMPTY] = 1.0
+    event_values = numpy.concatenate((build_initial_piece_state(), empty, moves[:, 2]), axis=0)
+    event_times = numpy.concatenate(
+        (
+            numpy.zeros(64, dtype=numpy.float32),
+            numpy.arange(1, moves.shape[0] + 1, dtype=numpy.float32),
+            numpy.arange(1, moves.shape[0] + 1, dtype=numpy.float32),
+        )
+    )
+    matches = numpy.eye(64, dtype=numpy.float32) @ event_targets.T
+    scores = numpy.where(matches == 1.0, event_times[None, :], -numpy.inf)
+    return event_values[numpy.argmax(scores, axis=1)]
 
 
 def piece_at(board: numpy.ndarray, square: int) -> int:

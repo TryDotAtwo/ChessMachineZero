@@ -11,7 +11,6 @@ from .fp4 import encode_e2m1
 from .relations import build_rule_relations
 from .state_circuit import (
     build_initial_piece_state,
-    build_initial_workspace_bias,
     build_square_decoder,
 )
 
@@ -61,11 +60,10 @@ def build_rule_relation_records() -> tuple[TensorRecord, ...]:
     return tuple(records)
 
 
-def build_state_circuit_records() -> tuple[TensorRecord, ...]:
+def build_state_circuit_records() -> tuple[TensorRecord, TensorRecord]:
     return (
         _binary_record("initial_piece_state", build_initial_piece_state()),
         _binary_record("square_decoder", build_square_decoder()),
-        _binary_record("initial_workspace_bias", build_initial_workspace_bias()),
     )
 
 

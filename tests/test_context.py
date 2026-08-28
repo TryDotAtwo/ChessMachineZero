@@ -1,20 +1,23 @@
 import numpy
 
 from vm_compiler.context import build_context_0, initial_legal_moves
-from vm_compiler.protocol import HISTORY_ROWS, LEGAL_ROWS, STATUS_CHANNELS
+from vm_compiler.protocol import HISTORY_ROWS, LEGAL_ROWS, PIECE_CHANNELS, STATUS_CHANNELS
+
+WP = PIECE_CHANNELS["WHITE_PAWN"]
+WN = PIECE_CHANNELS["WHITE_KNIGHT"]
 
 
 EXPECTED_INITIAL_LEGAL = [
-    (12, 13, 0), (12, 14, 0),
-    (21, 13, 0), (21, 33, 0),
-    (22, 23, 0), (22, 24, 0),
-    (32, 33, 0), (32, 34, 0),
-    (42, 43, 0), (42, 44, 0),
-    (52, 53, 0), (52, 54, 0),
-    (62, 63, 0), (62, 64, 0),
-    (71, 63, 0), (71, 83, 0),
-    (72, 73, 0), (72, 74, 0),
-    (82, 83, 0), (82, 84, 0),
+    (12, 13, WP), (12, 14, WP),
+    (21, 13, WN), (21, 33, WN),
+    (22, 23, WP), (22, 24, WP),
+    (32, 33, WP), (32, 34, WP),
+    (42, 43, WP), (42, 44, WP),
+    (52, 53, WP), (52, 54, WP),
+    (62, 63, WP), (62, 64, WP),
+    (71, 63, WN), (71, 83, WN),
+    (72, 73, WP), (72, 74, WP),
+    (82, 83, WP), (82, 84, WP),
 ]
 
 

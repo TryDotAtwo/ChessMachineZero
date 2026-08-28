@@ -8,6 +8,7 @@ from .protocol import (
     CONTEXT_ROWS,
     HISTORY_ROWS,
     LEGAL_ROWS,
+    PIECE_CHANNELS,
     STATUS_CHANNELS,
     VOCAB_SIZE,
 )
@@ -17,8 +18,10 @@ def initial_legal_moves() -> list[tuple[int, int, int]]:
     moves = []
     for file_index in range(1, 9):
         source = file_index * 10 + 2
-        moves.extend(((source, source + 1, 0), (source, source + 2, 0)))
-    moves.extend(((21, 13, 0), (21, 33, 0), (71, 63, 0), (71, 83, 0)))
+        piece = PIECE_CHANNELS["WHITE_PAWN"]
+        moves.extend(((source, source + 1, piece), (source, source + 2, piece)))
+    knight = PIECE_CHANNELS["WHITE_KNIGHT"]
+    moves.extend(((21, 13, knight), (21, 33, knight), (71, 63, knight), (71, 83, knight)))
     return sorted(moves)
 
 

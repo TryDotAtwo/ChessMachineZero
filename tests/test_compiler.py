@@ -64,28 +64,21 @@ def test_rule_image_serializes_bootstrap_and_reusable_relations_together():
     restored = Artifact.from_bytes(image.to_bytes())
 
     assert restored == image
-    assert len(restored.tensors) == 14
+    assert len(restored.tensors) == 13
     assert restored.tensors[0].name == "context_0"
-    assert restored.tensors[-1].name == "initial_workspace_bias"
+    assert restored.tensors[-1].name == "square_decoder"
     assert restored.operations == ()
 
 
 def test_state_circuit_constants_pack_exactly_as_fp4_records():
-    initial_state, decoder, workspace_bias = build_state_circuit_records()
+    initial_state, decoder = build_state_circuit_records()
 
     assert initial_state.name == "initial_piece_state"
     assert initial_state.shape == (64, 128)
     assert decoder.name == "square_decoder"
     assert decoder.shape == (128, 64)
-    assert workspace_bias.name == "initial_workspace_bias"
-    assert workspace_bias.shape == (2048, 128)
     for record in (initial_state, decoder):
         decoded = decode_e2m1(
             numpy.frombuffer(record.packed, dtype=numpy.uint8), numpy.prod(record.shape)
         )
         assert set(numpy.unique(decoded)) == {0.0, 1.0}
-    decoded_bias = decode_e2m1(
-        numpy.frombuffer(workspace_bias.packed, dtype=numpy.uint8),
-        numpy.prod(workspace_bias.shape),
-    )
-    assert set(numpy.unique(decoded_bias)) == {-1.0, 0.0, 1.0}

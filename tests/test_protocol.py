@@ -7,6 +7,7 @@ from vm_compiler.protocol import (
     INPUT_ROWS,
     LEGAL_ROWS,
     MOVE_ROWS,
+    PIECE_CHANNELS,
     SERVICE_ROWS,
     STATUS_CHANNELS,
     STATUS_ROWS,
@@ -15,14 +16,14 @@ from vm_compiler.protocol import (
 )
 
 
-def test_e2_e4_is_native_three_row_one_hot():
-    move = encode_move_one_hot(52, 54, 0)
+def test_e2_e4_is_native_from_to_result_piece_one_hot():
+    move = encode_move_one_hot(52, 54, PIECE_CHANNELS["WHITE_PAWN"])
 
     assert move.shape == (3, 128)
     assert move.dtype == numpy.float32
     assert numpy.flatnonzero(move[0]).tolist() == [52]
     assert numpy.flatnonzero(move[1]).tolist() == [54]
-    assert numpy.flatnonzero(move[2]).tolist() == [0]
+    assert numpy.flatnonzero(move[2]).tolist() == [PIECE_CHANNELS["WHITE_PAWN"]]
     assert move.sum(axis=1).tolist() == [1.0, 1.0, 1.0]
 
 
@@ -52,10 +53,10 @@ def test_statuses_are_vocabulary_channels_not_host_enums():
 @pytest.mark.parametrize("square", [10, 19, 20, 29, 90, 99, -1, 128])
 def test_non_square_decimal_channels_are_rejected(square):
     with pytest.raises(ValueError, match="source square"):
-        encode_move_one_hot(square, 54, 0)
+        encode_move_one_hot(square, 54, PIECE_CHANNELS["WHITE_PAWN"])
 
 
-@pytest.mark.parametrize("promotion", [-1, 5, 127, 128])
-def test_only_padding_and_four_promotion_channels_are_accepted(promotion):
-    with pytest.raises(ValueError, match="promotion"):
-        encode_move_one_hot(52, 54, promotion)
+@pytest.mark.parametrize("piece", [-1, 0, 5, 95, 108, 127, 128])
+def test_only_twelve_result_piece_channels_are_accepted(piece):
+    with pytest.raises(ValueError, match="result piece"):
+        encode_move_one_hot(52, 54, piece)

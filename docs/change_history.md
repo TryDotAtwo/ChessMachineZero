@@ -2,6 +2,7 @@
 
 ## 2026-08-28
 
+- Replaced the promotion/padding third move slot with a mandatory color-specific `RESULT_PIECE` token, removed the recurrent workspace bias, and added one-hard-attention latest-event position reconstruction for ordinary moves and captures.
 - Added the first position-reconstruction circuit constants: exact one-hot initial piece state, numeric square decoder, frozen service-row workspace bias, and a branch-free tensor reference transition for ordinary moves and captures.
 - Extended 2D HullKV and the artifact opcode to dynamic batched Q/K/V self-attention with exact per-batch routing and floating Q/K/V backward.
 - Compiled reusable chess geometry into exact binary FP4 relation tensors and combined them with bootstrap/address records in a strict non-executable rule image; vectorized exact E2M1 packing reduced relation compilation from seconds to milliseconds.
