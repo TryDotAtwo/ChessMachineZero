@@ -11,3 +11,4 @@
 - tensor_native_module=fresh LibTorch C++ `FrozenVm::forward`; CUDA floating `[B,2048,128]` input, `[B,2045,128]` output, autograd retained; no FFI or host buffers in training API
 - artifact=CMZVM001 v1 strict SHA-256 container; exact E2M1 two-nibbles-per-byte weights, block scales, explicit tensor shapes/names, and explicit generic graph opcodes; Python writer and independent C++ loader
 - ste=LibTorch custom autograd for exact lowest-index masked hardmax plus softmax-surrogate backward and exact E2M1 forward plus identity backward; no host sync/detach in production
+- hullkv=offline nested 2D convex-layer metadata preserves quantized duplicate indices and zero-query stable prefixes; CUDA forward scans only cached candidates, returns exact stable top-k, and custom autograd routes hard V forward with a floating selected-competitor softmax backward to Q/K/V
