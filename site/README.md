@@ -5,6 +5,11 @@ replays a fixed browser fixture for interaction; it does not pretend to execute
 the native CUDA artifact in JavaScript. The native evidence and tensor shapes
 shown in the UI are pinned by `tests/test_site_contract.py`.
 
+`python -m vm_compiler.site_trace` regenerates `artifact_trace.json` directly
+from `build_position_reconstruction_artifact()`. The site renders all 45 SSA
+operations from that file; the contract test rejects any stale or hand-edited
+trace.
+
 Serve locally from the repository root:
 
 ```powershell

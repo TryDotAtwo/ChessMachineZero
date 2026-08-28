@@ -1,5 +1,9 @@
 # Project Memory
 
+- site_inference_proof=six matrix-level stages expose real shapes and equations through `ROW_ROUTE`, pattern projection/hardmax, 2064-event concatenation, 2D key projection, `Q×K^T`, hardmax/STE, and `A×V`
+- site_runtime_proof=all eight opcodes used by the position artifact are mapped to generic tensor primitives; no chess-named dispatcher operation is presented
+- site_ssa_trace=`python -m vm_compiler.site_trace` exports all 45 operations to `site/artifact_trace.json`; `tests/test_site_contract.py` compares the published JSON exactly with the executable compiler graph
+
 - static_site=`site/` is a responsive artifact inspector for the current clean VM branch; it replays an exact browser fixture and never claims to execute CUDA in JavaScript
 - site_contract=shows `[B,2048,128]` request-plus-context input, `[B,64,128]` reconstructed board, 45 generic ops, 2064 latest-event candidates, C++/CUDA runtime, and no host chess logic
 - site_boundary=`LEGAL_SET` and terminal status are named as next artifact stages, not complete runtime capabilities

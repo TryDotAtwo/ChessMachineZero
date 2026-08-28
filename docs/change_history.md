@@ -1,5 +1,12 @@
 # Change History
 
+## 2026-08-28 — Matrix-level inference proof on the VM site
+
+- Added a six-stage executable tensor trace with the exact matrix shapes for history routing, castling and en-passant projections, 2064-event construction, 2D key projection, `QK^T` hardmax/STE, and `A×V` board reconstruction.
+- Added a generic-runtime proof mapping every opcode used by the artifact to its slice, expand, GEMM, add, concat, hardmax/STE, or attention equation.
+- Added `vm_compiler.site_trace`, which exports every real SSA operation from `build_position_reconstruction_artifact()` to the static site; tests compare all indices, opcodes, value IDs, and attributes exactly.
+- Added a responsive raw 45-operation table loaded from the generated trace rather than maintained as website copy.
+
 ## 2026-08-28 — Current-artifact VM inspector site
 
 - Added a responsive static VM inspector under `site/`, designed around the executable position reconstruction artifact rather than the retired dashboard architecture.

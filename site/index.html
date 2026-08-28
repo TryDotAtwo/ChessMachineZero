@@ -90,6 +90,121 @@
         <p>Within context history: 1200 rows / 400 plies</p>
       </section>
 
+      <section class="tensor-proof" aria-labelledby="tensor-proof-title">
+        <header class="proof-heading">
+          <div>
+            <h2 id="tensor-proof-title">Executable tensor trace</h2>
+            <p>Every box below is a tensor operation serialized in the frozen artifact and dispatched by the generic C++ runtime.</p>
+          </div>
+          <div class="proof-count"><strong>45</strong><span>serialized SSA operations</span></div>
+        </header>
+
+        <div class="matrix-steps">
+          <article class="matrix-step">
+            <div class="step-number">01</div>
+            <div class="step-copy">
+              <h3>Route the one-hot history</h3>
+              <p>Three strided views. No piece lookup and no board mutation.</p>
+              <code>ROW_ROUTE(start, end, stride=3)</code>
+            </div>
+            <div class="equation" aria-label="Input routing matrix equation">
+              <div class="matrix matrix-input"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <b>[B,2048,128]</b><em>→</em>
+              <div class="matrix-stack"><span>[B,400,128] FROM</span><span>[B,400,128] TO</span><span>[B,400,128] RESULT</span></div>
+            </div>
+          </article>
+
+          <article class="matrix-step">
+            <div class="step-number">02</div>
+            <div class="step-copy">
+              <h3>Recognize castling triples</h3>
+              <p>Three frozen projections, residual sum, fixed bias and hardmax with STE backward.</p>
+              <code>XₛWₛ + XₜWₜ + XᵣWᵣ + bias</code>
+            </div>
+            <div class="equation equation-wide">
+              <span><b>[B,400,128]</b> × <b>[128,5]</b></span><em>→</em><span><b>[B,400,5]</b></span><em>→</em><strong>hardmax STE</strong>
+            </div>
+          </article>
+
+          <article class="matrix-step">
+            <div class="step-number">03</div>
+            <div class="step-copy">
+              <h3>Recognize en-passant pairs</h3>
+              <p>Current and previous triples become six projections over 28 patterns plus no-match.</p>
+              <code>Σᵢ XᵢWᵢ + bias</code>
+            </div>
+            <div class="equation equation-wide">
+              <span>6 × (<b>[B,400,128]</b> × <b>[128,29]</b>)</span><em>→</em><span><b>[B,400,29]</b></span><em>→</em><strong>hardmax STE</strong>
+            </div>
+          </article>
+
+          <article class="matrix-step">
+            <div class="step-number">04</div>
+            <div class="step-copy">
+              <h3>Concatenate candidate events</h3>
+              <p>64 initial events plus five 400-row streams. Targets and values stay separate.</p>
+              <code>64 + 5 × 400 = 2064</code>
+            </div>
+            <div class="equation equation-wide">
+              <span>targets <b>[B,2064,128]</b></span><em>∥</em><span>values <b>V [B,2064,128]</b></span>
+            </div>
+          </article>
+
+          <article class="matrix-step">
+            <div class="step-number">05</div>
+            <div class="step-copy">
+              <h3>Project exact 2D addresses</h3>
+              <p>Frozen keys encode square identity; a tiny positional bias encodes event time.</p>
+              <code>K = targets × Wkey + time_bias</code>
+            </div>
+            <div class="equation equation-wide">
+              <span><b>[B,2064,128]</b> × <b>[128,2]</b></span><em>→</em><span><b>K [B,2064,2]</b></span><span><b>Q [B,64,2]</b></span>
+            </div>
+          </article>
+
+          <article class="matrix-step attention-step">
+            <div class="step-number">06</div>
+            <div class="step-copy">
+              <h3>Select the latest event and read its value</h3>
+              <p>The only dynamic attention: one winner per square, followed by the standard weighted-value product.</p>
+              <code>Board = hardmax(Q × Kᵀ) × V</code>
+            </div>
+            <div class="attention-equations">
+              <div><span>Q <b>[B,64,2]</b></span><strong>Q × Kᵀ</strong><span>Kᵀ <b>[B,2,2064]</b></span><em>→</em><span>scores <b>[B,64,2064]</b></span></div>
+              <div><span>A = hardmax(scores)</span><strong>A × V</strong><span>V <b>[B,2064,128]</b></span><em>→</em><span>board <b>[B,64,128]</b></span></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="runtime-proof">
+          <div>
+            <h3>Generic runtime surface</h3>
+            <p>These are the only opcode names present in this artifact. The dispatcher performs slicing, concatenation, addition, GEMM, expansion, hardmax/STE and 2D attention—no chess-named runtime branch.</p>
+          </div>
+          <div class="opcode-list" id="runtimeOpcodes" aria-live="polite"></div>
+          <dl class="primitive-map">
+            <div><dt>ROW_ROUTE</dt><dd>X[:, start:end:stride, :]</dd></div>
+            <div><dt>FROZEN_EXPAND</dt><dd>frozen.unsqueeze(0).expand(B, …)</dd></div>
+            <div><dt>TOKEN_PROJECT</dt><dd>X × W</dd></div>
+            <div><dt>POSITION_ADD</dt><dd>X + Wposition</dd></div>
+            <div><dt>RESIDUAL_ADD</dt><dd>X + Y</dd></div>
+            <div><dt>ROW_CONCAT</dt><dd>concat(X₁ … Xₙ, rows)</dd></div>
+            <div><dt>HARDMAX_STE</dt><dd>one_hot(argmax(X)) <span>forward</span> · softmax surrogate <span>backward</span></dd></div>
+            <div><dt>HULL_ATTN_2D</dt><dd>hardmax(Q × Kᵀ) × V</dd></div>
+          </dl>
+        </div>
+
+        <details class="ssa-trace" open>
+          <summary><span>45 serialized SSA operations</span><small>generated from position_latest_event_v1</small></summary>
+          <div class="ssa-table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Opcode</th><th>Inputs</th><th>Output</th><th>Attributes</th></tr></thead>
+              <tbody id="ssaOperations"><tr><td colspan="5">Loading artifact trace…</td></tr></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+
       <section class="evidence" id="evidence" aria-labelledby="evidence-title">
         <h2 id="evidence-title">Evidence</h2>
         <div><span class="evidence-icon">✓</span><p><strong>57 exact tests</strong><small>Full Python regression</small></p></div>

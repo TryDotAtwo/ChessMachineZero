@@ -93,3 +93,44 @@ document.querySelector("#resetTrace").addEventListener("click", () => {
 
 renderHistory();
 renderBoard();
+
+function compactAttributes(attributes) {
+  if (attributes.length <= 10) return `[${attributes.join(", ")}]`;
+  return `[${attributes.slice(0, 4).join(", ")}, … ${attributes.length - 4} routing indices]`;
+}
+
+async function renderArtifactTrace() {
+  const response = await fetch("./artifact_trace.json");
+  if (!response.ok) throw new Error(`artifact trace request failed: ${response.status}`);
+  const trace = await response.json();
+
+  const opcodeContainer = document.querySelector("#runtimeOpcodes");
+  opcodeContainer.replaceChildren(...trace.runtime_opcodes.map((opcode) => {
+    const item = document.createElement("code");
+    item.textContent = opcode;
+    return item;
+  }));
+
+  const operationContainer = document.querySelector("#ssaOperations");
+  operationContainer.replaceChildren(...trace.operations.map((operation) => {
+    const row = document.createElement("tr");
+    const values = [
+      operation.index,
+      operation.opcode,
+      operation.inputs.map((value) => `v${value}`).join(", "),
+      operation.outputs.map((value) => `v${value}`).join(", "),
+      compactAttributes(operation.attributes),
+    ];
+    values.forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.append(cell);
+    });
+    return row;
+  }));
+}
+
+renderArtifactTrace().catch((error) => {
+  const operationContainer = document.querySelector("#ssaOperations");
+  operationContainer.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`;
+});

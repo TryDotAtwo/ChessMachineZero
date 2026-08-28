@@ -6,3 +6,6 @@
 - Responsive viewports: 1536×1024 and 390×844 both reported `scrollWidth == clientWidth`.
 - Browser tool fallback: the in-app browser runtime could not create its kernel assets, so Playwright Chromium was used.
 - Visual design source: `site/design/vm-inspector-concept.png`.
+- Matrix-proof extension: six explicit tensor stages, eight generic runtime primitive equations, and all 45 generated SSA operations rendered from `site/artifact_trace.json`.
+- Synchronization gate: the published JSON is compared operation-for-operation and attribute-for-attribute with `build_position_reconstruction_artifact()`.
+- Updated regression: 64 tests passed after the inference-proof extension.
