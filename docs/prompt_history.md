@@ -1,5 +1,9 @@
 # Prompt History
 
+## 2026-08-28 — Explain tensor meaning, not internal SSA names
+
+User clarified that labels must say what each input tensor and frozen matrix represents, including the meaning of its axes, rather than exposing unexplained `SSA: v0`-style implementation identifiers. User also required row-plus-column highlighting only for actual multiplication and a centered explicit argmax operator.
+
 ## 2026-08-28 — Transformer-style bilingual matrix explorer
 
 User required RU/EN switching, human-readable tensor meanings, conventional row-by-column matrix multiplication, and hover/click provenance for any cell of every operation from the beginning to the end of the artifact. Implemented the approved v2 matrix-flow concept across all 45 operations.

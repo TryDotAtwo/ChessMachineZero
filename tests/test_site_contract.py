@@ -195,3 +195,67 @@ def test_matrix_inspector_has_bilingual_cell_and_operation_controls():
     for marker in required:
         assert marker in HTML
     assert '<script defer src="./matrix_inspector.js"></script>' in HTML
+
+
+def test_matrix_inspector_presents_tensor_meaning_instead_of_ssa_names():
+    script = r"""
+const inspector = require('./site/matrix_inspector.js');
+const cases = ['ROW_ROUTE', 'TOKEN_PROJECT', 'POSITION_ADD', 'RESIDUAL_ADD', 'FROZEN_EXPAND', 'ROW_CONCAT', 'HARDMAX_STE'];
+console.log(JSON.stringify({
+  modes: Object.fromEntries(cases.map(opcode => [opcode, inspector.highlightMode(opcode)])),
+  hardmaxRu: inspector.operationPresentation('HARDMAX_STE', 'ru'),
+  expandRu: inspector.operationPresentation('FROZEN_EXPAND', 'ru'),
+  projectEn: inspector.operationPresentation('TOKEN_PROJECT', 'en'),
+  hardmaxFlowClass: inspector.flowClass('HARDMAX_STE'),
+  matmulFlowClass: inspector.flowClass('TOKEN_PROJECT'),
+  optionRu: inspector.operationOptionText(11, 'Hardmax: выбор максимума в каждой строке'),
+  cellRu: inspector.outputCellText('ru', 2, 3, 0.5),
+  routedRow: inspector.routeSourceRow('v1 = route(v0, rows=3:1203:3)', 2),
+  routeInputPurpose: inspector.tensorPurpose('ROW_ROUTE', 'input', 'ru'),
+  addFrozenPurpose: inspector.tensorPurpose('POSITION_ADD', 'frozen', 'ru'),
+}));
+"""
+    completed = subprocess.run(
+        ["node", "-e", script],
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    result = json.loads(completed.stdout)
+    assert result["hardmaxFlowClass"] == "matrix-flow word-operator-flow"
+    assert result["matmulFlowClass"] == "matrix-flow"
+    assert result["optionRu"] == "11 · Hardmax: выбор максимума в каждой строке"
+    assert result["cellRu"] == "Выход[batch 0, строка 2, столбец 3] = 0.5"
+    assert result["routedRow"] == 9
+    assert result["routeInputPurpose"] == "История ходов и служебный контекст: строка = событие, столбец = токен"
+    assert result["addFrozenPurpose"] == "Frozen-матрица из артефакта: неизменяемое смещение для каждой строки и каждого признака"
+    assert result["modes"] == {
+        "ROW_ROUTE": "cell",
+        "TOKEN_PROJECT": "row-column",
+        "POSITION_ADD": "cell",
+        "RESIDUAL_ADD": "cell",
+        "FROZEN_EXPAND": "cell",
+        "ROW_CONCAT": "cell",
+        "HARDMAX_STE": "row-argmax",
+    }
+    assert result["hardmaxRu"] == {
+        "operator": "ARGMAX ПО СТРОКЕ",
+        "input": "Оценки вариантов в каждой строке",
+        "output": "One-hot: 1 только у максимального варианта",
+        "equation": "Для каждой строки: найти максимальную оценку → поставить 1 в её столбце, остальные значения обнулить",
+    }
+    assert result["expandRu"] == {
+        "operator": "КОПИРОВАНИЕ В BATCH",
+        "input": "Frozen-матрица исходных клеток: строка = клетка, столбец = токен содержимого",
+        "output": "Та же матрица для каждой партии в batch",
+        "equation": "Frozen-матрица не вычисляется из входа: она хранится в артефакте и копируется в batch без изменения значений",
+    }
+    assert result["projectEn"] == {
+        "operator": "MATRIX MULTIPLICATION",
+        "input": "Input activations: row = processed item, column = input feature",
+        "output": "Projected activations: row = the same item, column = output feature",
+        "equation": "Each output cell is the dot product of one input row and one frozen-weight column",
+    }

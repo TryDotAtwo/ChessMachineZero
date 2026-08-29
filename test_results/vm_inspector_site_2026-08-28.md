@@ -18,3 +18,9 @@
 - Language QA: RU/EN changed the document language, operation title, coordinate labels, and explanation title without reloading the trace.
 - Responsive QA: after fixing intrinsic select sizing, 390×844 reported `scrollWidth == clientWidth`; desktop preserved the accepted three-matrix row×column composition.
 - Current full regression after the interactive redesign: 68 tests passed.
+- Semantic-provenance QA: batch expansion shows only the stored frozen square/token matrix and its batch copy, with zero row/column band highlights and no visible `SSA:` identifiers.
+- Hardmax QA: the input score row is highlighted, the real winner and selected output cell are distinct, and `ARGMAX ПО СТРОКЕ` occupies a readable centered 150 px operator slot on desktop.
+- GEMM regression: full input-row and frozen-weight-column highlighting remains exclusive to `TOKEN_PROJECT`; the cards explain input features, immutable trained coefficients, and output features.
+- All-operation browser loop: all 45 selections rendered a nonempty title, semantic equation, and matrix flow with zero console warnings/errors.
+- Responsive semantic operator QA: 390×844 reported no horizontal overflow and the argmax label remained unrotated and readable.
+- Current full regression after semantic-provenance fixes: 69 tests passed.

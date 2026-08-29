@@ -1,5 +1,12 @@
 # Change History
 
+## 2026-08-28 — Semantic tensor provenance and operation-specific highlighting
+
+- Removed `SSA: vN/wN` identifiers and raw SSA equations from the primary matrix cards; the UI now explains what every tensor stores and what its rows and columns mean.
+- Restricted full row-plus-column highlighting to real matrix multiplication. Routing, expansion, addition, and concatenation now mark only the source and result cells that participate in the selected value.
+- Made hardmax explicit as a centered `ARGMAX ПО СТРОКЕ` / `ROW ARGMAX` operation, with the complete score row, actual winning cell, and selected output cell shown separately.
+- Added responsive wide operator slots so semantic operation names remain readable on desktop and mobile.
+
 ## 2026-08-28 — Bilingual interactive matrix provenance
 
 - Replaced COO tables as the primary UI with transformer-style matrix grids for every one of the 45 executed SSA operations.
