@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import numpy
@@ -14,6 +15,42 @@ from vm_compiler.graph import OpCode
 from vm_compiler.protocol import INPUT_ROWS, PIECE_CHANNELS, VOCAB_SIZE, encode_move_one_hot
 from vm_compiler.reference_executor import execute_artifact_reference_values
 from vm_compiler.site_semantics import build_site_semantics
+
+
+SITE_VERSIONED_ASSETS = (
+    "styles.css",
+    "i18n.js",
+    "trace_model.js",
+    "app.js",
+    "matrix_inspector.js",
+    "numeric_trace.json",
+)
+
+
+def asset_version(path: Path) -> str:
+    """Return a platform-stable content version for a static UTF-8 asset."""
+    normalized = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
+
+
+def refresh_site_asset_versions(site: Path) -> None:
+    """Fingerprint every static dependency referenced by the published HTML."""
+    index = site / "index.html"
+    html = index.read_text(encoding="utf-8")
+    names = "|".join(re.escape(name) for name in SITE_VERSIONED_ASSETS)
+    pattern = re.compile(rf'(?P<prefix>(?:src|href)="\./(?P<name>{names}))(?:\?v=[0-9a-f]{{16}})?(?P<suffix>")')
+    seen: set[str] = set()
+
+    def replace(match: re.Match[str]) -> str:
+        name = match.group("name")
+        seen.add(name)
+        return f"{match.group('prefix')}?v={asset_version(site / name)}{match.group('suffix')}"
+
+    updated = pattern.sub(replace, html)
+    missing = set(SITE_VERSIONED_ASSETS) - seen
+    if missing:
+        raise ValueError(f"site index is missing versioned asset references: {sorted(missing)}")
+    index.write_text(updated, encoding="utf-8", newline="\n")
 
 
 def _source_provenance(artifact) -> dict[str, object]:
@@ -207,6 +244,7 @@ def main() -> None:
         encoding="utf-8",
     )
     (site / "numeric_trace.json").write_text(json.dumps(build_numeric_site_trace(), separators=(",", ":")) + "\n", encoding="utf-8")
+    refresh_site_asset_versions(site)
 
 
 if __name__ == "__main__":

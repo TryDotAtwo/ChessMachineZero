@@ -1,9 +1,10 @@
 import json
+import re
 import subprocess
 from pathlib import Path
 
 from vm_compiler.compiler import build_position_reconstruction_artifact
-from vm_compiler.site_trace import build_numeric_site_trace
+from vm_compiler.site_trace import asset_version, build_numeric_site_trace, refresh_site_asset_versions
 from vm_compiler.site_semantics import build_site_semantics
 
 
@@ -11,6 +12,66 @@ ROOT = Path(__file__).parents[1]
 HTML = (ROOT / "site" / "index.html").read_text(encoding="utf-8")
 JS = (ROOT / "site" / "app.js").read_text(encoding="utf-8")
 CSS = (ROOT / "site" / "styles.css").read_text(encoding="utf-8")
+
+
+def test_static_asset_versions_are_content_derived_and_resolve(tmp_path):
+    site = tmp_path / "site"
+    site.mkdir()
+    assets = {
+        "styles.css": "body { color: lime; }\r\n",
+        "i18n.js": "window.i18n = 1;\n",
+        "trace_model.js": "window.model = 1;\n",
+        "app.js": "window.app = 1;\n",
+        "matrix_inspector.js": "window.inspector = 1;\n",
+        "numeric_trace.json": '{"fixture":"exact"}\n',
+    }
+    for name, contents in assets.items():
+        (site / name).write_text(contents, encoding="utf-8", newline="")
+    (site / "index.html").write_text(
+        '<link rel="stylesheet" href="./styles.css"><script src="./i18n.js"></script><script src="./trace_model.js"></script><script src="./app.js"></script><script src="./matrix_inspector.js"></script><a id="downloadTrace" href="./numeric_trace.json">JSON</a>',
+        encoding="utf-8",
+    )
+
+    refresh_site_asset_versions(site)
+    first = (site / "index.html").read_text(encoding="utf-8")
+    versioned = dict(re.findall(r'\./([^?" ]+)\?v=([0-9a-f]{16})', first))
+    assert set(versioned) == set(assets)
+    assert all((site / name).is_file() for name in versioned)
+    assert versioned["styles.css"] == asset_version(site / "styles.css")
+    assert versioned["numeric_trace.json"] == asset_version(site / "numeric_trace.json")
+
+    (site / "app.js").write_text("window.app = 2;\n", encoding="utf-8")
+    refresh_site_asset_versions(site)
+    second = (site / "index.html").read_text(encoding="utf-8")
+    changed = dict(re.findall(r'\./([^?" ]+)\?v=([0-9a-f]{16})', second))
+    assert changed["app.js"] != versioned["app.js"]
+    assert {name: changed[name] for name in assets if name != "app.js"} == {name: versioned[name] for name in assets if name != "app.js"}
+    lf_copy = tmp_path / "styles-lf.css"
+    lf_copy.write_text(assets["styles.css"].replace("\r\n", "\n"), encoding="utf-8")
+    assert asset_version(site / "styles.css") == asset_version(lf_copy)
+
+
+def test_published_asset_versions_match_current_content_and_app_fetches_download_link():
+    published = dict(re.findall(r'\./([^?" ]+)\?v=([0-9a-f]{16})', HTML))
+    expected = {"styles.css", "i18n.js", "trace_model.js", "app.js", "matrix_inspector.js", "numeric_trace.json"}
+    assert set(published) == expected
+    for name, version in published.items():
+        path = ROOT / "site" / name
+        assert path.is_file()
+        assert version == asset_version(path)
+
+    script = r"""
+let requested;
+global.document = {getElementById(id) { return id === 'downloadTrace' ? {href: './numeric_trace.json?v=from-link'} : null; }};
+global.window = {addEventListener() {}};
+global.fetch = (url) => { requested = url; return new Promise(() => {}); };
+global.TraceModel = {}; global.TraceI18n = {};
+require('./site/app.js');
+process.stdout.write(requested);
+"""
+    completed = subprocess.run(["node", "-e", script], cwd=ROOT, text=True, encoding="utf-8", capture_output=True)
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout == "./numeric_trace.json?v=from-link"
 
 
 def test_site_semantics_covers_every_exported_tensor_value_and_attention_derivative():
@@ -214,7 +275,7 @@ def test_matrix_inspector_has_bilingual_cell_and_operation_controls():
     )
     for marker in required:
         assert marker in HTML
-    assert '<script defer src="./matrix_inspector.js"></script>' in HTML
+    assert re.search(r'<script defer src="\./matrix_inspector\.js\?v=[0-9a-f]{16}"></script>', HTML)
 
 
 def test_trace_model_rejects_bad_fixture_and_decodes_only_exported_output_board():
