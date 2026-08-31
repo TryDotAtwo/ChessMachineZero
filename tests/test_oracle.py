@@ -1,4 +1,5 @@
 import numpy
+import pytest
 
 from vm_compiler.context import build_context_0
 from vm_compiler.oracle import transition_oracle
@@ -65,3 +66,57 @@ def test_legal_geometry_with_wrong_declared_piece_is_illegal():
     status = result[HISTORY_ROWS + LEGAL_ROWS]
 
     assert int(numpy.argmax(status)) == STATUS_CHANNELS["ILLEGAL_MOVE"]
+
+
+@pytest.mark.parametrize("fractional_input", ["context", "request"])
+def test_fractional_unit_sum_rows_are_not_hard_one_hot(fractional_input):
+    context = build_context_0()
+    request = encode_move_one_hot(52, 54, WP)
+    if fractional_input == "context":
+        context[-1, 0] = .75
+        context[-1, 1] = .25
+    else:
+        request[0, 52] = .75
+        request[0, 53] = .25
+    with pytest.raises(ValueError, match="hard one-hot"):
+        transition_oracle(context, request)
+
+
+_TERMINAL_HISTORIES = [
+    ([(62, 63, WP), (57, 55, BP), (72, 74, WP), (48, 84, BQ)], "BLACK_WIN"),
+    ([(52, 54, WP), (57, 55, BP), (61, 34, PIECE_CHANNELS["WHITE_BISHOP"]),
+      (28, 36, BN), (41, 85, WQ), (78, 66, BN), (85, 67, WQ)], "WHITE_WIN"),
+    ([(71, 63, WN), (78, 66, BN), (63, 71, WN), (66, 78, BN),
+      (71, 63, WN), (78, 66, BN), (63, 71, WN)], "DRAW"),
+]
+
+
+@pytest.mark.parametrize("moves,status", _TERMINAL_HISTORIES)
+def test_completed_draws_and_wins_are_absorbing_with_canonical_status(moves, status):
+    context = build_context_0()
+    for move in moves:
+        context = transition_oracle(context, encode_move_one_hot(*move))
+    status_row = HISTORY_ROWS + LEGAL_ROWS
+    assert context[status_row, STATUS_CHANNELS[status]] == 1.
+    before = context.copy()
+    assert channels(before[HISTORY_ROWS:status_row]) == [0] * LEGAL_ROWS
+    # f6g8 is legal after the claimable draw fixture, but cannot resume it.
+    for move in [(66, 78, BN), (52, 54, WP)]:
+        context = transition_oracle(context, encode_move_one_hot(*move))
+        assert numpy.array_equal(context[:HISTORY_ROWS], before[:HISTORY_ROWS])
+        assert context[status_row, STATUS_CHANNELS[status]] == 1.
+        assert channels(context[HISTORY_ROWS:status_row]) == [0] * LEGAL_ROWS
+        assert numpy.array_equal(context, before)
+
+
+@pytest.mark.parametrize("moves,status", _TERMINAL_HISTORIES)
+def test_terminal_history_overrides_stale_incoming_status_and_legal_set(moves, status):
+    # Construct history independently of transition_oracle, leaving context_0's
+    # legal/status rows deliberately stale: history, not those rows, owns status.
+    context = build_context_0()
+    context[:3 * len(moves)] = numpy.concatenate([encode_move_one_hot(*move) for move in moves])
+    result = transition_oracle(context, encode_move_one_hot(66, 78, BN))
+    status_row = HISTORY_ROWS + LEGAL_ROWS
+    assert numpy.array_equal(result[:HISTORY_ROWS], context[:HISTORY_ROWS])
+    assert result[status_row, STATUS_CHANNELS[status]] == 1.
+    assert channels(result[HISTORY_ROWS:status_row]) == [0] * LEGAL_ROWS

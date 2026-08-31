@@ -27,7 +27,9 @@ def _outer_coordinates(coordinates):
     def half(sequence):
         result = []
         for point in sequence:
-            while len(result) >= 2 and _cross(result[-2], result[-1], point) <= 0.0:
+            # Boundary-collinear points can win a support tie by original index;
+            # keep them, including every point in a degenerate collinear layer.
+            while len(result) >= 2 and _cross(result[-2], result[-1], point) < 0.0:
                 result.pop()
             result.append(point)
         return result

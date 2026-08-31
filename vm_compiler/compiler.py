@@ -23,7 +23,9 @@ from .state_circuit import (
 )
 
 _CONTEXT_BLOCK_SIZE = 4096
-_LATEST_EVENT_EPSILON = 1.0e-6
+# In FP32, all 400 time steps fit strictly below the nearest-square score gap
+# (1/64)**2, while each equal-square chronological step remains distinguishable.
+_LATEST_EVENT_EPSILON = 2.0 ** -21
 
 
 def _binary_record(name, values) -> TensorRecord:

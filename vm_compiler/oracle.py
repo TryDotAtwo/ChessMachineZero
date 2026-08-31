@@ -115,12 +115,20 @@ def transition_oracle(context: numpy.ndarray, requested_move: numpy.ndarray) -> 
         raise ValueError("context must have shape [2045,128]")
     if request.shape != (MOVE_ROWS, VOCAB_SIZE):
         raise ValueError("requested move must have shape [3,128]")
-    if not numpy.all(state.sum(axis=1) == 1.0) or not numpy.all(request.sum(axis=1) == 1.0):
+    if any(not numpy.all((rows == 0.0) | (rows == 1.0))
+           or not numpy.all(rows.sum(axis=1) == 1.0) for rows in (state, request)):
         raise ValueError("oracle inputs must be hard one-hot rows")
 
     board, used_rows = _replay_history(state)
     result = state.copy()
     status_row = HISTORY_ROWS + LEGAL_ROWS
+    status = _status_after(board)
+    if status != STATUS_CHANNELS["OK"]:
+        # History owns terminal status. Completed games are absorbing even if
+        # incoming LEGAL_SET/status rows are stale or a drawn board has moves.
+        result[HISTORY_ROWS:status_row] = _one_hot_rows([0] * LEGAL_ROWS)
+        result[status_row] = _one_hot_rows([status])[0]
+        return result
     if used_rows == HISTORY_ROWS:
         result[status_row] = _one_hot_rows([STATUS_CHANNELS["HISTORY_OVERFLOW"]])[0]
         return result
@@ -133,9 +141,11 @@ def transition_oracle(context: numpy.ndarray, requested_move: numpy.ndarray) -> 
 
     result[used_rows : used_rows + MOVE_ROWS] = request
     board.push(move)
-    legal_moves = sorted(_move_to_native(board, candidate) for candidate in board.legal_moves)
+    status = _status_after(board)
+    legal_moves = (sorted(_move_to_native(board, candidate) for candidate in board.legal_moves)
+                   if status == STATUS_CHANNELS["OK"] else [])
     legal_channels = [channel for candidate in legal_moves for channel in candidate]
     legal_channels.extend([0] * (LEGAL_ROWS - len(legal_channels)))
     result[HISTORY_ROWS : status_row] = _one_hot_rows(legal_channels)
-    result[status_row] = _one_hot_rows([_status_after(board)])[0]
+    result[status_row] = _one_hot_rows([status])[0]
     return result

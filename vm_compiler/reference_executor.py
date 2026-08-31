@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import math
+
 import numpy
 import torch
-import torch.nn.functional as functional
 
 from .artifact import Artifact, TensorRecord
 from .fp4 import decode_e2m1
 from .graph import OpCode
+from .ste import masked_hardmax_ste
 
 
 def _materialize(record: TensorRecord, source: torch.Tensor) -> torch.Tensor:
@@ -17,6 +19,37 @@ def _materialize(record: TensorRecord, source: torch.Tensor) -> torch.Tensor:
     scales = numpy.repeat(numpy.asarray(record.scales, dtype=numpy.float32), record.block_size)
     values = (decoded * scales[:count]).reshape(record.shape)
     return torch.as_tensor(values, dtype=source.dtype, device=source.device)
+
+
+def attention_2d_ste(
+    queries: torch.Tensor,
+    keys: torch.Tensor,
+    values: torch.Tensor,
+    candidates,
+    competitor_count: int,
+    temperature: float,
+) -> torch.Tensor:
+    """Exact hard values with selected-top-k softmax derivatives for Q, K and V.
+
+    This dense development reference ranks ties by original key-row index,
+    independently in every batch/query. Only selected competitors contribute to
+    the surrogate; the hard winning value contributes no additional derivative.
+    """
+    if not math.isfinite(temperature) or temperature <= 0:
+        raise ValueError("attention temperature must be finite and positive")
+    candidate_rows = torch.as_tensor(candidates, dtype=torch.long, device=keys.device).sort().values
+    if not 1 <= competitor_count <= candidate_rows.numel():
+        raise ValueError("attention competitor count exceeds candidate capacity")
+    logits = queries @ keys.index_select(1, candidate_rows).transpose(1, 2)
+    selected = torch.argsort(logits, dim=-1, descending=True, stable=True)[..., :competitor_count]
+    selected_scores = logits.gather(-1, selected)
+    selected_rows = candidate_rows[selected]
+    batches = torch.arange(queries.shape[0], device=queries.device)[:, None, None]
+    selected_values = values[batches, selected_rows]
+    probabilities = torch.softmax(selected_scores / temperature, dim=-1)
+    soft = (probabilities.unsqueeze(-1) * selected_values).sum(dim=-2)
+    hard = selected_values[..., 0, :]
+    return hard.detach() + (soft - soft.detach())
 
 
 def execute_artifact_reference_values(
@@ -45,26 +78,14 @@ def execute_artifact_reference_values(
             result = torch.cat(inputs, dim=1)
         elif operation.opcode == OpCode.HARDMAX_STE:
             logits = inputs[0]
-            if len(inputs) == 2:
-                logits = logits.masked_fill(~inputs[1].bool(), -torch.inf)
-            hard_indices = torch.argmax(logits, dim=-1)
-            hard = functional.one_hot(hard_indices, logits.shape[-1]).to(logits.dtype)
-            soft = torch.softmax(logits / (operation.attributes[0] / 1000.0), dim=-1)
-            result = hard + (soft - soft.detach())
+            mask = inputs[1].bool() if len(inputs) == 2 else torch.ones_like(logits, dtype=torch.bool)
+            result = masked_hardmax_ste(logits, mask, operation.attributes[0] / 1000.0)
         elif operation.opcode == OpCode.HULL_ATTN_2D and len(inputs) == 3:
             competitor_count, temperature = operation.attributes[:2]
-            candidates = torch.as_tensor(
-                operation.attributes[2:], dtype=torch.long, device=source.device
+            result = attention_2d_ste(
+                inputs[0], inputs[1], inputs[2], operation.attributes[2:],
+                competitor_count, temperature / 1000.0,
             )
-            keys = inputs[1].index_select(1, candidates)
-            selected_values = inputs[2].index_select(1, candidates)
-            logits = torch.matmul(inputs[0], keys.transpose(1, 2))
-            hard_indices = torch.argmax(logits, dim=-1)
-            hard = functional.one_hot(hard_indices, logits.shape[-1]).to(logits.dtype)
-            soft = torch.softmax(logits / (temperature / 1000.0), dim=-1)
-            weights = hard + (soft - soft.detach())
-            result = torch.matmul(weights, selected_values)
-            del competitor_count
         else:
             raise ValueError(f"reference executor does not support {operation.opcode.name}")
         values[operation.outputs[0]] = result
