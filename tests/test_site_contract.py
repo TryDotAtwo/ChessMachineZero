@@ -234,25 +234,38 @@ console.log(JSON.stringify({d5: board.d5, e2: board.e2, history: model.decodeFix
 def test_language_bootstrap_localizes_a_failure_before_trace_load_completes():
     script = r"""
 const nodes = Object.fromEntries(['languageRu', 'languageEn', 'traceStatus'].map(id => [id, {
-  handlers: {}, textContent: '', dataset: {}, classList: {toggle() {}},
+  id, handlers: {}, textContent: '', dataset: id === 'traceStatus' ? {i18n: 'loading'} : {}, classList: {toggle() {}},
   addEventListener(event, handler) { this.handlers[event] = handler; }
 }]));
-global.document = {documentElement: {}, querySelectorAll() { return []; }, getElementById(id) { return nodes[id] || null; }};
+global.document = {documentElement: {}, querySelectorAll(selector) { return selector === '[data-i18n]' ? [nodes.traceStatus] : []; }, getElementById(id) { return nodes[id] || null; }};
 const events = [];
 global.window = {dispatchEvent(event) { events.push(event.detail); }};
 global.CustomEvent = class { constructor(type, init) { this.type = type; this.detail = init.detail; }};
 const i18n = require('./site/i18n.js');
+i18n.setReady();
+const readyRu = nodes.traceStatus.textContent;
+nodes.languageEn.handlers.click();
+i18n.apply('en'); // app receives the language event.
+i18n.apply('en'); // inspector receives it after app's successful render.
+const readyEn = nodes.traceStatus.textContent;
+nodes.languageRu.handlers.click();
+i18n.apply('ru');
+i18n.apply('ru');
+const readyRuAgain = nodes.traceStatus.textContent;
 i18n.setLoadError('trace schema mismatch');
 const ru = nodes.traceStatus.textContent;
 nodes.languageEn.handlers.click();
-console.log(JSON.stringify({ru, en: nodes.traceStatus.textContent, events}));
+console.log(JSON.stringify({readyRu, readyEn, readyRuAgain, ru, en: nodes.traceStatus.textContent, events}));
 """
     completed = subprocess.run(["node", "-e", script], cwd=ROOT, text=True, encoding="utf-8", capture_output=True)
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
+        "readyRu": "Точный экспорт загружен: v45 декодирован без JavaScript chess replay.",
+        "readyEn": "Exact export loaded: v45 decoded without JavaScript chess replay.",
+        "readyRuAgain": "Точный экспорт загружен: v45 декодирован без JavaScript chess replay.",
         "ru": "Ошибка проверки экспорта: trace schema mismatch",
         "en": "Export validation error: trace schema mismatch",
-        "events": ["en"],
+        "events": ["en", "ru", "en"],
     }
     inspector = (ROOT / "site" / "matrix_inspector.js").read_text(encoding="utf-8")
     assert "window.addEventListener(\"trace-language\"" in inspector
