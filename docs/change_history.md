@@ -1,5 +1,14 @@
 # Change History
 
+## 2026-08-31 — Inline full-VM foundation and executable legal sets
+
+- Added generic matrix transpose, batch-preserving reshape and intermediate GEMM wire ops, with pre-CUDA rank/shape/product validation and literal two-batch native forward/gradient acceptance.
+- Added the offline Circuit builder, exact constant packing, Boolean/selection lowering and safe graph inclusion; added exhaustive truth tables and independent surrogate-derivative tests.
+- Added block-prefix stable compaction with hard rank routing, exact payload GEMM, padding/presence and explicit capacity diagnostics; no runtime sort/filter or quadratic prefix weight matrix.
+- Added a549-operation/91-record legal-set subgraph over7780 reusable geometry patterns, including side/source/path checks, post-move king safety, castling rights/transit, en passant and promotions. Its output is768 rows, not a full recurrent context.
+- Final Python/reference/Node gate:284 passed in103.35s. Fresh native matrix/default gate preserved52 exact boards; new legal artifact matched79 full independent legal sets. Memcheck exited0 with zero errors on the legal fixture run. [Evidence](../test_results/full_vm_foundation_2026-08-31.md).
+- Refreshed only the site's local reference-source fingerprint and JSON content version; UI remains the45-op position inspector. Full requested-move application, adjudication, feedback context and native full-VM website are pending. Draw-claim policy was raised for user choice before changing protocol. No subagents were used; no full-VM deployment claimed.
+
 ## 2026-08-31 — Audit corrections and exact-trace inspector
 
 - Corrected latest-event epsilon from1e-6 to2^-21; independently legal400-ply histories and full materialized FP32 score invariants now guard square/time separation.

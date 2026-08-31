@@ -61,7 +61,27 @@ def execute_artifact_reference_values(
     final = 0
     for operation in artifact.operations:
         inputs = [values[index] for index in operation.inputs]
-        if operation.opcode == OpCode.ROW_ROUTE:
+        if operation.opcode in (OpCode.MATRIX_TRANSPOSE, OpCode.MATRIX_RESHAPE, OpCode.MATRIX_MATMUL):
+            input_count = 2 if operation.opcode == OpCode.MATRIX_MATMUL else 1
+            attribute_count = 2 if operation.opcode == OpCode.MATRIX_RESHAPE else 0
+            if (len(inputs) != input_count or len(operation.outputs) != 1
+                    or len(operation.attributes) != attribute_count):
+                raise ValueError("artifact matrix operation schema mismatch")
+            name = operation.opcode.name.lower()
+            if any(value.ndim != 3 for value in inputs):
+                raise ValueError(f"artifact {name} rank must be three")
+            if operation.opcode == OpCode.MATRIX_TRANSPOSE:
+                result = inputs[0].transpose(1, 2)
+            elif operation.opcode == OpCode.MATRIX_RESHAPE:
+                rows, columns = operation.attributes
+                if rows <= 0 or columns <= 0 or rows * columns != inputs[0].shape[1] * inputs[0].shape[2]:
+                    raise ValueError("artifact reshape element count mismatch")
+                result = inputs[0].reshape(inputs[0].shape[0], rows, columns)
+            else:
+                if inputs[0].shape[0] != inputs[1].shape[0] or inputs[0].shape[2] != inputs[1].shape[1]:
+                    raise ValueError("artifact matmul shape mismatch")
+                result = inputs[0] @ inputs[1]
+        elif operation.opcode == OpCode.ROW_ROUTE:
             start, end = operation.attributes[:2]
             stride = operation.attributes[2] if len(operation.attributes) == 3 else 1
             result = inputs[0][:, start:end:stride]

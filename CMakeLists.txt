@@ -44,6 +44,19 @@ add_executable(cmz_graph_validation_test tests/native/graph_validation_test.cpp)
 target_link_libraries(cmz_graph_validation_test PRIVATE cmz_pure_vm)
 add_test(NAME cmz_graph_validation_test COMMAND cmz_graph_validation_test)
 
+add_executable(cmz_matrix_graph_test tests/native/matrix_graph_test.cpp)
+target_link_libraries(cmz_matrix_graph_test PRIVATE cmz_pure_vm)
+add_test(NAME cmz_matrix_graph_test COMMAND cmz_matrix_graph_test)
+
+add_executable(cmz_tensor_fixture_test tests/native/tensor_fixture_test.cpp)
+target_link_libraries(cmz_tensor_fixture_test PRIVATE cmz_pure_vm)
+set(CMZ_TENSOR_ARTIFACT "" CACHE FILEPATH "Generic executable tensor artifact")
+set(CMZ_TENSOR_FIXTURES "" CACHE FILEPATH "Independent CMZARR01 tensor fixtures")
+if(EXISTS "${CMZ_TENSOR_ARTIFACT}" AND EXISTS "${CMZ_TENSOR_FIXTURES}")
+    add_test(NAME cmz_tensor_fixture_test COMMAND cmz_tensor_fixture_test
+        "${CMZ_TENSOR_ARTIFACT}" "${CMZ_TENSOR_FIXTURES}")
+endif()
+
 add_executable(cmz_position_artifact_test tests/native/position_artifact_test.cpp)
 target_link_libraries(cmz_position_artifact_test PRIVATE cmz_pure_vm)
 set(CMZ_POSITION_ARTIFACT "" CACHE FILEPATH "Generated position.cmz artifact")

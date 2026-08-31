@@ -70,6 +70,21 @@ int main() {
         {{OpCode::RowRoute, {0}, {1}, {0, 5, 3}},
          {OpCode::OutputProject, {1}, {2}, {0}},
          {OpCode::HullAttention2D, {2, 2, 1}, {3}, {1, 500, 2}}}, "candidate out of range");
+    rejects("matrix transpose schema", {},
+        {{static_cast<OpCode>(11), {0}, {1}, {1}}}, "schema");
+    rejects("matrix transpose rank", {zeros({128})},
+        {{OpCode::FrozenExpand, {0}, {1}, {0}},
+         {static_cast<OpCode>(11), {1}, {2}, {}}}, "transpose rank");
+    rejects("matrix reshape zero", {},
+        {{static_cast<OpCode>(12), {0}, {1}, {0, 128}}}, "reshape");
+    rejects("matrix reshape element count", {},
+        {{static_cast<OpCode>(12), {0}, {1}, {3, 128}}}, "reshape");
+    rejects("matrix reshape capacity", {},
+        {{static_cast<OpCode>(12), {0}, {1}, {0xffffffffU, 0xffffffffU}}}, "reshape");
+    rejects("matrix matmul contraction", {},
+        {{static_cast<OpCode>(13), {0, 0}, {1}, {}}}, "matmul");
+    rejects("matrix matmul schema", {},
+        {{static_cast<OpCode>(13), {0}, {1}, {}}}, "schema");
     std::cout << "graph validation failures=" << failures << '\n';
     return failures ? 1 : 0;
 }

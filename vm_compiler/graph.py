@@ -17,6 +17,9 @@ class OpCode(IntEnum):
     HARDMAX_STE = 8
     FROZEN_EXPAND = 9
     ROW_CONCAT = 10
+    MATRIX_TRANSPOSE = 11
+    MATRIX_RESHAPE = 12
+    MATRIX_MATMUL = 13
 
 
 @dataclass(frozen=True)

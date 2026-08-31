@@ -1,5 +1,15 @@
 # Prompt History
 
+## 2026-08-31 — Full executable VM walkthrough, inline only
+
+User requested a website showing the complete VM step by step, then explicitly
+directed implementation without subagents. The stated implementation scope is
+to complete the executable recurrent artifact and expose genuine recorded
+execution, not relabel the existing position-only graph. No online inference
+service is added. Design and plan live under `docs/superpowers/` with the
+`2026-08-31-full-vm-walkthrough` prefix. Work is not accepted as complete until
+the full native transition and corresponding website trace pass their gates.
+
 ## 2026-08-31 — Approved audit corrections and a truthful bilingual site
 
 User confirmed remediation: fix confirmed numerical/runtime defects with

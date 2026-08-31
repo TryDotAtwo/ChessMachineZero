@@ -64,3 +64,36 @@ def legal_history_snapshots(*, seed=None, plies=400, uci_moves=()):
         assert not board.is_game_over(claim_draw=True)
         snapshots[index + 1] = (source.copy(), _expected_board(board))
     return snapshots, special
+
+
+def legal_set_snapshots(uci_moves):
+    """Independent exact 256-triple sets for every prefix, including mate."""
+    board = chess.Board()
+    source = numpy.zeros((2048, 128), dtype=numpy.float32)
+    source[:, 0] = 1
+    snapshots = []
+    for ply in range(len(uci_moves) + 1):
+        triples = sorted(tuple(_native_rows(board, move).argmax(axis=1)) for move in board.legal_moves)
+        assert len(triples) <= 256
+        channels = [channel for triple in triples for channel in triple]
+        channels += [0] * (768 - len(channels))
+        expected = numpy.eye(128, dtype=numpy.float32)[channels]
+        snapshots.append((source.copy(), expected))
+        if ply < len(uci_moves):
+            move = chess.Move.from_uci(uci_moves[ply])
+            assert move in board.legal_moves, f"illegal fixture move {ply}: {move}"
+            source[3 + ply * 3:6 + ply * 3] = _native_rows(board, move)
+            board.push(move)
+    return snapshots
+
+
+def legal_set_for_history_input(source):
+    """Replay a legal development fixture independently of the tensor graph."""
+    from vm_compiler.oracle import _replay_history
+
+    board, _ = _replay_history(source[3:])
+    triples = sorted(tuple(_native_rows(board, move).argmax(axis=1)) for move in board.legal_moves)
+    assert len(triples) <= 256
+    channels = [channel for triple in triples for channel in triple]
+    channels += [0] * (768 - len(channels))
+    return numpy.eye(128, dtype=numpy.float32)[channels]

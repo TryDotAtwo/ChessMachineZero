@@ -19,6 +19,9 @@ enum class OpCode : std::uint16_t {
     HardmaxSte = 8,
     FrozenExpand = 9,
     RowConcat = 10,
+    MatrixTranspose = 11,
+    MatrixReshape = 12,
+    MatrixMatmul = 13,
 };
 
 struct TensorRecord {

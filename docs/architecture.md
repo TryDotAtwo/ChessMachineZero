@@ -10,6 +10,12 @@ valid chronological history**. `build_position_reconstruction_artifact()` emits
 `[B,2048,128]`, but only history rows participate. It ignores the requested move
 in rows 0–2 and does not apply or validate that request.
 
+An additional executable legal-set artifact now composes position recovery
+with frozen occupancy, special-move, king-safety and stable-compaction circuits.
+It returns `[B,768,128]`: 256 ordered triples, padded with token0. This is not
+request application or adjudication; the current site still exports position
+recovery only. See the legal-set section below.
+
 The complete recurrent chess environment is a **target, not a completed
 capability**. It must eventually map a request plus previous context to the next
 `[B,2045,128]` context, generate the current legal set, and determine terminal or
@@ -43,6 +49,9 @@ Production C++/CUDA loads immutable tensor records and executes generic
 operations: row routing, projection/GEMM, addition, concatenation, batch
 expansion, hardmax and 2D attention. The generic executor also supports a gated
 FFN for other graphs. No opcode has chess-specific semantics.
+Wire opcodes11–13 add matrix transpose, batch-preserving reshape and GEMM of two
+intermediate rank-three matrices. Static ranks, products and contraction axes
+are validated before accessing CUDA. They are layout/arithmetic, not chess ops.
 
 Chess rules have not disappeared: their structure is compiled **offline into
 weights and graph connections**, not evaluated by piece-specific C++ branches.
@@ -77,6 +86,33 @@ The nearest different square has penalty `2^-12`; maximum time bonus is
 `400*2^-21`. Their separation is `112*2^-21 > 0`. Materialized FP32-score
 tests check every square/timestamp and strict chronological ordering. The
 earlier epsilon `1e-6` violated this bound and produced incorrect boards.
+
+## Legal-set circuit
+
+`build_legal_artifact()` emits 549 operations and91 deduplicated frozen records.
+Its 7,780 candidates are generated once from reusable geometry, in native
+triple order. Runtime source-piece/color matching, target occupancy, sliding
+interiors, pawn movement, castling rights and last-ply en passant eligibility
+are linear projections, residuals and binary hardmax circuits.
+
+Post-move occupancy includes source clearing, target occupation, en passant
+victim clearing and castling rook relocation. Non-king candidates test all
+opponent attacks on the current king against that occupancy; king candidates
+use an attacked-square map with the old king square removed. Castling checks
+start, transit and destination plus the rook/king history-derived rights.
+
+Stable compaction uses 64-wide local prefix GEMMs and a small block-prefix GEMM,
+then affine integer rank scores, hardmax routes and routes-times-payload GEMM.
+There is no runtime sorting, index readback or CPU candidate filtering. The
+compiler exposes count/presence/overflow value IDs for composition. A complete
+transition must consume that overflow indication; these diagnostics are not a
+shipped terminal-status implementation.
+
+The FP32 logical payload estimate for B=1 is45,219,348 frozen bytes plus
+263,740,908 retained-value bytes (views counted conservatively). It excludes
+autograd, attention temporaries and allocator/workspace costs. There is no
+compactness or speedup claim. Exact forward evidence covers complete sets, not
+just counts; integrated legal-graph backward is not yet native acceptance.
 
 ## Numerical representation and backward
 

@@ -3,22 +3,27 @@ param(
     [Parameter(Mandatory = $true)][ValidatePattern('^[0-9]{2,3}$')][string]$CudaArchitecture,
     [Parameter(Mandatory = $true)][string]$BuildDirectory,
     [string]$Python = 'python',
-    [string[]]$Targets = @('artifact', 'recurrent', 'ste', 'hullkv', 'graph_validation', 'position_artifact'),
+    [string[]]$Targets = @('artifact', 'recurrent', 'ste', 'hullkv', 'graph_validation', 'matrix_graph', 'position_artifact'),
     [switch]$AllowUnsupportedCompiler,
     [switch]$RunTests,
-    [string]$FixtureDirectory
+    [string]$FixtureDirectory,
+    [string]$TensorArtifact,
+    [string]$TensorFixtures
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $repo = Split-Path -Parent $PSScriptRoot
 $build = [IO.Path]::GetFullPath($BuildDirectory)
 if (Test-Path -LiteralPath $build) { throw "BuildDirectory must be NEW: $build" }
-$knownTargets = @('artifact', 'recurrent', 'ste', 'hullkv', 'graph_validation', 'position_artifact')
+$knownTargets = @('artifact', 'recurrent', 'ste', 'hullkv', 'graph_validation', 'matrix_graph', 'position_artifact', 'tensor_fixture')
 foreach ($target in $Targets) {
     if ($target -notin $knownTargets) { throw "Unknown target: $target" }
 }
 if ($RunTests -and 'position_artifact' -in $Targets -and !$FixtureDirectory) {
     throw 'Position acceptance requires -FixtureDirectory (see tests/export_native_fixtures.py)'
+}
+if ($RunTests -and 'tensor_fixture' -in $Targets -and (!$TensorArtifact -or !$TensorFixtures)) {
+    throw 'Generic tensor acceptance requires -TensorArtifact and -TensorFixtures'
 }
 $savedEnvironment = @{}
 foreach ($name in @('PATH', 'INCLUDE', 'LIB')) {
@@ -104,6 +109,9 @@ try {
             if ($target -eq 'position_artifact') {
                 $fixture = [IO.Path]::GetFullPath($FixtureDirectory)
                 $testArguments = @((Join-Path $fixture 'position.cmz'), (Join-Path $fixture 'positions.bin'))
+            }
+            if ($target -eq 'tensor_fixture') {
+                $testArguments = @([IO.Path]::GetFullPath($TensorArtifact), [IO.Path]::GetFullPath($TensorFixtures))
             }
             Invoke-Checked $executable $testArguments
             if ($target -eq 'ste') {

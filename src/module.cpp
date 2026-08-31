@@ -100,6 +100,39 @@ void validate_graph(const cmz::Artifact& artifact) {
         };
         Shape result;
         switch (operation.opcode) {
+            case cmz::OpCode::MatrixTranspose:
+                require_schema(operation, 1U, 1U, 0U);
+                result = input_shape(0);
+                TORCH_CHECK(result.size() == 3, "artifact transpose rank must be three");
+                std::swap(result[1], result[2]);
+                break;
+            case cmz::OpCode::MatrixReshape: {
+                require_schema(operation, 1U, 1U, 2U);
+                const auto& source = input_shape(0);
+                const std::int64_t rows = operation.attributes[0];
+                const std::int64_t columns = operation.attributes[1];
+                const auto limit = std::numeric_limits<std::int64_t>::max();
+                TORCH_CHECK(source.size() == 3, "artifact reshape rank must be three");
+                TORCH_CHECK(rows > 0 && columns > 0 && rows <= limit / columns,
+                            "artifact reshape capacity overflow or zero extent");
+                TORCH_CHECK(source[1] > 0 && source[2] > 0 && source[1] <= limit / source[2],
+                            "artifact reshape source capacity overflow");
+                TORCH_CHECK(rows * columns == source[1] * source[2],
+                            "artifact reshape element count mismatch");
+                result = {source[0], rows, columns};
+                break;
+            }
+            case cmz::OpCode::MatrixMatmul: {
+                require_schema(operation, 2U, 1U, 0U);
+                const auto& left = input_shape(0);
+                const auto& right = input_shape(1);
+                TORCH_CHECK(left.size() == 3 && right.size() == 3,
+                            "artifact matmul rank must be three");
+                TORCH_CHECK(left[0] == right[0] && left[2] == right[1],
+                            "artifact matmul shape mismatch");
+                result = {left[0], left[1], right[2]};
+                break;
+            }
             case cmz::OpCode::RowRoute: {
                 TORCH_CHECK(
                     operation.inputs.size() == 1U && operation.outputs.size() == 1U &&
@@ -260,6 +293,17 @@ torch::Tensor FrozenVm::execute_graph(const torch::Tensor& input) const {
         TORCH_CHECK(!operation.outputs.empty(), "artifact operation has no output");
         torch::Tensor result;
         switch (operation.opcode) {
+            case OpCode::MatrixTranspose:
+                result = values.at(operation.inputs[0]).transpose(1, 2);
+                break;
+            case OpCode::MatrixReshape: {
+                const auto& source = values.at(operation.inputs[0]);
+                result = source.reshape({source.size(0), operation.attributes[0], operation.attributes[1]});
+                break;
+            }
+            case OpCode::MatrixMatmul:
+                result = torch::matmul(values.at(operation.inputs[0]), values.at(operation.inputs[1]));
+                break;
             case OpCode::RowRoute: {
                 const auto stride = operation.attributes.size() == 3U
                     ? operation.attributes[2]

@@ -13,6 +13,12 @@ Current-state record, updated during the 2026-08-31 audit corrections. Historica
 ## Executable now
 
 - position_artifact=45 generic operations; eight opcode kinds; consumes FP32 [B,2048,128] and reconstructs FP32 hard one-hot [B,64,128]
+- legal_artifact=549 generic operations,91 deduplicated frozen records,7780 position-independent candidate patterns; returns [B,768,128] ordered legal triples plus padding; includes source/color/path/king safety, castling rights and en passant; not request application or adjudication
+- legal_compaction=two-level64-wide prefix projections, hard rank routing and routes-times-payload GEMM; no runtime sorting/filtering; named count/presence/overflow values available for later composition
+- generic_matrix_ops=wire11 transpose,12 batch-preserving reshape,13 intermediate-matrix GEMM; rank/size/overflow validation occurs before CUDA; exact two-batch native forward/gradient tests pass
+- legal_native=79 complete independent legal-set tensors exactly match in freshly compiled FP32 CUDA executor with TF32 disabled; artifact3a06b48ecc48d9abd8739ecc638d8afc4b7daf6577d9f39cfc957e09ed137e50
+- foundation_acceptance=284 Python/reference/Node tests passed in103.35s; native generic matrix forward/gradients and52 boards passed; legal artifact79 exact tensors and memcheck exit0/zero errors; evidence=test_results/full_vm_foundation_2026-08-31.md
+- legal_memory=45,219,348 frozen FP32 bytes and263,740,908 retained logical value bytes forB1; excludes autograd/workspaces/allocator, not a measured peak or speed result
 - input_usage=only chronological history rows3..1202 are consumed; request rows0..2 and remaining service/legal/status rows are ignored by this artifact
 - history_capacity=400 already-valid plies; declared result-piece identity must be correct; this subgraph does not validate history legality
 - board_layout=64 rows in file-major order a1,a2,...,a8,b1,...,h8; 128 vocabulary columns; EMPTY=95
@@ -25,7 +31,8 @@ Current-state record, updated during the 2026-08-31 audit corrections. Historica
 
 - recurrent_target=input [B,2048,128] = request3 + context2045; output context[B,2045,128]
 - context_target=1200 history +768 legal-set +1 status +76 service rows; max256 legal moves and explicit overflow policy
-- missing_execution=full LEGAL_SET enumeration, requested-move validation/application, terminal status and next recurrent context; the current position artifact returns a board, not that context
+- missing_execution=requested-move validation/application, terminal adjudication and next recurrent context; position and legal artifacts return partial outputs, not that context
+- draw_policy_pending=existing test oracle uses outcome(claim_draw=True); whether the VM automatically exercises a claim or requires a player request was raised for user choice on2026-08-31; no token-language change authorized yet
 - context_0=bootstrap record exists with initial20 legal moves and OK status; position artifact does not contain it
 - rule_image=parametric relation tensors exist, but rule-image/bootstrap operation lists remain empty
 - player=separate future trained transformer; no learning-benefit or complete differentiable game-loop evidence yet
@@ -48,6 +55,7 @@ Current-state record, updated during the 2026-08-31 audit corrections. Historica
 - python_corrections=commit5202cbd; initial corrected gate123 passed; final integrated gate through721db71 is257 passed in20.92s
 - site_source=static site under site/; numeric_trace.json is an offline Python reference execution export, not native CUDA intermediates or browser inference
 - site_fixture=three legal plies e2e4,d7d5,e4d5; token triples [[52,54,96],[47,45,102],[54,45,96]]
+- site_full_vm_pending=site remains a45-operation position reference inspector; full recurrent/native-trace walkthrough is not implemented or published; local numeric source fingerprint refreshed after generic reference-op additions without changing exported matrix values
 - publication=GitHub Pages workflow publishes site/ from main; scoped ordinary push allowed, no force/history rewrite/unrelated changes
 - publication_verified=code/site revision721db7129a176890d8b4b530aa8de6b75581adb0; Pages33356317808 success; public45operations/72tensors, exact fixture/values, RU/EN and fresh console verified after cache correction; later report-only commits do not change deployed site bytes
 - native_corrections=commit b3ba731; fresh direct Windows build, 15 checked process exits, 52 exact FP32 full boards, independent selected-top-k Q/K/V derivatives, malformed metadata/mask guards; independent review Approved

@@ -1,17 +1,21 @@
-# Pure frozen Transformer position VM
+# Pure frozen Transformer VM — executable subgraphs
 
-Current executable scope: reconstruct the **exact full board from an already
-valid chronological history** (up to 400 plies), including special moves and
-promotions. It does not validate/apply the requested move, enumerate the current
-legal set, determine terminal status, or emit the full recurrent next context.
-`FrozenVm::execute_graph` returns the position artifact's `[B,64,128]` board;
-`forward` requires `[B,2045,128]` and rejects a board-only result. There is no
+Current executable subgraphs reconstruct the **exact full board from an already
+valid chronological history** (up to 400 plies), and enumerate an ordered
+**complete legal set** including king safety, castling, en passant and promotions.
+They do not yet validate/apply a requested move, adjudicate terminal status, or
+emit the full recurrent next context. `FrozenVm::execute_graph` returns either
+the position artifact's `[B,64,128]` board or the legal artifact's `[B,768,128]`
+256 move triples with padding. `forward` requires `[B,2045,128]` and rejects both
+partial output shapes. There is no
 trained player or demonstrated full-game learning result. See
 [architecture](docs/architecture.md) for the precise implemented/target boundary.
 
 Production is generic LibTorch C++/CUDA. Python, NumPy and python-chess are
 development/compiler/test tools, never production chess logic. The static site
 shows an exported Python reference trace, not native runtime intermediates.
+It still shows the 45-operation position subgraph, not the new legal-set graph
+or a complete VM. [Current foundation evidence](test_results/full_vm_foundation_2026-08-31.md).
 
 ## Precision and backward
 
@@ -75,6 +79,24 @@ bad-index assertions, and 52 exact full-board fixture states. Test-only GPU
 synchronization/readback observes results; production hot paths contain neither.
 Invalid-mask/index children intentionally print device assertion diagnostics
 and succeed only when the expected assertion is observed.
+
+### Legal-set artifact acceptance
+
+The 549-operation legal artifact is independently checked against every value
+of 79 complete oracle legal sets. It is not an opening-position lookup table:
+the compiler emits 7,780 position-independent geometry candidates and reusable
+occupancy/king-safety circuits. The tests also cover long histories through
+400 plies in the Python reference.
+
+```powershell
+python tests/export_legal_fixtures.py build/legal-fixtures
+./scripts/build_native.ps1 -CudaArchitecture 86 -BuildDirectory build/legal-native -Targets tensor_fixture -TensorArtifact build/legal-fixtures/legal.cmz -TensorFixtures build/legal-fixtures/legal.bin -RunTests -AllowUnsupportedCompiler
+```
+
+This generic tensor-fixture target is opt-in; the default native command does
+not silently count it as tested. The manifest records artifact/fixture hashes
+and logical FP32 payload sizes. Those sizes exclude autograd/workspaces and do
+not establish peak memory, throughput, or useful player gradients.
 
 ## CMake / CTest alternative
 
