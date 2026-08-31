@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -12,6 +13,53 @@ from vm_compiler.compiler import build_position_reconstruction_artifact
 from vm_compiler.graph import OpCode
 from vm_compiler.protocol import INPUT_ROWS, PIECE_CHANNELS, VOCAB_SIZE, encode_move_one_hot
 from vm_compiler.reference_executor import execute_artifact_reference_values
+from vm_compiler.site_semantics import build_site_semantics
+
+
+def _source_provenance(artifact) -> dict[str, object]:
+    source_names = ("compiler.py", "state_circuit.py", "reference_executor.py", "site_trace.py", "site_semantics.py")
+    source_root = Path(__file__).parent
+    digest = hashlib.sha256()
+    for name in source_names:
+        digest.update(name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update((source_root / name).read_bytes())
+        digest.update(b"\0")
+    return {
+        "executor": "vm_compiler.reference_executor",
+        "dtype": "float32",
+        "artifact_sha256": hashlib.sha256(artifact.to_bytes()).hexdigest(),
+        "source_sha256": digest.hexdigest(),
+        "source_identifiers": [f"vm_compiler.{name.removesuffix('.py')}" for name in source_names],
+    }
+
+
+def _attributes_info(operation) -> dict[str, object]:
+    attributes = operation.attributes
+    if operation.opcode == OpCode.ROW_ROUTE:
+        start, end, *stride = attributes
+        return {"start": start, "end": end, "stride": stride[0] if stride else 1, "axis": "row"}
+    if operation.opcode in (OpCode.TOKEN_PROJECT, OpCode.OUTPUT_PROJECT):
+        return {"frozen": f"w{attributes[0]}", "axis": "last_dimension"}
+    if operation.opcode == OpCode.POSITION_ADD:
+        return {"frozen": f"w{attributes[0]}", "axis": "elementwise"}
+    if operation.opcode == OpCode.FROZEN_EXPAND:
+        return {"frozen": f"w{attributes[0]}", "axis": "batch"}
+    if operation.opcode == OpCode.ROW_CONCAT:
+        return {"axis": "row"}
+    if operation.opcode == OpCode.HARDMAX_STE:
+        return {"temperature": attributes[0] / 1000.0, "axis": "last_dimension", "forward": "lowest-index argmax tie"}
+    if operation.opcode == OpCode.HULL_ATTN_2D:
+        return {
+            "top_k": attributes[0],
+            "temperature": attributes[1] / 1000.0,
+            "candidate_count": len(attributes) - 2,
+            "candidate_first": attributes[2],
+            "candidate_last": attributes[-1],
+            "forward": "hard argmax value read",
+            "backward": "selected-top-k softmax surrogate for Q, K and V",
+        }
+    return {"axis": "elementwise"}
 
 
 def build_site_trace() -> dict[str, object]:
@@ -135,10 +183,16 @@ def build_numeric_site_trace() -> dict[str, object]:
             derived[score_name] = _matrix(scores)
             derived[attention_name] = _matrix(attention)
             derived_names.extend((score_name, attention_name))
-        operations.append({"index": index, "opcode": operation.opcode.name, "equation": _equation(operation), "inputs": [f"v{value}" for value in operation.inputs], "frozen": frozen, "derived": derived_names, "output": f"v{operation.outputs[0]}", "sample": _sample(operation, values, tensors)})
+        operations.append({"index": index, "opcode": operation.opcode.name, "equation": _equation(operation), "inputs": [f"v{value}" for value in operation.inputs], "frozen": frozen, "derived": derived_names, "output": f"v{operation.outputs[0]}", "attributes_info": _attributes_info(operation), "sample": _sample(operation, values, tensors)})
     return {
+        "artifact": "position_latest_event_v1",
+        "operation_count": len(operations),
+        "runtime_opcodes": sorted({operation["opcode"] for operation in operations}),
+        "final_output": {"value": 45, "shape": ["B", 64, 128]},
         "fixture": {"moves": [list(move) for move in moves], "encoding": "one-hot"},
         "format": "Exact nonzero entries in zero-based COO; omitted entries are exactly zero.",
+        "provenance": _source_provenance(artifact),
+        "semantics": build_site_semantics(artifact),
         "tensors": {f"w{index}": {"name": record.name, **_matrix(tensors[index])} for index, record in enumerate(artifact.tensors)},
         "values": {f"v{index}": _matrix(value) for index, value in values.items()},
         "derived": derived,

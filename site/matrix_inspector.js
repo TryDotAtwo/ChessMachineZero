@@ -30,7 +30,7 @@
       matmulTitle: "Строка матрицы × столбец весов",
       matmulDesc: "Цветом выделены ровно та строка и тот столбец, которые дают выбранное число.",
       genericDesc: "Показано точное преобразование входных ячеек в выходную.",
-      selectedRow: "выбранная строка", selectedColumn: "выбранный столбец", value: "значение",
+      selectedRow: "выбранная строка", selectedColumn: "выбранный столбец", value: "значение", integerCoordinate: "Координаты должны быть целыми числами в указанном диапазоне.",
       token: "токен", batch: "партия в batch", move: "строка / ход", pattern: "столбец / признак",
     },
     en: {
@@ -39,7 +39,7 @@
       input: "Input", weight: "Frozen weights", output: "Output", scores: "QKᵀ scores", attention: "Hardmax attention A",
       rows: "rows", columns: "columns", technical: "SSA", matmulTitle: "Matrix row × weight column",
       matmulDesc: "The exact row and column producing the selected number are highlighted together.", genericDesc: "The exact mapping from input cells to the selected output cell is shown.",
-      selectedRow: "selected row", selectedColumn: "selected column", value: "value", token: "token", batch: "batch item", move: "row / move", pattern: "column / feature",
+      selectedRow: "selected row", selectedColumn: "selected column", value: "value", integerCoordinate: "Coordinates must be integers within the stated range.", token: "token", batch: "batch item", move: "row / move", pattern: "column / feature",
     },
   };
 
@@ -85,6 +85,12 @@
     }
     return 0;
   }
+  function integerCoordinate(raw, maximum) {
+    if (typeof raw !== "number" && String(raw).trim() === "") return {ok: false};
+    const value = typeof raw === "number" ? raw : Number(String(raw).trim());
+    return Number.isInteger(value) && value >= 0 && value <= maximum ? {ok: true, value} : {ok: false};
+  }
+  function compactSquare(index) { return index >= 0 && index < 64 ? `${"abcdefgh"[Math.floor(index / 8)]}${index % 8 + 1}` : null; }
 
   function highlightMode(opcode) {
     if (opcode === "TOKEN_PROJECT") return "row-column";
@@ -141,7 +147,7 @@
     return presentations[requestedLanguage][opcode] || null;
   }
 
-  const api = { matrixValue, tokenMeaning, operationModel, dotProduct, concatSource, hardmaxWinner, highlightMode, flowClass, operationOptionText, outputCellText, routeSourceRow, tensorPurpose, operationPresentation };
+  const api = { matrixValue, tokenMeaning, operationModel, dotProduct, concatSource, hardmaxWinner, integerCoordinate, compactSquare, highlightMode, flowClass, operationOptionText, outputCellText, routeSourceRow, tensorPurpose, operationPresentation };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (typeof document === "undefined") return;
 
@@ -151,7 +157,7 @@
   function lastRows(matrix) { return matrix.shape.at(-2); }
   function lastColumns(matrix) { return matrix.shape.at(-1); }
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
-  function displayNumber(value) { return Number.isInteger(value) ? String(value) : Number(value.toFixed(7)).toString(); }
+  function displayNumber(value) { return String(value); }
 
   function semanticFrozenName(name) {
     const words = name.replaceAll("_", " ");
@@ -167,6 +173,32 @@
       .replace("no match bias", "bias нет совпадения")
       .replace("targets", "цели").replace("values", "значения")
       .replace("padding row", "padding-строка").replace("time bias", "временной bias");
+  }
+
+  function semanticName(technicalId, matrix) {
+    const group = technicalId.startsWith("w") ? trace.semantics.tensors : technicalId.startsWith("v") ? trace.semantics.values : trace.semantics.derived;
+    return group[technicalId] ? group[technicalId][language].name : semanticFrozenName(matrix.name || technicalId);
+  }
+
+  function patternDescription(id, column) {
+    const number = Number(id.replace(/\D/g, ""));
+    const castle = (id.startsWith("w") && number >= 6 && number <= 9) || (id.startsWith("v") && number >= 5 && number <= 11);
+    const ep = (id.startsWith("w") && number >= 14 && number <= 20) || (id.startsWith("v") && number >= 23 && number <= 35);
+    const patterns = castle ? trace.semantics.patterns.castle : ep ? trace.semantics.patterns.en_passant : null;
+    const match = patterns && patterns.find((item) => item.column === column);
+    return match ? match[language] : "";
+  }
+
+  function axisIndexMeaning(axis, index) {
+    if (axis.includes("compact") || axis.includes("компакт")) { const square = compactSquare(index); return square ? (language === "ru" ? `клетка ${square}` : `square ${square}`) : ""; }
+    if (axis.includes("vocabulary") || axis.includes("словар")) return `${language === "ru" ? "токен" : "token"} ${index}: ${tokenMeaning(index, language)}`;
+    if (axis.includes("candidate event") || axis.includes("событие-кандидат")) {
+      const stream = trace.semantics.event_streams.find((item) => index >= item.start && index < item.end);
+      if (!stream) return "";
+      const slot = index - stream.start;
+      return language === "ru" ? `событие ${index}: ${stream.ru}${stream.end - stream.start === 400 ? `, полуход ${slot + 1}` : ""}` : `event ${index}: ${stream.en}${stream.end - stream.start === 400 ? `, ply ${slot + 1}` : ""}`;
+    }
+    return "";
   }
 
   function operationTitle(operation) {
@@ -188,7 +220,7 @@
     const rowStart = clamp(options.rowStart ?? row - 2, 0, Math.max(0, rows - 6)); const columnStart = clamp(options.columnStart ?? column - 3, 0, Math.max(0, columns - 8));
     const rowEnd = Math.min(rows, rowStart + 6); const columnEnd = Math.min(columns, columnStart + 8);
     const article = document.createElement("article"); article.className = "matrix-card";
-    const header = document.createElement("header"); header.innerHTML = `<div><strong>${name}</strong>${options.purpose ? `<small>${options.purpose}</small>` : ""}</div><span>${shapeText(matrix)}</span>`; article.append(header);
+    const header = document.createElement("header"); header.innerHTML = `<div><strong>${name}</strong><small>${technicalName}${options.purpose ? ` · ${options.purpose}` : ""}</small></div><span>${shapeText(matrix)}</span>`; article.append(header);
     const rowAxis = options.rowAxis || COPY[language].rows; const columnAxis = options.columnAxis || COPY[language].columns;
     const axes = document.createElement("p"); axes.className = "matrix-axes"; axes.textContent = `↓ ${rowAxis} ${rowStart}…${rowEnd - 1} · → ${columnAxis} ${columnStart}…${columnEnd - 1}`; article.append(axes);
     const table = document.createElement("table"); const head = document.createElement("thead"); const hr = document.createElement("tr"); hr.append(document.createElement("th"));
@@ -204,7 +236,7 @@
         if (value !== 0) td.classList.add(value > 0 ? "matrix-positive" : "matrix-negative");
         const meaningIndex = options.tokenAxis === "row" ? r : options.tokenAxis === "column" ? col : null;
         const meaning = meaningIndex === null ? "" : ` · ${COPY[language].token} ${meaningIndex} = ${tokenMeaning(meaningIndex, language)}`;
-        td.title = `${name}[${index.join(", ")}] = ${displayNumber(value)} · ${rowAxis} ${r} · ${columnAxis} ${col}${meaning}`;
+        const pattern = patternDescription(technicalName, col); const rowMeaning = axisIndexMeaning(rowAxis, r); const columnMeaning = axisIndexMeaning(columnAxis, col); td.title = `${technicalName}[${index.join(", ")}] = ${String(value)} · ${rowAxis} ${r}${rowMeaning ? ` (${rowMeaning})` : ""} · ${columnAxis} ${col}${columnMeaning ? ` (${columnMeaning})` : ""}${pattern ? ` · ${pattern}` : ""}${meaning}`;
         if (options.onSelect) { td.tabIndex = 0; td.addEventListener("mouseenter", () => options.onSelect(r, col)); td.addEventListener("click", () => options.onSelect(r, col)); }
         tr.append(td);
       } body.append(tr);
@@ -213,6 +245,7 @@
   }
 
   function sign(symbol) { const element = document.createElement("div"); element.className = "matrix-sign"; element.textContent = symbol; return element; }
+  function attentionStage(kind, ...children) { const stage = document.createElement("section"); stage.className = `attention-stage attention-stage-${kind}`; stage.append(...children); return stage; }
   function valueName() { return COPY[language].input; }
   function selectedOutput(operation) { return trace.values[operation.output]; }
   function normalizeSelection(operation) {
@@ -227,9 +260,9 @@
     if (kStart === 0 && firstActive > 7) kStart = Math.floor(firstActive / 8) * 8; kStart = clamp(kStart, 0, Math.max(0, product.terms.length - 8));
     byId("dotDimension").max = String(Math.max(0, product.terms.length - 8)); byId("dotDimension").value = String(kStart); byId("dotDimensionValue").textContent = `${kStart}–${Math.min(product.terms.length - 1, kStart + 7)}`;
     flow.append(
-      matrixCard(COPY[language].input, operation.inputs[0], left, { purpose: presentation.input, row: selectedRow, rowStart: selectedRow - 2, columnStart: kStart, highlightRow: selectedRow, rowAxis: COPY[language].move, columnAxis: COPY[language].token, tokenAxis: "column" }), sign("×"),
-      matrixCard(`${COPY[language].weight}: ${semanticFrozenName(weight.name)}`, weightId, weight, { purpose: language === "ru" ? "Неизменяемые обученные коэффициенты: строка = входной признак, столбец = выходной признак" : "Immutable trained coefficients: row = input feature, column = output feature", rowStart: kStart, column: selectedColumn, highlightColumn: selectedColumn, rowAxis: COPY[language].token, columnAxis: COPY[language].pattern, tokenAxis: "row" }), sign("="),
-      matrixCard(COPY[language].output, operation.output, output, { purpose: presentation.output, row: selectedRow, column: selectedColumn, selectedRow, selectedColumn, onSelect: selectCell, rowAxis: COPY[language].move, columnAxis: COPY[language].pattern })
+      matrixCard(semanticName(operation.inputs[0], left), operation.inputs[0], left, { purpose: trace.semantics.values[operation.inputs[0]][language].purpose, row: selectedRow, rowStart: selectedRow - 2, columnStart: kStart, highlightRow: selectedRow, rowAxis: trace.semantics.values[operation.inputs[0]][language].rows, columnAxis: trace.semantics.values[operation.inputs[0]][language].columns, tokenAxis: "column" }), sign("×"),
+      matrixCard(`${COPY[language].weight}: ${semanticName(weightId, weight)}`, weightId, weight, { purpose: trace.semantics.tensors[weightId][language].purpose, rowStart: kStart, column: selectedColumn, highlightColumn: selectedColumn, rowAxis: trace.semantics.tensors[weightId][language].rows, columnAxis: trace.semantics.tensors[weightId][language].columns, tokenAxis: "row" }), sign("="),
+      matrixCard(semanticName(operation.output, output), operation.output, output, { purpose: trace.semantics.values[operation.output][language].purpose, row: selectedRow, column: selectedColumn, selectedRow, selectedColumn, onSelect: selectCell, rowAxis: trace.semantics.values[operation.output][language].rows, columnAxis: trace.semantics.values[operation.output][language].columns })
     );
     const visibleTerms = product.terms.slice(kStart, kStart + 8); const formula = visibleTerms.map((term) => `<span class="dot-term"><i>k=${term.k}</i>${displayNumber(term.left)} × ${displayNumber(term.right)} = <b>${displayNumber(term.product)}</b></span>`).join("");
     byId("cellExplanation").innerHTML = `<p><strong>${outputCellText(language, selectedRow, selectedColumn, displayNumber(matrixValue(output, [0, selectedRow, selectedColumn])))}</strong></p><div class="dot-terms">${formula}</div><p>Σ k=0…${product.terms.length - 1} = <strong>${displayNumber(product.total)}</strong></p>`;
@@ -237,28 +270,55 @@
 
   function renderAttention(operation, flow) {
     const q = trace.values[operation.inputs[0]]; const k = trace.values[operation.inputs[1]]; const v = trace.values[operation.inputs[2]]; const scores = trace.derived[operation.derived[0]]; const attention = trace.derived[operation.derived[1]]; const output = selectedOutput(operation);
+    const keyTranspose = {shape: [2, lastRows(k)], entries: k.entries.map(([batch, row, column, value]) => [column, row, value])};
     let winner = 0; for (let candidate = 0; candidate < lastColumns(attention); candidate += 1) if (matrixValue(attention, [0, selectedRow, candidate]) === 1) { winner = candidate; break; }
     flow.classList.add("attention-flow");
     flow.append(
-      matrixCard("Queries Q", operation.inputs[0], q, { purpose: language === "ru" ? "Что ищет каждая выходная строка; 2 координаты на строку" : "What each output row searches for; 2 coordinates per row", row: selectedRow, highlightRow: selectedRow }), sign("×"),
-      matrixCard("Keys K", operation.inputs[1], k, { purpose: language === "ru" ? "Адрес каждого кандидата; строка = кандидат, 2 столбца = координаты ключа" : "Address of each candidate; row = candidate, 2 columns = key coordinates", row: winner, highlightRow: winner }), sign("Q × Kᵀ"),
-      matrixCard(COPY[language].scores, operation.derived[0], scores, { purpose: language === "ru" ? "Сходство каждого запроса с каждым кандидатом" : "Similarity of every query to every candidate", row: selectedRow, column: winner, rowStart: selectedRow - 2, columnStart: winner - 3, selectedRow, selectedColumn: winner }), sign(language === "ru" ? "ARGMAX\nПО СТРОКЕ" : "ROW\nARGMAX"),
-      matrixCard(COPY[language].attention, operation.derived[1], attention, { purpose: language === "ru" ? "One-hot выбор одного кандидата для каждой строки запроса" : "One-hot selection of one candidate per query row", row: selectedRow, column: winner, rowStart: selectedRow - 2, columnStart: winner - 3, selectedRow, selectedColumn: winner }), sign("×"),
-      matrixCard("Values V", operation.inputs[2], v, { purpose: language === "ru" ? "Полезные данные кандидатов, которые attention переносит в выход" : "Candidate payload copied to output by attention", row: winner, column: selectedColumn, rowStart: winner - 2, columnStart: selectedColumn - 3, highlightRow: winner }), sign("="),
-      matrixCard(COPY[language].output, operation.output, output, { purpose: language === "ru" ? "Для каждой строки запроса — данные выбранного кандидата" : "Selected candidate data for every query row", row: selectedRow, column: selectedColumn, selectedRow, selectedColumn, onSelect: selectCell })
+      attentionStage("qk",
+        matrixCard(semanticName(operation.inputs[0], q), operation.inputs[0], q, { purpose: trace.semantics.values[operation.inputs[0]][language].purpose, row: selectedRow, highlightRow: selectedRow, rowAxis: "Q row", columnAxis: "Q feature" }), sign("×"),
+        matrixCard("Kᵀ", `${operation.inputs[1]}ᵀ`, keyTranspose, { purpose: language === "ru" ? "Действительно транспонированный K: строка = 2D-признак, столбец = событие-кандидат." : "Actual transposed K: row = 2D feature, column = candidate event.", row: 0, column: winner, highlightColumn: winner, rowAxis: "K feature", columnAxis: "candidate event" }), sign("="),
+        matrixCard(semanticName(operation.derived[0], scores), operation.derived[0], scores, { purpose: trace.semantics.derived[operation.derived[0]][language].purpose, row: selectedRow, column: winner, rowStart: selectedRow - 2, columnStart: winner - 3, selectedRow, selectedColumn: winner })
+      ),
+      attentionStage("hardmax",
+        matrixCard(semanticName(operation.derived[0], scores), operation.derived[0], scores, { purpose: trace.semantics.derived[operation.derived[0]][language].purpose, row: selectedRow, column: winner, rowStart: selectedRow - 2, columnStart: winner - 3, selectedRow, selectedColumn: winner }), sign(language === "ru" ? "ARGMAX\nПО СТРОКЕ" : "ROW\nARGMAX"),
+        matrixCard(semanticName(operation.derived[1], attention), operation.derived[1], attention, { purpose: trace.semantics.derived[operation.derived[1]][language].purpose, row: selectedRow, column: winner, rowStart: selectedRow - 2, columnStart: winner - 3, selectedRow, selectedColumn: winner })
+      ),
+      attentionStage("av",
+        matrixCard(semanticName(operation.derived[1], attention), operation.derived[1], attention, { purpose: trace.semantics.derived[operation.derived[1]][language].purpose, row: selectedRow, column: winner, rowStart: selectedRow - 2, columnStart: winner - 3, selectedRow, selectedColumn: winner }), sign("×"),
+        matrixCard(semanticName(operation.inputs[2], v), operation.inputs[2], v, { purpose: trace.semantics.values[operation.inputs[2]][language].purpose, row: winner, column: selectedColumn, rowStart: winner - 2, columnStart: selectedColumn - 3, highlightRow: winner }), sign("="),
+        matrixCard(semanticName(operation.output, output), operation.output, output, { purpose: trace.semantics.values[operation.output][language].purpose, row: selectedRow, column: selectedColumn, selectedRow, selectedColumn, onSelect: selectCell })
+      )
     );
     const qTerms = [0, 1].map((d) => `${displayNumber(matrixValue(q, [0, selectedRow, d]))}×${displayNumber(matrixValue(k, [0, winner, d]))}`).join(" + ");
-    byId("cellExplanation").innerHTML = `<p>Q[${selectedRow},:] × K[${winner},:] = ${qTerms} = <strong>${displayNumber(matrixValue(scores, [0, selectedRow, winner]))}</strong></p><p>hardmax → ${COPY[language].selectedColumn} ${winner}; A[${selectedRow},${winner}] = 1</p><p>A[${selectedRow},:] × V[:,${selectedColumn}] = V[${winner},${selectedColumn}] = <strong>${displayNumber(matrixValue(output, [0, selectedRow, selectedColumn]))}</strong></p>`;
+    const previous = winner === 466 ? matrixValue(scores, [0, selectedRow, 465]) : null;
+    const chronology = previous === null ? "" : `<p>event 466 = ${String(matrixValue(scores, [0, selectedRow, winner]))}; event 465 = ${String(previous)}; gap = ${String(matrixValue(scores, [0, selectedRow, winner]) - previous)}</p>`;
+    byId("cellExplanation").innerHTML = `<p>Q[${selectedRow},:] × Kᵀ[:,${winner}] = ${qTerms} = <strong>${String(matrixValue(scores, [0, selectedRow, winner]))}</strong></p><p>hardmax → ${COPY[language].selectedColumn} ${winner}; A[${selectedRow},${winner}] = 1</p><p>A[${selectedRow},:] × V[:,${selectedColumn}] = V[${winner},${selectedColumn}] = <strong>${String(matrixValue(output, [0, selectedRow, selectedColumn]))}</strong></p>${chronology}`;
   }
 
   function renderGeneric(operation, flow) {
     const presentation = operationPresentation(operation.opcode, language);
-    const matrices = operation.opcode === "FROZEN_EXPAND" ? [] : operation.inputs.map((id, index) => [operation.inputs.length > 1 ? `${valueName()} ${index + 1}` : valueName(), id, trace.values[id], "input"]);
-    operation.frozen.forEach((id) => matrices.push([operation.opcode === "FROZEN_EXPAND" ? presentation.input : `${COPY[language].weight}: ${semanticFrozenName(trace.tensors[id].name)}`, id, trace.tensors[id], "frozen"]));
+    const matrices = operation.opcode === "FROZEN_EXPAND" ? [] : operation.inputs.map((id) => [semanticName(id, trace.values[id]), id, trace.values[id], "input"]);
+    operation.frozen.forEach((id) => matrices.push([semanticName(id, trace.tensors[id]), id, trace.tensors[id], "frozen"]));
     operation.derived.forEach((id) => matrices.push([id.includes("attention") ? COPY[language].attention : COPY[language].scores, id, trace.derived[id], "derived"]));
     const concat = operation.opcode === "ROW_CONCAT" ? concatSource(operation.inputs.map((id) => trace.values[id]), selectedRow) : null;
     const routedRow = operation.opcode === "ROW_ROUTE" ? routeSourceRow(operation.equation, selectedRow) : selectedRow;
     const winner = operation.opcode === "HARDMAX_STE" ? hardmaxWinner(selectedOutput(operation), 0, selectedRow) : selectedColumn;
+    if (operation.opcode === "ROW_CONCAT") {
+      const stack = document.createElement("div"); stack.className = "concat-input-stack";
+      matrices.forEach(([name, id, matrix, kind]) => {
+        const inputIndex = operation.inputs.indexOf(id); const contributing = inputIndex === concat.input;
+        stack.append(matrixCard(name, id, matrix, {
+          purpose: trace.semantics.values[id][language].purpose,
+          row: contributing ? concat.row : 0, column: selectedColumn,
+          selectedRow: contributing ? concat.row : -1, selectedColumn: contributing ? selectedColumn : -1,
+        }));
+      });
+      flow.classList.add("concat-flow");
+      flow.append(stack, sign(presentation.operator), matrixCard(semanticName(operation.output, selectedOutput(operation)), operation.output, selectedOutput(operation), { purpose: trace.semantics.values[operation.output][language].purpose, row: selectedRow, column: selectedColumn, selectedRow, selectedColumn, onSelect: selectCell }));
+      const outputValue = matrixValue(selectedOutput(operation), [0, selectedRow, selectedColumn]);
+      byId("cellExplanation").innerHTML = `<p>${COPY[language].output}[batch 0, ${COPY[language].rows} ${selectedRow}, ${COPY[language].columns} ${selectedColumn}] = <strong>${displayNumber(outputValue)}</strong><br>${COPY[language].output}: ${COPY[language].rows} ${selectedRow} ← ${COPY[language].input} ${concat.input + 1}: ${COPY[language].rows} ${concat.row}</p>`;
+      return;
+    }
     matrices.forEach(([name, id, matrix, kind], index) => {
       if (index) flow.append(sign(operation.opcode.includes("ADD") ? "+" : "→"));
       const inputIndex = operation.inputs.indexOf(id);
@@ -266,7 +326,7 @@
       const matrixRow = concat && contributing ? concat.row : routedRow;
       const exactColumn = operation.opcode === "HARDMAX_STE" ? winner : selectedColumn;
       flow.append(matrixCard(name, id, matrix, {
-        purpose: tensorPurpose(operation.opcode, kind, language),
+        purpose: kind === "frozen" && trace.semantics.tensors[id] ? trace.semantics.tensors[id][language].purpose : kind === "input" && trace.semantics.values[id] ? trace.semantics.values[id][language].purpose : tensorPurpose(operation.opcode, kind, language),
         row: matrixRow,
         column: exactColumn,
         highlightRow: operation.opcode === "HARDMAX_STE" && contributing ? matrixRow : -1,
@@ -274,7 +334,7 @@
         selectedColumn: contributing ? exactColumn : -1,
       }));
     });
-    flow.append(sign(flowClass(operation.opcode).includes("word-operator-flow") ? presentation.operator : "="), matrixCard(COPY[language].output, operation.output, selectedOutput(operation), { purpose: presentation.output, row: selectedRow, column: selectedColumn, selectedRow, selectedColumn, onSelect: selectCell }));
+    flow.append(sign(flowClass(operation.opcode).includes("word-operator-flow") ? presentation.operator : "="), matrixCard(semanticName(operation.output, selectedOutput(operation)), operation.output, selectedOutput(operation), { purpose: trace.semantics.values[operation.output][language].purpose, row: selectedRow, column: selectedColumn, selectedRow, selectedColumn, onSelect: selectCell }));
     const output = selectedOutput(operation); const outputValue = matrixValue(output, [0, selectedRow, selectedColumn]);
     let explanation = `${COPY[language].output}[batch 0, ${COPY[language].rows} ${selectedRow}, ${COPY[language].columns} ${selectedColumn}] = <strong>${displayNumber(outputValue)}</strong>`;
     if (operation.opcode === "RESIDUAL_ADD") explanation += `<br>${displayNumber(matrixValue(trace.values[operation.inputs[0]], [0, selectedRow, selectedColumn]))} + ${displayNumber(matrixValue(trace.values[operation.inputs[1]], [0, selectedRow, selectedColumn]))} = ${displayNumber(outputValue)}`;
@@ -293,26 +353,46 @@
     byId("operationCounter").textContent = `${String(operation.index).padStart(2, "0")} / ${trace.operations.length}`;
     byId("numericEquation").textContent = presentation ? presentation.equation : operationTitle(operation); byId("numericOperations").value = String(operationIndex);
     const flow = byId("matrixFlow"); flow.className = flowClass(operation.opcode); flow.replaceChildren();
-    byId("dotDimension").disabled = operationModel(operation.opcode) !== "matmul";
+    const isMatmul = operationModel(operation.opcode) === "matmul"; const dotControl = byId("dotDimension");
+    dotControl.disabled = !isMatmul; dotControl.closest(".k-control").hidden = !isMatmul;
+    if (!isMatmul) { kStart = 0; dotControl.value = "0"; byId("dotDimensionValue").textContent = "0–1"; }
     if (operationModel(operation.opcode) === "matmul") renderMatmul(operation, flow);
     else if (operationModel(operation.opcode) === "attention") renderAttention(operation, flow);
     else renderGeneric(operation, flow);
   }
 
   function applyLanguage() {
-    const copy = COPY[language]; document.documentElement.lang = language; byId("numeric-title").textContent = copy.title; byId("traceSubtitle").textContent = copy.subtitle;
+    const copy = COPY[language]; document.documentElement.lang = language; if (window.TraceI18n) window.TraceI18n.apply(language); window.dispatchEvent(new CustomEvent("trace-language", {detail: language})); byId("numeric-title").textContent = copy.title; byId("traceSubtitle").textContent = copy.subtitle;
     byId("operationLabel").textContent = copy.operation; byId("rowLabel").textContent = copy.row; byId("columnLabel").textContent = copy.column; byId("dimensionLabel").textContent = copy.dimension; byId("explanationTitle").textContent = copy.explanation;
     byId("languageRu").classList.toggle("active", language === "ru"); byId("languageEn").classList.toggle("active", language === "en");
-    const picker = byId("numericOperations"); picker.replaceChildren(...trace.operations.map((operation, index) => { const option = document.createElement("option"); option.value = String(index); option.textContent = operationOptionText(operation.index, operationTitle(operation)); return option; })); renderOperation();
+    const picker = byId("numericOperations"); picker.replaceChildren(...trace.operations.map((operation, index) => { const option = document.createElement("option"); option.value = String(index); option.textContent = operationOptionText(operation.index, operationTitle(operation)); return option; })); const reader = byId("matrixSelector"); if (reader.options.length) Array.from(reader.options).forEach((option) => { option.textContent = `${readerSemantics(option.value)[language].name} · ${option.value}`; }); renderOperation();
   }
 
+  function readableMatrix(id) { return trace.values[id] || trace.tensors[id] || trace.derived[id]; }
+  function readerSemantics(id) { const group = id.startsWith("w") ? trace.semantics.tensors : id.startsWith("v") ? trace.semantics.values : trace.semantics.derived; return group[id]; }
+  function renderDirectCell() {
+    const id = byId("matrixSelector").value; const matrix = readableMatrix(id); const semantic = readerSemantics(id); if (!matrix || !semantic) return;
+    const rank3 = matrix.shape.length === 3; const batchInput = byId("matrixBatch"); const rowInput = byId("matrixRow"); const columnInput = byId("matrixColumn");
+    const batchResult = integerCoordinate(batchInput.value, rank3 ? matrix.shape[0] - 1 : 0); const rowResult = integerCoordinate(rowInput.value, lastRows(matrix) - 1); const columnResult = integerCoordinate(columnInput.value, lastColumns(matrix) - 1);
+    if (!batchResult.ok || !rowResult.ok || !columnResult.ok) { byId("directCellValue").textContent = COPY[language].integerCoordinate; byId("producerJump").hidden = true; return; }
+    const {value: batch} = batchResult; const {value: row} = rowResult; const {value: column} = columnResult;
+    byId("matrixBatch").disabled = !rank3; byId("matrixBatch").max = String(rank3 ? matrix.shape[0] - 1 : 0); byId("matrixBatch").value = String(batch); byId("matrixRow").max = String(lastRows(matrix) - 1); byId("matrixRow").value = String(row); byId("matrixColumn").max = String(lastColumns(matrix) - 1); byId("matrixColumn").value = String(column);
+    const coordinates = rank3 ? [batch, row, column] : [row, column]; const pattern = patternDescription(id, column); let arithmetic = "";
+    if (id === "op45_scores") { const q = trace.values.v41; const k = trace.values.v40; const left0 = matrixValue(q, [batch, row, 0]); const left1 = matrixValue(q, [batch, row, 1]); const right0 = matrixValue(k, [batch, column, 0]); const right1 = matrixValue(k, [batch, column, 1]); arithmetic = ` Q[${row},:]·K[${column},:] = ${String(left0)}×${String(right0)} + ${String(left1)}×${String(right1)} = ${String(left0 * right0 + left1 * right1)}.`; }
+    if (id === "op45_attention") { const scores = trace.derived.op45_scores; let winner = 0; let best = matrixValue(scores, [batch, row, 0]); for (let event = 1; event < lastColumns(scores); event += 1) { const score = matrixValue(scores, [batch, row, event]); if (score > best) { best = score; winner = event; } } arithmetic = language === "ru" ? ` argmax строки score[${row},:] = ${winner} (при равенстве меньший индекс); поэтому attention=${column === winner ? 1 : 0}.` : ` argmax score row ${row} = ${winner} (lowest index wins ties); therefore attention=${column === winner ? 1 : 0}.`; }
+    const rowMeaning = axisIndexMeaning(semantic[language].rows, row); const columnMeaning = axisIndexMeaning(semantic[language].columns, column);
+    byId("directCellValue").textContent = `${semantic[language].name} · ${id}[${coordinates.join(", ")}] = ${String(matrixValue(matrix, coordinates))} · ${semantic[language].rows}${rowMeaning ? ` (${rowMeaning})` : ""} / ${semantic[language].columns}${columnMeaning ? ` (${columnMeaning})` : ""}${pattern ? ` · ${pattern}` : ""}. ${semantic[language].purpose}${arithmetic}`;
+    const jump = byId("producerJump"); const producer = semantic.producer; if (producer && producer.operation) { jump.hidden = false; jump.textContent = language === "ru" ? `Перейти к producer op ${producer.operation}` : `Jump to producer op ${producer.operation}`; jump.onclick = () => { operationIndex = producer.operation - 1; selectedRow = row; selectedColumn = column; renderOperation(); byId("matrices").scrollIntoView(); }; } else jump.hidden = true;
+  }
+  function initializeDirectReader() { const selector = byId("matrixSelector"); const ids = [...Object.keys(trace.tensors), ...Object.keys(trace.values), ...Object.keys(trace.derived)]; selector.replaceChildren(...ids.map((id) => { const option = document.createElement("option"); option.value = id; option.textContent = `${readerSemantics(id)[language].name} · ${id}`; return option; })); ["matrixSelector", "matrixBatch", "matrixRow", "matrixColumn"].forEach((id) => byId(id).addEventListener("input", renderDirectCell)); renderDirectCell(); }
+
   async function initialize() {
-    const response = await fetch("./numeric_trace.json"); if (!response.ok) throw new Error(`numeric trace request failed: ${response.status}`); trace = await response.json();
+    trace = await window.cmzTraceReady;
     byId("numericOperations").addEventListener("change", (event) => { operationIndex = Number(event.target.value); selectedRow = 0; selectedColumn = 0; kStart = 0; renderOperation(); });
     byId("previousNumericOperation").addEventListener("click", () => { operationIndex = clamp(operationIndex - 1, 0, trace.operations.length - 1); selectedRow = 0; selectedColumn = 0; kStart = 0; renderOperation(); });
     byId("nextNumericOperation").addEventListener("click", () => { operationIndex = clamp(operationIndex + 1, 0, trace.operations.length - 1); selectedRow = 0; selectedColumn = 0; kStart = 0; renderOperation(); });
-    byId("outputRow").addEventListener("input", (event) => { selectedRow = Number(event.target.value); renderOperation(); }); byId("outputColumn").addEventListener("input", (event) => { selectedColumn = Number(event.target.value); renderOperation(); });
-    byId("dotDimension").addEventListener("input", (event) => { kStart = Number(event.target.value); renderOperation(); }); byId("languageRu").addEventListener("click", () => { language = "ru"; applyLanguage(); }); byId("languageEn").addEventListener("click", () => { language = "en"; applyLanguage(); }); applyLanguage();
+    byId("outputRow").addEventListener("input", (event) => { const coordinate = integerCoordinate(event.target.value, lastRows(selectedOutput(trace.operations[operationIndex])) - 1); if (!coordinate.ok) { byId("cellExplanation").textContent = COPY[language].integerCoordinate; return; } selectedRow = coordinate.value; renderOperation(); }); byId("outputColumn").addEventListener("input", (event) => { const coordinate = integerCoordinate(event.target.value, lastColumns(selectedOutput(trace.operations[operationIndex])) - 1); if (!coordinate.ok) { byId("cellExplanation").textContent = COPY[language].integerCoordinate; return; } selectedColumn = coordinate.value; renderOperation(); });
+    byId("dotDimension").addEventListener("input", (event) => { kStart = Number(event.target.value); renderOperation(); }); byId("languageRu").addEventListener("click", () => { language = "ru"; applyLanguage(); renderDirectCell(); }); byId("languageEn").addEventListener("click", () => { language = "en"; applyLanguage(); renderDirectCell(); }); selectedRow = 0; selectedColumn = 52; applyLanguage(); initializeDirectReader();
   }
   initialize().catch((error) => { byId("numericEquation").textContent = error.message; });
 }());
