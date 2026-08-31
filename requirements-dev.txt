@@ -1,0 +1,5 @@
+# Development/compiler/oracle tools, not production runtime dependencies.
+# Install the desired CPU or CUDA PyTorch wheel separately; see README.md.
+numpy>=1.24,<3
+pytest>=8,<10
+python-chess==1.999

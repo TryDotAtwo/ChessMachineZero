@@ -1,7 +1,9 @@
 #include "cmz/ste.h"
 
 #include <torch/autograd.h>
+#include <ATen/ops/_assert_async.h>
 
+#include <cmath>
 #include <limits>
 
 namespace cmz {
@@ -14,8 +16,15 @@ public:
         torch::Tensor logits,
         torch::Tensor mask,
         double temperature) {
-        TORCH_CHECK(mask.scalar_type() == torch::kBool && mask.sizes() == logits.sizes());
-        TORCH_CHECK(temperature > 0.0, "hardmax temperature must be positive");
+        TORCH_CHECK(logits.is_floating_point() && logits.dim() > 0 && logits.size(-1) > 0,
+                    "hardmax requires floating logits with a nonempty last dimension");
+        TORCH_CHECK(mask.scalar_type() == torch::kBool && mask.sizes() == logits.sizes() &&
+                    mask.device() == logits.device(), "hardmax mask shape/dtype/device mismatch");
+        TORCH_CHECK(std::isfinite(temperature) && temperature > 0.0,
+                    "hardmax temperature must be finite and positive");
+        // CPU throws immediately; CUDA enqueues an assertion on the current stream.
+        // No .item(), CPU transfer, or synchronization belongs in this hot path.
+        at::_assert_async(mask.any(-1).all(), "hardmax row must have at least one eligible entry");
         const auto masked = logits.masked_fill(mask.logical_not(), -std::numeric_limits<float>::infinity());
         const auto probabilities = torch::softmax(masked / temperature, -1);
         const auto indices = std::get<1>(masked.max(-1, true));
@@ -44,12 +53,16 @@ class Fp4Ste final : public torch::autograd::Function<Fp4Ste> {
 public:
     static torch::Tensor forward(
         torch::autograd::AutogradContext*, torch::Tensor values, double scale) {
-        TORCH_CHECK(scale > 0.0, "FP4 scale must be positive");
+        TORCH_CHECK(values.is_floating_point(), "FP4 values must use a floating dtype");
+        TORCH_CHECK(std::isfinite(scale) && scale > 0.0, "FP4 scale must be finite and positive");
         const auto lattice = torch::tensor(
             {-6.0, -4.0, -3.0, -2.0, -1.5, -1.0, -0.5, 0.0,
              0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0},
             values.options()) * scale;
-        const auto indices = (values.unsqueeze(-1) - lattice).abs().argmin(-1);
+        // Saturate BEFORE subtraction: finite extremes otherwise round all lattice
+        // distances to the same float and argmin incorrectly chooses the first code.
+        const auto bounded = values.clamp(-6.0 * scale, 6.0 * scale);
+        const auto indices = (bounded.unsqueeze(-1) - lattice).abs().argmin(-1);
         return lattice.index({indices});
     }
 

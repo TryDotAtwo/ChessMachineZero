@@ -1,9 +1,20 @@
 #include "cmz/hullkv.h"
 
 #include <torch/autograd.h>
+#include <cmath>
 
 namespace cmz {
 namespace {
+
+void validate_values(const torch::Tensor& queries, const torch::Tensor& values,
+                     int rank, double temperature) {
+    TORCH_CHECK(std::isfinite(temperature) && temperature > 0.0,
+                "HullKV temperature must be finite and positive");
+    TORCH_CHECK(values.dim() == rank && values.size(-1) > 0,
+                "HullKV value shape mismatch");
+    TORCH_CHECK(values.scalar_type() == torch::kFloat32 && values.device() == queries.device(),
+                "HullKV values must use FP32 on the query CUDA device");
+}
 
 class HullAttentionSte final : public torch::autograd::Function<HullAttentionSte> {
 public:
@@ -15,7 +26,8 @@ public:
         torch::Tensor hull_indices,
         std::int64_t competitor_count,
         double temperature) {
-        TORCH_CHECK(temperature > 0.0, "HullKV temperature must be positive");
+        validate_values(queries, values, 2, temperature);
+        TORCH_CHECK(keys.dim() == 2, "HullKV key shape mismatch");
         TORCH_CHECK(keys.size(0) == values.size(0), "HullKV keys and values must align");
         const auto competitors =
             support_topk_2d_cuda(queries, keys, hull_indices, competitor_count);
@@ -85,11 +97,11 @@ public:
         torch::Tensor hull_indices,
         std::int64_t competitor_count,
         double temperature) {
+        validate_values(queries, values, 3, temperature);
         TORCH_CHECK(queries.dim() == 3 && queries.size(2) == 2);
         TORCH_CHECK(keys.dim() == 2 && keys.size(1) == 2);
         TORCH_CHECK(values.dim() == 3 && values.size(0) == queries.size(0));
         TORCH_CHECK(values.size(1) == keys.size(0));
-        TORCH_CHECK(temperature > 0.0, "HullKV temperature must be positive");
         const auto batch_count = queries.size(0);
         const auto query_count = queries.size(1);
         const auto key_count = keys.size(0);
@@ -183,11 +195,11 @@ public:
         torch::Tensor hull_indices,
         std::int64_t competitor_count,
         double temperature) {
+        validate_values(queries, values, 3, temperature);
         TORCH_CHECK(queries.dim() == 3 && queries.size(2) == 2);
         TORCH_CHECK(keys.dim() == 3 && keys.size(0) == queries.size(0) && keys.size(2) == 2);
         TORCH_CHECK(values.dim() == 3 && values.size(0) == queries.size(0));
         TORCH_CHECK(values.size(1) == keys.size(1));
-        TORCH_CHECK(temperature > 0.0, "HullKV temperature must be positive");
         const auto batch_count = queries.size(0);
         const auto query_count = queries.size(1);
         const auto key_count = keys.size(1);

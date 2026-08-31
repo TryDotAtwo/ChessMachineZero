@@ -19,6 +19,7 @@ __global__ void support_topk_kernel(
     const float* keys,
     const std::int64_t* hull,
     std::int64_t query_count,
+    std::int64_t key_count,
     std::int64_t hull_count,
     std::int64_t k,
     std::int64_t* output) {
@@ -26,6 +27,7 @@ __global__ void support_topk_kernel(
     if (query >= query_count) {
         return;
     }
+    for (std::int64_t slot = 0; slot < k; ++slot) output[query * k + slot] = 0;
 
     float top_scores[kMaximumCompetitors];
     std::int64_t top_indices[kMaximumCompetitors];
@@ -39,7 +41,15 @@ __global__ void support_topk_kernel(
     const float qy = queries[query * 2 + 1];
     for (std::int64_t position = 0; position < hull_count; ++position) {
         const auto key_index = hull[position];
+        if (key_index < 0 || key_index >= key_count) {
+            CUDA_KERNEL_ASSERT(false && "attention candidate out of range");
+            return;
+        }
         const float score = qx * keys[key_index * 2] + qy * keys[key_index * 2 + 1];
+        if (!isfinite(score)) {
+            CUDA_KERNEL_ASSERT(false && "attention score must be finite");
+            return;
+        }
         std::int64_t insertion = k;
         for (std::int64_t slot = 0; slot < k; ++slot) {
             if (score > top_scores[slot] ||
@@ -76,6 +86,7 @@ __global__ void support_topk_batched_kernel(
     if (flat_query >= batch_count * query_count) {
         return;
     }
+    for (std::int64_t slot = 0; slot < k; ++slot) output[flat_query * k + slot] = 0;
     float top_scores[kMaximumCompetitors];
     std::int64_t top_indices[kMaximumCompetitors];
 #pragma unroll
@@ -88,8 +99,16 @@ __global__ void support_topk_batched_kernel(
     const float qy = queries[flat_query * 2 + 1];
     for (std::int64_t position = 0; position < hull_count; ++position) {
         const auto key_index = hull[position];
+        if (key_index < 0 || key_index >= key_count) {
+            CUDA_KERNEL_ASSERT(false && "attention candidate out of range");
+            return;
+        }
         const auto key_offset = (batch * key_count + key_index) * 2;
         const float score = qx * keys[key_offset] + qy * keys[key_offset + 1];
+        if (!isfinite(score)) {
+            CUDA_KERNEL_ASSERT(false && "attention score must be finite");
+            return;
+        }
         std::int64_t insertion = k;
         for (std::int64_t slot = 0; slot < k; ++slot) {
             if (score > top_scores[slot] ||
@@ -127,18 +146,23 @@ torch::Tensor support_topk_2d_cuda(
     TORCH_CHECK(hull_indices.dim() == 1 && hull_indices.numel() > 0);
     TORCH_CHECK(queries.device() == keys.device() && keys.device() == hull_indices.device());
     TORCH_CHECK(k > 0 && k <= hull_indices.numel() && k <= kMaximumCompetitors);
+    TORCH_CHECK(keys.size(0) > 0 && k <= keys.size(0), "attention key capacity mismatch");
     TORCH_CHECK(queries.is_contiguous() && keys.is_contiguous() && hull_indices.is_contiguous());
 
     c10::cuda::CUDAGuard guard(queries.device());
     auto output = torch::empty(
         {queries.size(0), k}, queries.options().dtype(torch::kInt64));
+    if (queries.size(0) == 0) return output;
     constexpr int threads = 128;
+    TORCH_CHECK((queries.size(0) + threads - 1) / threads <= std::numeric_limits<int>::max(),
+                "attention query capacity overflow");
     const auto blocks = static_cast<int>((queries.size(0) + threads - 1) / threads);
     support_topk_kernel<<<blocks, threads, 0, at::cuda::getCurrentCUDAStream()>>>(
         queries.data_ptr<float>(),
         keys.data_ptr<float>(),
         hull_indices.data_ptr<std::int64_t>(),
         queries.size(0),
+        keys.size(0),
         hull_indices.numel(),
         k,
         output.data_ptr<std::int64_t>());
@@ -159,6 +183,7 @@ torch::Tensor support_topk_2d_batched_cuda(
     TORCH_CHECK(hull_indices.dim() == 1 && hull_indices.numel() > 0);
     TORCH_CHECK(queries.device() == keys.device() && keys.device() == hull_indices.device());
     TORCH_CHECK(k > 0 && k <= hull_indices.numel() && k <= kMaximumCompetitors);
+    TORCH_CHECK(keys.size(1) > 0 && k <= keys.size(1), "attention key capacity mismatch");
     TORCH_CHECK(queries.is_contiguous() && keys.is_contiguous() && hull_indices.is_contiguous());
 
     c10::cuda::CUDAGuard guard(queries.device());
@@ -166,6 +191,9 @@ torch::Tensor support_topk_2d_batched_cuda(
         {queries.size(0) * queries.size(1), k}, queries.options().dtype(torch::kInt64));
     constexpr int threads = 128;
     const auto flat_queries = queries.size(0) * queries.size(1);
+    if (flat_queries == 0) return output;
+    TORCH_CHECK((flat_queries + threads - 1) / threads <= std::numeric_limits<int>::max(),
+                "attention query capacity overflow");
     const auto blocks = static_cast<int>((flat_queries + threads - 1) / threads);
     support_topk_batched_kernel<<<blocks, threads, 0, at::cuda::getCurrentCUDAStream()>>>(
         queries.data_ptr<float>(), keys.data_ptr<float>(), hull_indices.data_ptr<std::int64_t>(),

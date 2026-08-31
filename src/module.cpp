@@ -6,6 +6,8 @@
 #include <c10/cuda/CUDAGuard.h>
 
 #include <cstdint>
+#include <algorithm>
+#include <limits>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
@@ -48,80 +50,154 @@ void require_schema(
         "artifact operation schema mismatch");
 }
 
+// -1 denotes the single symbolic batch dimension. Every other extent is static.
+using Shape = std::vector<std::int64_t>;
+
+Shape broadcast_shape(const Shape& left, const Shape& right) {
+    Shape result(std::max(left.size(), right.size()), 1);
+    for (std::size_t i = 0; i < result.size(); ++i) {
+        const auto a = i < left.size() ? left[left.size() - 1 - i] : 1;
+        const auto b = i < right.size() ? right[right.size() - 1 - i] : 1;
+        TORCH_CHECK(a == b || a == 1 || b == 1, "artifact broadcast shape mismatch");
+        result[result.size() - 1 - i] = a == 1 ? b : a;
+    }
+    TORCH_CHECK(result.front() == -1 &&
+                std::find(result.begin() + 1, result.end(), -1) == result.end(),
+                "artifact broadcast shape moves symbolic batch");
+    return result;
+}
+
+Shape project_shape(const Shape& source, const Shape& weights) {
+    TORCH_CHECK(source.size() >= 2 && weights.size() == 2 && source.back() == weights[0],
+                "artifact projection shape mismatch");
+    auto result = source;
+    result.back() = weights[1];
+    return result;
+}
+
 void validate_graph(const cmz::Artifact& artifact) {
-    std::unordered_set<std::uint32_t> defined = {0U};
+    std::unordered_map<std::uint32_t, Shape> shapes = {{0U, {-1, 2048, 128}}};
+    const auto frozen = [&](std::uint32_t index) -> Shape {
+        TORCH_CHECK(index < artifact.tensors().size(), "artifact tensor index out of range");
+        const auto& shape = artifact.tensors()[index].shape;
+        return Shape(shape.begin(), shape.end());
+    };
+    bool has_context = false;
+    for (const auto& tensor : artifact.tensors()) {
+        if (tensor.name == "context_0") {
+            TORCH_CHECK(!has_context, "artifact defines context_0 twice");
+            TORCH_CHECK(tensor.shape == std::vector<std::uint32_t>({2045, 128}),
+                        "context_0 must have shape [2045,128]");
+            has_context = true;
+        }
+    }
     for (const auto& operation : artifact.operations()) {
         for (const auto input : operation.inputs) {
-            TORCH_CHECK(defined.count(input) != 0U, "artifact graph reads an undefined SSA value");
+            TORCH_CHECK(shapes.count(input) != 0U, "artifact graph reads an undefined SSA value");
         }
+        const auto input_shape = [&](std::size_t index) -> const Shape& {
+            return shapes.at(operation.inputs.at(index));
+        };
+        Shape result;
         switch (operation.opcode) {
-            case cmz::OpCode::RowRoute:
+            case cmz::OpCode::RowRoute: {
                 TORCH_CHECK(
                     operation.inputs.size() == 1U && operation.outputs.size() == 1U &&
                         (operation.attributes.size() == 2U || operation.attributes.size() == 3U),
                     "artifact RowRoute schema mismatch");
-                TORCH_CHECK(operation.attributes[0] < operation.attributes[1]);
-                if (operation.attributes.size() == 3U) {
-                    TORCH_CHECK(operation.attributes[2] > 0U, "RowRoute stride must be positive");
-                }
+                const auto stride = operation.attributes.size() == 3U ? operation.attributes[2] : 1U;
+                TORCH_CHECK(stride > 0U, "RowRoute stride must be positive");
+                result = input_shape(0);
+                TORCH_CHECK(result.size() >= 2 && operation.attributes[0] < operation.attributes[1] &&
+                            operation.attributes[1] <= result[1], "artifact RowRoute bounds mismatch");
+                result[1] = (std::int64_t(operation.attributes[1]) - operation.attributes[0] + stride - 1) / stride;
                 break;
+            }
             case cmz::OpCode::TokenProject:
-            case cmz::OpCode::PositionAdd:
             case cmz::OpCode::OutputProject:
                 require_schema(operation, 1U, 1U, 1U);
-                TORCH_CHECK(operation.attributes[0] < artifact.tensors().size());
+                result = project_shape(input_shape(0), frozen(operation.attributes[0]));
+                break;
+            case cmz::OpCode::PositionAdd:
+                require_schema(operation, 1U, 1U, 1U);
+                result = broadcast_shape(input_shape(0), frozen(operation.attributes[0]));
                 break;
             case cmz::OpCode::ResidualAdd:
                 require_schema(operation, 2U, 1U, 0U);
+                result = broadcast_shape(input_shape(0), input_shape(1));
                 break;
-            case cmz::OpCode::GatedFfn:
+            case cmz::OpCode::GatedFfn: {
                 require_schema(operation, 1U, 1U, 3U);
-                for (const auto tensor : operation.attributes) {
-                    TORCH_CHECK(tensor < artifact.tensors().size());
-                }
+                const auto up = project_shape(input_shape(0), frozen(operation.attributes[0]));
+                const auto gate = project_shape(input_shape(0), frozen(operation.attributes[1]));
+                result = project_shape(broadcast_shape(up, gate), frozen(operation.attributes[2]));
                 break;
+            }
             case cmz::OpCode::HardmaxSte:
                 TORCH_CHECK((operation.inputs.size() == 1U || operation.inputs.size() == 2U) &&
                             operation.outputs.size() == 1U && operation.attributes.size() == 1U,
                             "artifact HardmaxSte schema mismatch");
                 TORCH_CHECK(operation.attributes[0] > 0U);
+                result = input_shape(0);
+                TORCH_CHECK(result.size() >= 2, "artifact hardmax shape mismatch");
+                if (operation.inputs.size() == 2U)
+                    TORCH_CHECK(input_shape(1) == result, "artifact hardmax mask shape mismatch");
                 break;
-            case cmz::OpCode::HullAttention2D:
+            case cmz::OpCode::HullAttention2D: {
                 TORCH_CHECK((operation.inputs.size() == 2U || operation.inputs.size() == 3U) &&
                             operation.outputs.size() == 1U,
                             "artifact HullAttention2D schema mismatch");
-                if (operation.inputs.size() == 2U) {
-                    TORCH_CHECK(operation.attributes.size() >= 4U);
-                    TORCH_CHECK(operation.attributes[0] < artifact.tensors().size());
-                    TORCH_CHECK(operation.attributes[1] > 0U && operation.attributes[1] <= 32U);
-                    TORCH_CHECK(operation.attributes[2] > 0U);
-                    TORCH_CHECK(operation.attributes[1] <= operation.attributes.size() - 3U);
-                    TORCH_CHECK(artifact.tensors()[operation.attributes[0]].shape.size() == 2U &&
-                                artifact.tensors()[operation.attributes[0]].shape[1] == 2U);
-                    for (auto index = operation.attributes.begin() + 3;
-                         index != operation.attributes.end(); ++index) {
-                        TORCH_CHECK(*index < artifact.tensors()[operation.attributes[0]].shape[0]);
-                    }
-                } else {
-                    TORCH_CHECK(operation.attributes.size() >= 3U);
-                    TORCH_CHECK(operation.attributes[0] > 0U && operation.attributes[0] <= 32U);
-                    TORCH_CHECK(operation.attributes[1] > 0U);
-                    TORCH_CHECK(operation.attributes[0] <= operation.attributes.size() - 2U);
+                const bool shared = operation.inputs.size() == 2U;
+                const std::size_t metadata = shared ? 3U : 2U;
+                TORCH_CHECK(operation.attributes.size() > metadata, "attention candidate list is empty");
+                const auto topk = operation.attributes[shared ? 1 : 0];
+                TORCH_CHECK(topk > 0U && topk <= 32U && topk <= operation.attributes.size() - metadata,
+                            "attention competitor capacity mismatch");
+                TORCH_CHECK(operation.attributes[shared ? 2 : 1] > 0U, "attention temperature must be positive");
+                const auto& q = input_shape(0);
+                const auto k = shared ? frozen(operation.attributes[0]) : input_shape(1);
+                const auto& v = input_shape(shared ? 1 : 2);
+                TORCH_CHECK(q.size() == 3 && q[0] == -1 && q[2] == 2, "artifact attention query shape mismatch");
+                TORCH_CHECK((shared && k.size() == 2 && k[1] == 2) ||
+                            (!shared && k.size() == 3 && k[0] == -1 && k[2] == 2),
+                            "artifact attention key shape mismatch");
+                const auto rows = k[shared ? 0 : 1];
+                TORCH_CHECK(v.size() == 3 && v[0] == -1 && v[1] == rows,
+                            "artifact attention value shape mismatch");
+                std::unordered_set<std::uint32_t> candidates;
+                for (auto index = operation.attributes.begin() + metadata; index != operation.attributes.end(); ++index) {
+                    TORCH_CHECK(*index < rows, "artifact attention candidate out of range");
+                    TORCH_CHECK(candidates.insert(*index).second, "artifact attention duplicate candidate");
                 }
+                result = {-1, q[1], v[2]};
                 break;
+            }
             case cmz::OpCode::FrozenExpand:
                 require_schema(operation, 1U, 1U, 1U);
                 TORCH_CHECK(operation.inputs[0] == 0U, "FrozenExpand batch source must be VM input");
-                TORCH_CHECK(operation.attributes[0] < artifact.tensors().size());
+                result = frozen(operation.attributes[0]);
+                result.insert(result.begin(), -1);
                 break;
             case cmz::OpCode::RowConcat:
                 TORCH_CHECK(!operation.inputs.empty() && operation.outputs.size() == 1U &&
                                 operation.attributes.empty(),
                             "artifact RowConcat schema mismatch");
+                result = input_shape(0);
+                TORCH_CHECK(result.size() >= 2, "artifact RowConcat shape mismatch");
+                for (std::size_t i = 1; i < operation.inputs.size(); ++i) {
+                    const auto& next = input_shape(i);
+                    TORCH_CHECK(next.size() == result.size(), "artifact RowConcat shape mismatch");
+                    for (std::size_t dim = 0; dim < result.size(); ++dim)
+                        TORCH_CHECK(dim == 1 || next[dim] == result[dim], "artifact RowConcat shape mismatch");
+                    TORCH_CHECK(result[1] <= std::numeric_limits<std::int64_t>::max() - next[1], "RowConcat capacity overflow");
+                    result[1] += next[1];
+                }
                 break;
+            default:
+                TORCH_CHECK(false, "unknown artifact opcode");
         }
         for (const auto output : operation.outputs) {
-            TORCH_CHECK(output != 0U && defined.insert(output).second,
+            TORCH_CHECK(output != 0U && shapes.emplace(output, result).second,
                         "artifact graph redefines an SSA value");
         }
     }
