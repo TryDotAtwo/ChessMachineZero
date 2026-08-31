@@ -362,7 +362,7 @@
   }
 
   function applyLanguage() {
-    const copy = COPY[language]; document.documentElement.lang = language; if (window.TraceI18n) window.TraceI18n.apply(language); window.dispatchEvent(new CustomEvent("trace-language", {detail: language})); byId("numeric-title").textContent = copy.title; byId("traceSubtitle").textContent = copy.subtitle;
+    const copy = COPY[language]; document.documentElement.lang = language; if (window.TraceI18n) window.TraceI18n.apply(language); byId("numeric-title").textContent = copy.title; byId("traceSubtitle").textContent = copy.subtitle;
     byId("operationLabel").textContent = copy.operation; byId("rowLabel").textContent = copy.row; byId("columnLabel").textContent = copy.column; byId("dimensionLabel").textContent = copy.dimension; byId("explanationTitle").textContent = copy.explanation;
     byId("languageRu").classList.toggle("active", language === "ru"); byId("languageEn").classList.toggle("active", language === "en");
     const picker = byId("numericOperations"); picker.replaceChildren(...trace.operations.map((operation, index) => { const option = document.createElement("option"); option.value = String(index); option.textContent = operationOptionText(operation.index, operationTitle(operation)); return option; })); const reader = byId("matrixSelector"); if (reader.options.length) Array.from(reader.options).forEach((option) => { option.textContent = `${readerSemantics(option.value)[language].name} · ${option.value}`; }); renderOperation();
@@ -392,7 +392,7 @@
     byId("previousNumericOperation").addEventListener("click", () => { operationIndex = clamp(operationIndex - 1, 0, trace.operations.length - 1); selectedRow = 0; selectedColumn = 0; kStart = 0; renderOperation(); });
     byId("nextNumericOperation").addEventListener("click", () => { operationIndex = clamp(operationIndex + 1, 0, trace.operations.length - 1); selectedRow = 0; selectedColumn = 0; kStart = 0; renderOperation(); });
     byId("outputRow").addEventListener("input", (event) => { const coordinate = integerCoordinate(event.target.value, lastRows(selectedOutput(trace.operations[operationIndex])) - 1); if (!coordinate.ok) { byId("cellExplanation").textContent = COPY[language].integerCoordinate; return; } selectedRow = coordinate.value; renderOperation(); }); byId("outputColumn").addEventListener("input", (event) => { const coordinate = integerCoordinate(event.target.value, lastColumns(selectedOutput(trace.operations[operationIndex])) - 1); if (!coordinate.ok) { byId("cellExplanation").textContent = COPY[language].integerCoordinate; return; } selectedColumn = coordinate.value; renderOperation(); });
-    byId("dotDimension").addEventListener("input", (event) => { kStart = Number(event.target.value); renderOperation(); }); byId("languageRu").addEventListener("click", () => { language = "ru"; applyLanguage(); renderDirectCell(); }); byId("languageEn").addEventListener("click", () => { language = "en"; applyLanguage(); renderDirectCell(); }); selectedRow = 0; selectedColumn = 52; applyLanguage(); initializeDirectReader();
+    byId("dotDimension").addEventListener("input", (event) => { kStart = Number(event.target.value); renderOperation(); }); window.addEventListener("trace-language", (event) => { language = event.detail; applyLanguage(); renderDirectCell(); }); language = document.documentElement.lang === "en" ? "en" : "ru"; selectedRow = 0; selectedColumn = 52; applyLanguage(); initializeDirectReader();
   }
   initialize().catch((error) => { byId("numericEquation").textContent = error.message; });
 }());

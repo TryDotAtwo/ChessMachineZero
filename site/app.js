@@ -9,6 +9,6 @@
   function setStatus(ok, message) { byId("verification").classList.toggle("error", !ok); byId("traceStatus").textContent = message; }
   function render() { renderFixture(); renderBoard(); byId("sourceHash").textContent = trace.provenance.source_sha256.slice(0, 16); byId("sourceHash").title = trace.provenance.source_sha256; setStatus(true, readyText()); }
   function applyLanguage(next) { language = next; TraceI18n.apply(language); if (trace) render(); }
-  async function initialize() { try { trace = await window.cmzTraceReady; render(); } catch (error) { setStatus(false, error.message); } }
+  async function initialize() { try { trace = await window.cmzTraceReady; render(); } catch (error) { TraceI18n.setLoadError(error); setStatus(false, TraceI18n.failureText()); } }
   window.addEventListener("trace-language", (event) => applyLanguage(event.detail)); initialize();
 }());

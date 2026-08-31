@@ -231,6 +231,34 @@ console.log(JSON.stringify({d5: board.d5, e2: board.e2, history: model.decodeFix
     assert json.loads(completed.stdout) == {"d5": "white pawn", "e2": "empty", "history": ["e2e4", "d7d5", "e4d5"], "invalid": False, "missing": False}
 
 
+def test_language_bootstrap_localizes_a_failure_before_trace_load_completes():
+    script = r"""
+const nodes = Object.fromEntries(['languageRu', 'languageEn', 'traceStatus'].map(id => [id, {
+  handlers: {}, textContent: '', dataset: {}, classList: {toggle() {}},
+  addEventListener(event, handler) { this.handlers[event] = handler; }
+}]));
+global.document = {documentElement: {}, querySelectorAll() { return []; }, getElementById(id) { return nodes[id] || null; }};
+const events = [];
+global.window = {dispatchEvent(event) { events.push(event.detail); }};
+global.CustomEvent = class { constructor(type, init) { this.type = type; this.detail = init.detail; }};
+const i18n = require('./site/i18n.js');
+i18n.setLoadError('trace schema mismatch');
+const ru = nodes.traceStatus.textContent;
+nodes.languageEn.handlers.click();
+console.log(JSON.stringify({ru, en: nodes.traceStatus.textContent, events}));
+"""
+    completed = subprocess.run(["node", "-e", script], cwd=ROOT, text=True, encoding="utf-8", capture_output=True)
+    assert completed.returncode == 0, completed.stderr
+    assert json.loads(completed.stdout) == {
+        "ru": "Ошибка проверки экспорта: trace schema mismatch",
+        "en": "Export validation error: trace schema mismatch",
+        "events": ["en"],
+    }
+    inspector = (ROOT / "site" / "matrix_inspector.js").read_text(encoding="utf-8")
+    assert "window.addEventListener(\"trace-language\"" in inspector
+    assert 'byId("languageRu").addEventListener' not in inspector
+
+
 def test_exported_semantics_preserve_source_specific_weights_patterns_and_producers():
     script = r"""
 const trace = require('./site/numeric_trace.json');
