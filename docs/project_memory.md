@@ -45,13 +45,15 @@ Current-state record, updated during the 2026-08-31 audit corrections. Historica
 ## Evidence and website
 
 - audit=[../test_results/audit_2026-08-31.md](../test_results/audit_2026-08-31.md), historical findings with reproducible counterexamples
-- python_corrections=commit5202cbd; initial corrected gate123 passed; final integrated gate through102e599 is255 passed in13.44s
+- python_corrections=commit5202cbd; initial corrected gate123 passed; final integrated gate through721db71 is257 passed in20.92s
 - site_source=static site under site/; numeric_trace.json is an offline Python reference execution export, not native CUDA intermediates or browser inference
 - site_fixture=three legal plies e2e4,d7d5,e4d5; token triples [[52,54,96],[47,45,102],[54,45,96]]
 - publication=GitHub Pages workflow publishes site/ from main; scoped ordinary push allowed, no force/history rewrite/unrelated changes
+- publication_verified=code/site revision721db7129a176890d8b4b530aa8de6b75581adb0; Pages33356317808 success; public45operations/72tensors, exact fixture/values, RU/EN and fresh console verified after cache correction; later report-only commits do not change deployed site bytes
 - native_corrections=commit b3ba731; fresh direct Windows build, 15 checked process exits, 52 exact FP32 full boards, independent selected-top-k Q/K/V derivatives, malformed metadata/mask guards; independent review Approved
 - native_memcheck=controller Compute Sanitizer 2024.2 on valid attention and all 52 board fixtures: exit0 and zero reported errors; integrated position backward and CMake success remain unverified
 - site_inspector=commits58284fa,baf94a5,102e599; single reference fixture, semantic metadata for24 frozen/46 SSA/2 derived tensors; arbitrary-coordinate values and producer links; correct GEMM row/column, explicit ARGMAX and real K-transpose stages; explicit loading/ready/error lifecycle
 - site_validation=rejects inconsistent stored generic FP32 arithmetic before render, including malformed/missing data; not independent chess-legality proof or cryptographic authenticity
+- site_cache=commit721db71; generator fingerprints CSS/all4JS/numericJSON by normalized content; app fetch/download share the versioned URL; this fixes mixed old-script/new-HTML cache failure found during live acceptance
 - site_browser=all45 operations at1536px desktop and390x844 mobile; exact cells/producer navigation, RU/EN and invalid-export failure state verified; console errors/warnings empty
 - release_evidence=[../test_results/audit_corrections_2026-08-31.md](../test_results/audit_corrections_2026-08-31.md); final review/publication status is recorded there

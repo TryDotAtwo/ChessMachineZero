@@ -1,6 +1,6 @@
 # Audit correction evidence — 2026-08-31
 
-Status: implementation and local acceptance complete through `102e599`; final release review and publication are recorded separately below. Source worktree: `codex/pure-frozen-transformer-vm-clean`. Original audited commit: `f7165cd`; historical findings: [audit_2026-08-31.md](audit_2026-08-31.md).
+Status: approved corrections complete and published; local and live acceptance passed for site/code revision `721db71`. Source worktree: `codex/pure-frozen-transformer-vm-clean`. Original audited commit: `f7165cd`; historical findings: [audit_2026-08-31.md](audit_2026-08-31.md).
 
 ## Python compiler/reference corrections
 
@@ -69,7 +69,7 @@ Local URL `http://127.0.0.1:8765/` before UI corrections reproduced the audit's 
 
 ## Final site and integrated acceptance
 
-Site commits: `58284fa`, failure-state language follow-up `baf94a5`, and readiness-lifecycle correction `102e599`. The page uses one generated reference trace, not an independent JavaScript chess replay. All 24 frozen tensors, 46 SSA values and two derived attention matrices have bilingual purpose/axis metadata and an arbitrary-coordinate reader. Producer navigation and scalar arithmetic remain available; technical IDs are secondary mappings.
+Site commits: `58284fa`, failure-state language follow-up `baf94a5`, readiness-lifecycle correction `102e599`, and cache-version correction `721db71`. The page uses one generated reference trace, not an independent JavaScript chess replay. All 24 frozen tensors, 46 SSA values and two derived attention matrices have bilingual purpose/axis metadata and an arbitrary-coordinate reader. Producer navigation and scalar arithmetic remain available; technical IDs are secondary mappings.
 
 The validator rejects missing/malformed topology, COO, fixture or arithmetic before rendering. The dedicated negative regression suite observed **124 failed / 3 passed before correction**, then **127 passed**. It checks generic FP32 arithmetic consistency, not independent chess legality. Hash fields are not cryptographic authentication, and metadata validation does not prove the natural-language descriptions truthful.
 
@@ -85,7 +85,7 @@ foreach ($jsFile in @('site/app.js', 'site/i18n.js', 'site/matrix_inspector.js',
 git diff --check
 ```
 
-Result after `102e599`: **255 passed in 13.44s**, all four individual JS syntax checks passed, diff check passed. Earlier `baf94a5` gate was 255 passed in17.36s. Native sources were unchanged since the fresh build and controller native/memcheck acceptance above; no cached executable was substituted for a rebuild of changed source.
+Final result after `721db71`: **257 passed in 20.92s**, all four individual JS syntax checks passed, diff check passed. Earlier gates: `102e599` 255 passed in13.44s; `baf94a5` 255 passed in17.36s. Native sources were unchanged since the fresh build and controller native/memcheck acceptance above; no cached executable was substituted for a rebuild of changed source.
 
 Controller browser checks on the final local site:
 
@@ -109,11 +109,25 @@ Published-data identity for this source revision:
 
 - Executor: `vm_compiler.reference_executor`; dtype: `float32`.
 - Artifact SHA-256: `b2405abab2073dbd54d4879495563c8570cc12a846a470fe59449124d48414c6` (also the native fixture artifact).
-- Export source SHA-256: `36a8ebd35a9e232fd57be2bcc6da967b299e518256939e19f66c1bf73a7c9398`.
+- Final export source SHA-256: `01d1e09b4a3cc927c4280718595af6c5ed58d1fd4c519a8f7a78c3d4fcb5dae0`; prior pre-cache-fix export was `36a8ebd35a9e232fd57be2bcc6da967b299e518256939e19f66c1bf73a7c9398`. The change reflects exporter source changes, not altered chess arithmetic.
 - Fixture triples: `[[52,54,96],[47,45,102],[54,45,96]]`.
 
 ## Release review and publication
 
-Independent core review through `d31c8fb`: Approved, no Critical/Important or new Minor findings. Independent site review through `58284fa` found no new blockers; the tracked failure-state language issue is fixed in `baf94a5`. Final integration review then found a real readiness-label regression; `102e599` closes it. Both independent Task3 and final integration addendum reviews are now **Approved**, no remaining Critical/Important findings. Fast-forward publication/live Pages checks are pending at this report revision.
+Independent core review through `d31c8fb`: Approved, no Critical/Important or new Minor findings. Independent site review through `58284fa` found no new blockers; the tracked failure-state language issue is fixed in `baf94a5`. Final integration review then found a real readiness-label regression; `102e599` closes it. Both independent Task3 and final integration addendum reviews are **Approved**, no remaining Critical/Important findings.
+
+The first ordinary atomic fast-forward publication to main and the clean branch reached `a657fa6`. [Pages run33355778653](https://github.com/TryDotAtwo/ChessMachineZero/actions/runs/33355778653) succeeded, **but live browser acceptance failed**: new HTML loaded an obsolete cached app.js (old line72 missing-button exception; current app was13lines), leaving the board and matrix selector empty. Workflow success alone was not treated as completion.
+
+Correction `721db71` fingerprints CSS, all four JS files and numeric JSON using normalized-content SHA-256 query versions. App fetch and download use the same versioned link; the existing export generator refreshes references after JSON generation. Tests verify content changes alter only the affected version, LF/CRLF parity, all actual published links matching their files, and the app requesting its declared download URL. Focused cache2/2 and site-contract19/19 passed; final full257 gate is above. An independent bounded review approved the correction with no findings. Local browser loaded all six versioned resources and showed ready/45operations/72matrices.
+
+Final ordinary atomic fast-forward push to both agreed refs published `721db7129a176890d8b4b530aa8de6b75581adb0`. [Pages run33356317808](https://github.com/TryDotAtwo/ChessMachineZero/actions/runs/33356317808) completed successfully for that exact revision. Controller checked [the public site](https://trydotatwo.github.io/ChessMachineZero/) after deployment:
+
+- The previously broken cached tab recovered after ordinary reload. All six content-versioned dependency links were present; source hash matched `01d1e09b4a3cc927c4280718595af6c5ed58d1fd4c519a8f7a78c3d4fcb5dae0`.
+- Fresh tab at1536px: all45 operations reachable, each with contributing matrix cards and nonempty cell explanation; no matrix-flow overflow. Final attention had three distinct stages.
+- Exactly72 tensor choices,64 board cells and the same three fixture moves; d5 is a white pawn. Live score[0,28,466]=2.0664076805114746 and v45[0,28,96]=1; producer navigation opens operation45 with row28/column96 intact.
+- RU→EN→RU retained readiness; live GEMM cell expansion displayed its full reduction. Final screenshots were visually inspected. Fresh-tab console error/warning log was empty; the old tab's retained historical pre-fix error is not presented as a new-release error.
+- Own temporary local HTTP servers were stopped after verification. The dirty legacy root checkout was not modified.
+
+The subsequent report/checklist commit changes documentation only; the deployed `site/` bytes remain those of `721db71`.
 
 Full LEGAL_SET/status/recurrent chess, lower-precision execution equivalence, full native-intermediate parity, training benefit and performance superiority remain outside this correction's demonstrated scope.
