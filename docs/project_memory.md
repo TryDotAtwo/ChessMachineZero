@@ -1,38 +1,54 @@
 # Project Memory
 
-- site_inference_proof=six matrix-level stages expose real shapes and equations through `ROW_ROUTE`, pattern projection/hardmax, 2064-event concatenation, 2D key projection, `Q×K^T`, hardmax/STE, and `A×V`
-- site_runtime_proof=all eight opcodes used by the position artifact are mapped to generic tensor primitives; no chess-named dispatcher operation is presented
-- site_ssa_trace=`python -m vm_compiler.site_trace` exports all 45 operations to `site/artifact_trace.json`; `tests/test_site_contract.py` compares the published JSON exactly with the executable compiler graph
+Current-state record, updated during the 2026-08-31 audit corrections. Historical change entries are not current acceptance evidence. Authoritative boundary: [architecture.md](architecture.md).
 
-- static_site=`site/` is a responsive artifact inspector for the current clean VM branch; it replays an exact browser fixture and never claims to execute CUDA in JavaScript
-- site_contract=shows `[B,2048,128]` request-plus-context input, `[B,64,128]` reconstructed board, 45 generic ops, 2064 latest-event candidates, C++/CUDA runtime, and no host chess logic
-- site_boundary=`LEGAL_SET` and terminal status are named as next artifact stages, not complete runtime capabilities
-- site_deployment=GitHub Pages workflow publishes only `site/` after the change reaches `main` and the repository selects GitHub Actions as the Pages source
+## Repository and architecture
 
-- active_branch=codex/pure-frozen-transformer-vm-clean
-- origin=empty orphan branch; implementation is from scratch and must not migrate legacy runtime code
-- input=[B,2048,128] hard one-hot; requested move occupies first 3 rows
-- output=[B,2045,128] recurrent context
-- context=1200 history rows + 768 LEGAL_SET rows + 1 status row + 76 service rows
-- numeric=FP4 frozen weights, exact FP16/BF16 fallback, FP32 QK/critical accumulation, hard forward plus floating STE backward
-- attention=all heads d_head=2; exact 2D HullKV forward and NestedHullTopK2D backward competitors
-- production_boundary=generic C++ tensor runtime only; no chess types, board state object, move decoder, procedural replay, search, evaluation, Python, or host argmax
-- tensor_native_module=fresh LibTorch C++ `FrozenVm::forward`; CUDA floating `[B,2048,128]` input, `[B,2045,128]` output, autograd retained; no FFI or host buffers in training API
-- artifact=CMZVM001 v1 strict SHA-256 container; exact E2M1 two-nibbles-per-byte weights, block scales, explicit tensor shapes/names, and explicit generic graph opcodes; Python writer and independent C++ loader
-- ste=LibTorch custom autograd for exact lowest-index masked hardmax plus softmax-surrogate backward and exact E2M1 forward plus identity backward; no host sync/detach in production
-- hullkv=offline nested 2D convex-layer metadata preserves quantized duplicate indices and zero-query stable prefixes; CUDA forward scans only cached candidates, returns exact stable top-k, and custom autograd routes hard V forward with a floating selected-competitor softmax backward to Q/K/V
-- graph_executor=FrozenVm requires an artifact and CUDA device, validates SSA/op schemas before execution, materializes immutable FP4 tensors and HullKV index caches once, and dispatches only generic tensor operators; a complete artifact-declared position/Q-GEMM/2D-attention/residual/gated-FFN/output-GEMM/hardmax block is CUDA/autograd verified
-- context_0=exact hard one-hot `[2045,128]` stored as canonical FP4: empty chronological history, 20 sorted initial LEGAL_SET moves, OK status, padding service; no board rows; C++ expands the immutable CUDA tensor by batch
-- development_oracle=python-chess reconstructs board only from history and verifies recurrent legal/illegal/terminal transitions; it is excluded from production runtime and artifacts
-- addressing=d_head=2 convex-ring keys with per-element FP4 scales give exact independently selectable float32 addresses; bootstrap artifact contains 128 vocabulary and 2048 input-row address tensors and their complete outer hulls
-- rule_relations=immutable binary FP4 king/knight, rook/bishop ray, white/black pawn step/double/attack, and strict `[64,64,64]` between tensors; reusable rules only, no finite board-position table; rule image op list remains empty until circuit compilation
-- dynamic_self_attention=HULL_ATTN_2D accepts SSA Q `[B,Q,2]`, K `[B,K,2]`, V `[B,K,D]`; CUDA scans artifact candidates within each batch, returns stable local indices, and custom backward reaches Q/K/V without dense QK storage
-- move_language=every move is three hard one-hot rows `[FROM,TO,RESULT_PIECE]`; result piece uses channels 96..107 with color, and promotion directly names the promoted piece
-- position_reconstruction=board is not recurrent state; 64 square queries select their latest initial/FROM/TO/derived event in parallel, where FROM yields EMPTY and TO yields the declared result piece
-- special_events=castling rook effects are an exact four-pattern one-hot FP4 tensor; en-passant clearing is derived from the immediately previous opposing pawn double-step and current pawn diagonal-step relations before the same latest-event hardmax
-- executable_position_artifact=45-op generic SSA subgraph routes 400 move triples, recognizes 4 castling and 28 en-passant patterns with frozen linear/residual/hardmax blocks, then reconstructs `[B,64,128]` through one 2D latest-event attention over 2064 events
-- latest_event_addressing=parabolic 2D keys and query `(2x,-1)` give score `xq^2-(xk-xq)^2+epsilon*time`; exact per-element FP4 scales preserve the small chronological bias
-- generic_plumbing=ROW_ROUTE supports positive stride; FROZEN_EXPAND broadcasts immutable tensors over batch; ROW_CONCAT concatenates along rows; C++ implementations contain no chess branches
-- position_cuda_acceptance=RTX 3070 Laptop sm86 native artifact test compared complete boards for ordinary capture, castling, and en-passant and verified backward to RESULT_PIECE; exhaustive Python artifact gate covers all 32 compiled special patterns
-- site_numeric_trace=`site/numeric_trace.json` is generated by executing one fixed three-move one-hot fixture through the real development reference executor; it contains every frozen tensor and SSA value in exact COO form plus explicit `QKᵀ`, hard attention, and `A×V` matrices
-- site_matrix_inspector=RU/EN transformer-style grids cover all 45 operations; primary cards explain tensor contents and row/column semantics without `vN/wN` identifiers; only GEMM highlights a complete source row and weight column, while copy/add/route/concat highlight exact cells and hardmax shows the score row plus centered row-argmax
+- active_branch=codex/pure-frozen-transformer-vm-clean; fresh implementation, no migration of legacy runtime code
+- production_boundary=generic LibTorch C++/CUDA tensor operators only; no chess types, procedural board replay, move decoder, evaluation, external search, labels, or Python dependency
+- compiler_boundary=offline Python synthesizes reusable frozen rule matrices and generic graph operations; chess rules exist in those matrices, not magically absent from the system
+- development_oracle=python-chess is restricted to development/test oracle wrappers; its full transition behavior is not a shipped native VM capability
+- move_language=three hard one-hot rows FROM, TO, RESULT_PIECE; square a1=11, a2=12, b1=21; result-piece channels96..107 include color and promoted identity
+
+## Executable now
+
+- position_artifact=45 generic operations; eight opcode kinds; consumes FP32 [B,2048,128] and reconstructs FP32 hard one-hot [B,64,128]
+- input_usage=only chronological history rows3..1202 are consumed; request rows0..2 and remaining service/legal/status rows are ignored by this artifact
+- history_capacity=400 already-valid plies; declared result-piece identity must be correct; this subgraph does not validate history legality
+- board_layout=64 rows in file-major order a1,a2,...,a8,b1,...,h8; 128 vocabulary columns; EMPTY=95
+- latest_event=64 initial events plus five400-row streams: source clearing, destination result piece, castling rook source, castling rook destination, en-passant clearing
+- special_events=frozen linear/residual/hardmax pattern blocks recognize four castling triples and28 adjacent-ply en-passant patterns, assuming valid histories
+- latest_event_addressing=2D parabolic keys, query(2x,-1), x=1+compact/64; epsilon=2^-21, corrected from1e-6 after audit's legal400-ply counterexample
+- fp32_score_invariant=all64 queries x64 addresses x401 timestamps checked on materialized weights; min cross-square margin5.340576171875e-05 and min chronological step4.76837158203125e-07 in current reference
+
+## Target, not implemented
+
+- recurrent_target=input [B,2048,128] = request3 + context2045; output context[B,2045,128]
+- context_target=1200 history +768 legal-set +1 status +76 service rows; max256 legal moves and explicit overflow policy
+- missing_execution=full LEGAL_SET enumeration, requested-move validation/application, terminal status and next recurrent context; the current position artifact returns a board, not that context
+- context_0=bootstrap record exists with initial20 legal moves and OK status; position artifact does not contain it
+- rule_image=parametric relation tensors exist, but rule-image/bootstrap operation lists remain empty
+- player=separate future trained transformer; no learning-benefit or complete differentiable game-loop evidence yet
+
+## Numerical and cache contracts
+
+- artifact=CMZVM001 v1 SHA-256 container, explicit shapes/names/opcodes, E2M1 two-nibble storage with FP32 scales
+- compute_precision=current native/reference arithmetic FP32; no verified native FP4, FP16, BF16 or TF32-equivalent position execution
+- storage_cost=block-size1 scaled records cost0.5 byte code +4 bytes scale per element; packed FP4 is not evidence of four-bit runtime memory or speed
+- hardmax=exact lowest-original-index hard forward; floating softmax surrogate backward; empty allowed sets are errors
+- attention_backward=first-order selected-top-k softmax surrogate for Q,K,V, aligned between development reference and native contract; not the true derivative of discrete chess and not proven useful learning
+- fp4_primitive=finite extremes saturate before nearest-lattice selection; identity STE backward is an explicit surrogate
+- hull_metadata=offline nested convex layers preserve collinear boundary points, duplicates and original-index ties
+- position_cache=all2064 candidate rows are scanned for every query; top8 competitors selected; dense QK storage avoided natively, but no sublinear HullKV performance demonstrated
+- performance=no throughput or whole-system speedup claim; no comparison proving advantage over a conventional engine
+
+## Evidence and website
+
+- audit=[../test_results/audit_2026-08-31.md](../test_results/audit_2026-08-31.md), historical findings with reproducible counterexamples
+- python_corrections=commit5202cbd; reported full gate123 passed; final integrated evidence is recorded separately after all tasks
+- site_source=static site under site/; numeric_trace.json is an offline Python reference execution export, not native CUDA intermediates or browser inference
+- site_fixture=three legal plies e2e4,d7d5,e4d5; token triples [[52,54,96],[47,45,102],[54,45,96]]
+- publication=GitHub Pages workflow publishes site/ from main; scoped ordinary push allowed, no force/history rewrite/unrelated changes
+- native_corrections=commit b3ba731; fresh direct Windows build, 15 checked process exits, 52 exact FP32 full boards, independent selected-top-k Q/K/V derivatives, malformed metadata/mask guards; independent review Approved
+- native_memcheck=controller Compute Sanitizer 2024.2 on valid attention and all 52 board fixtures: exit0 and zero reported errors; integrated position backward and CMake success remain unverified
+- in_progress=single-fixture whole-page RU/EN inspector and final integration/publication are being verified; do not treat implementation plans as completed evidence

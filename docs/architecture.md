@@ -1,43 +1,129 @@
-# Pure Frozen Transformer Chess VM
+# Pure frozen Transformer chess VM
 
-This branch is a from-scratch implementation. It does not inherit or adapt the previous engine, dashboard, opaque state codec, move-word ABI, or procedural chess runtime.
+This is a from-scratch branch, not a migration of the retired engine.
+
+## Implemented scope versus target
+
+The **executable artifact currently reconstructs a position from an already
+valid chronological history**. `build_position_reconstruction_artifact()` emits
+45 generic operations and a final `[B,64,128]` one-hot board. Its input has shape
+`[B,2048,128]`, but only history rows participate. It ignores the requested move
+in rows 0–2 and does not apply or validate that request.
+
+The complete recurrent chess environment is a **target, not a completed
+capability**. It must eventually map a request plus previous context to the next
+`[B,2045,128]` context, generate the current legal set, and determine terminal or
+illegal-move status. No executable artifact does that complete transition yet;
+no trained player or demonstrated full-game learning result exists here.
+
+`FrozenVm::execute_graph` exposes the position artifact for testing/composition.
+`FrozenVm::forward` requires the recurrent output shape; it must not silently
+accept a board-only artifact as a finished chess VM.
+
+## Tensor protocol
+
+A move has three hard one-hot rows `[FROM, TO, RESULT_PIECE]`. Square channels
+encode file/rank, and channels 96–107 identify the 12 color-specific resulting
+pieces. A promotion directly supplies the promoted result piece.
+
+The target recurrent context comprises 1200 history rows (400 plies), 768
+`LEGAL_SET` rows (256 triples), one status row (channels 89–94), and 76 reserved
+rows. Request plus context gives 2048 rows of width 128. This layout does not
+itself establish that legal-set/status execution exists.
+
+The compiled `context_0` contains padded history, 20 sorted opening moves, OK and
+padding service rows. It has no board rows. Bootstrap and reusable rule-relation
+images contain frozen constants but have empty operation lists; they are not
+executable complete chess artifacts. The position artifact separately contains
+its frozen initial-position constants.
 
 ## Runtime boundary
 
-One frozen Transformer maps a hard one-hot input tensor `[B,2048,128]` to a hard one-hot recurrent context `[B,2045,128]`. Input is the requested move `[B,3,128]` concatenated with the previous context. A move is exactly `[FROM, TO, RESULT_PIECE]`; the third token is one of 12 color-specific piece channels, and promotion is represented directly by the promoted result piece. The standard initial position is represented by immutable compiled constants in the rule artifact.
+Production C++/CUDA loads immutable tensor records and executes generic
+operations: row routing, projection/GEMM, addition, concatenation, batch
+expansion, hardmax and 2D attention. The generic executor also supports a gated
+FFN for other graphs. No opcode has chess-specific semantics.
 
-The context contains chronological history (`1200` rows, 400 plies), sorted `LEGAL_SET` (`768` rows, 256 move triples), one status row, and 76 reserved service rows. Status vocabulary channels are `89..94`.
+Chess rules have not disappeared: their structure is compiled **offline into
+weights and graph connections**, not evaluated by piece-specific C++ branches.
+Python and python-chess are development/compiler/oracle tools, not production
+inference dependencies. The browser is a static inspector, not a replacement
+runtime.
 
-`context_0` contains no board matrix or board rows. Its history is padding, its `LEGAL_SET` is the exact 20 sorted opening moves in native three-token form, its status is `OK`, and its service rows are padding. The standard initial board is a frozen program constant; subsequent positions are reconstructed by the compiled circuit from chronological history.
+## Position reconstruction
 
-The board is not recurrent state. For each of 64 square queries, frozen hard attention selects the chronologically latest history event affecting that square: the initial-position event supplies its starting value, `FROM` supplies `EMPTY`, and `TO` supplies `RESULT_PIECE`. Thus ordinary moves and captures are reconstructed in parallel without tracing piece identity through earlier source squares. Castling contributes two additional rook events from a four-pattern frozen one-hot table. En passant contributes an `EMPTY` event when the immediately preceding opposing pawn event matches the frozen double-step and current diagonal-step relations.
+Three strided views select the history's source, destination and result-piece
+rows. Four castling patterns and 28 en-passant patterns are recognized through
+frozen projections, additions and hardmax. These recognize events in a valid
+history; they are **not legality checks**. This subgraph trusts the declared
+result piece.
 
-Production C++ is restricted to generic tensor execution, recurrent concatenation, player transport, and inference-only status control. Chess semantics live only in immutable frozen weights and masks compiled offline. Python and `python-chess` are development/test tools and are never production dependencies.
+There are 2064 candidate events: 64 initial-square events plus five streams of
+400 source-empty, destination-piece, castling-rook-source,
+castling-rook-destination and en-passant-clear events. Targets and payloads are
+separate tensors. Each square selects its latest event; the board is not carried
+as recurrent state.
 
-All attention heads have `d_head=2`. Exact hard attention uses 2D HullKV with lowest-index tie resolution; dense attention is a development equivalence oracle only. Canonical weights are packed FP4 with block scales and decode exactly to FP16/BF16 when native FP4 is unavailable. Forward values are hard; STE supplies a floating backward path through complete player/VM rollouts while VM weights stay frozen.
+For compact square index `s`, `x = 1 + s/64`. Query `(2*xq,-1)` and key
+`(xk,xk²-epsilon*t)` give:
 
-## Artifact graph contract
+```text
+score = xq² - (xk-xq)² + epsilon*t
+epsilon = 2^-21
+0 <= t <= 400
+```
 
-Graph values use SSA identifiers; value `0` is the `[B,2048,128]` input. Every operation reads already-defined values and creates one new value. Tensor attributes index immutable FP4 records materialized once on the selected CUDA device.
+The nearest different square has penalty `2^-12`; maximum time bonus is
+`400*2^-21`. Their separation is `112*2^-21 > 0`. Materialized FP32-score
+tests check every square/timestamp and strict chronological ordering. The
+earlier epsilon `1e-6` violated this bound and produced incorrect boards.
 
-`HULL_ATTN_2D` reads dynamic queries `[B,Q,2]` and values `[B,K,D]`. Its frozen key tensor is `[K,2]`; its remaining attributes contain competitor count, STE temperature in milli-units, and the exact nested-hull candidate cache. Hard forward routes the stable maximum value without a dense `Q x K^T`; backward uses only the declared top-k competitors.
+## Numerical representation and backward
 
-The same opcode also supports true self-attention with dynamic keys `[B,K,2]`. In that form Q, K, and V are SSA inputs produced by graph projections; each batch searches only its own key rows using artifact-declared candidate indices. Hard routing remains stable by local row index, and the selected-competitor surrogate propagates floating gradients to Q, K, and V.
+The artifact stores packed E2M1/FP4 codes **plus FP32 scales**. Several records
+use one FP32 scale per element: 4.5 bytes per element before metadata, not
+uniform four-bit weight memory.
 
-Discrete vocabulary and row addresses are compiled as distinct vertices of a two-dimensional convex ring. Each coordinate is stored as an E2M1 sign/magnitude plus an individual positive scale, so FP4 packing preserves the float32 coordinate exactly. Querying a key by itself selects exactly its own lowest-index address; all 128 vocabulary keys and all 2048 input-row keys remain outer-hull vertices.
+The native loader decodes records into **FP32 CUDA tensors**. Native attention
+also requires FP32. Native FP4 compute, exact FP16/BF16 fallback, and TF32
+equivalence are not established. Reduced precision needs its own numerical
+encoding and task-level acceptance; blindly casting these weights is invalid.
 
-`HARDMAX_STE` accepts logits plus an optional computed boolean mask. With no mask input every vocabulary channel is eligible. The final graph value must be `[B,2045,128]`; malformed schemas, undefined/redefined SSA values, invalid tensor references, and invalid hull indices are rejected during VM loading.
+Hardmax forward selects the lowest-index eligible maximum. Its first-order
+backward is a softmax-Jacobian surrogate at the specified temperature. Attention
+forward returns the winning value exactly; backward differentiates the
+softmax-weighted value over selected top-k competitors, with gradients to Q, K
+**and V**. Candidate selection itself is discrete. The development reference
+uses this same specified surrogate, not full-candidate softmax.
 
-The canonical artifact stores `context_0` as an exact FP4 tensor. `FrozenVm::initial_context` expands that immutable CUDA tensor over the requested batch; no host board construction is performed at runtime.
+The standalone FP4 primitive uses quantized forward and an identity surrogate;
+it is not evidence that the executor computes GEMMs in FP4.
 
-## Frozen rule relations
+A surrogate gradient is not the true derivative of chess and does not prove
+that a player learns faster or better. Tests concern forward correctness and
+first-order derivatives. Useful learning, long-rollout gradient quality and
+higher-order derivative equivalence require separate experiments.
 
-The offline compiler emits reusable binary tensors for king and knight adjacency, rook and bishop rays, color-indexed pawn step/double/attack geometry, and strict `between[source,destination,square]`. These are rule relations over all squares, not memorized boards or game continuations. Queen geometry is the union of the rook and bishop relations; occupancy, side-to-move, castling rights, en-passant state, checks, and legal filtering must be derived by later attention stages from history.
+## Attention and performance boundaries
 
-The current rule image contains bootstrap, address, relation, initial-position, square-decoder, and castling-derived-event tensors but deliberately has an empty operation list. It is compiler input for the next circuit stage and is not yet presented as an executable chess VM artifact.
+Attention keys/queries have width two. Static key sets can use offline nested
+convex-layer candidate metadata with stable original-index ties. Dynamic Q/K/V
+uses batch-local candidate indices.
 
-## Executable position subgraph
+The position artifact provides **all 2064 candidates**. The native kernel scans
+them while maintaining top-8. It avoids constructing a dense score matrix, but
+is not a demonstrated sublinear geometric lookup or measured speed advantage.
+Runtime allocations remain; there is no allocation-free hot-path claim. CUDA
+device guards/current streams must be preserved, with no host readback in
+steady-state inference.
 
-`build_position_reconstruction_artifact` emits a strict executable SSA graph whose final internal value is `[B,64,128]`. Strided row routing separates the 400 `FROM`, `TO`, and `RESULT_PIECE` rows. Frozen linear projections plus hardmax recognize the four castling triples and 28 en-passant pairs and emit their additional square events. No production opcode has chess-specific semantics.
+## Development evidence and site
 
-Every event square is projected to a two-dimensional parabola. For square coordinate `x`, query `(2x,-1)` and key `(x,x²-εt)` produce score `x_query²-(x_key-x_query)²+εt`; therefore a matching square dominates every different square and the latest matching timestamp wins. One dynamic `HULL_ATTN_2D` over 2064 candidate events returns the exact current board. `FrozenVm::execute_graph` exposes internal artifact outputs for composition/testing, while recurrent `forward` retains its strict `[B,2045,128]` contract.
+The numerical website trace is exported from the Python/PyTorch development
+executor, not captured from every native CUDA intermediate. Native tests are
+separate evidence and must identify their exact fixtures and build.
+
+The initial audit, including counterexamples and limits of the old tests, is
+[test_results/audit_2026-08-31.md](../test_results/audit_2026-08-31.md).
+Build commands and current acceptance evidence are documented separately.
+Passing tests are not proof of the unimplemented complete chess environment.

@@ -1,5 +1,14 @@
 # Change History
 
+## 2026-08-31 — Audit corrections (integration in progress)
+
+- Corrected latest-event epsilon from1e-6 to2^-21; independently legal400-ply histories and full materialized FP32 score invariants now guard square/time separation.
+- Aligned the Python selected-top-k Q/K/V surrogate with the native contract; added independent derivative assertions, stable original-index ties and exact hard-forward checks.
+- Fixed hardmax/FP4 STE cancellation, finite FP4 saturation, collinear HullKV tie preservation and development-oracle binary-input/absorbing-terminal semantics.
+- Rewrote architecture/project-memory claims to separate the executable45-op position subgraph from unfinished recurrent legality/status stages and distinguish FP4 storage from FP32 computation.
+- Native validation now propagates static graph shapes before device access, rejects malformed candidate metadata and empty hardmax masks, and guards invalid kernel indices before dereference.
+- Fresh Python/reference gate after independent task review: 123 passed. Fresh native build: 15 checked processes, 52 exact FP32 boards and independent Q/K/V derivatives. Controller memcheck: zero reported errors for attention and all board fixtures. Website integration remains in progress; [correction evidence](../test_results/audit_corrections_2026-08-31.md) records the actual gates and unverified boundaries.
+
 ## 2026-08-28 — Semantic tensor provenance and operation-specific highlighting
 
 - Removed `SSA: vN/wN` identifiers and raw SSA equations from the primary matrix cards; the UI now explains what every tensor stores and what its rows and columns mean.

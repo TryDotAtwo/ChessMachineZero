@@ -1,5 +1,23 @@
 # Prompt History
 
+## 2026-08-31 — Approved audit corrections and a truthful bilingual site
+
+User confirmed remediation: fix confirmed numerical/runtime defects with
+regressions, then explain one consistent execution with precise tensor semantics
+and complete RU/EN. Preserve generic tensor-only production execution; do not
+replace the architecture or claim complete chess. Implementation plan:
+`docs/superpowers/plans/2026-08-31-audit-fixes.md`.
+
+## 2026-08-31 — Audit correctness and honesty before improving the site
+
+User requested an audit of the current project and then better website work.
+Audited the clean branch rather than the dirty legacy root. Found and
+reproduced a long-history reconstruction error, backward/reference mismatches,
+primitive-validation gaps and misleading website claims. Proposed bounded
+correctness fixes and a single-fixture, semantic, bilingual matrix inspector;
+confirmation was pending at that audit snapshot and is recorded above. Findings and command evidence are recorded in
+`test_results/audit_2026-08-31.md`. No implementation/deployment is claimed.
+
 ## 2026-08-28 — Explain tensor meaning, not internal SSA names
 
 User clarified that labels must say what each input tensor and frozen matrix represents, including the meaning of its axes, rather than exposing unexplained `SSA: v0`-style implementation identifiers. User also required row-plus-column highlighting only for actual multiplication and a centered explicit argmax operator.
