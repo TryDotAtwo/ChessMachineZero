@@ -45,10 +45,13 @@ Current-state record, updated during the 2026-08-31 audit corrections. Historica
 ## Evidence and website
 
 - audit=[../test_results/audit_2026-08-31.md](../test_results/audit_2026-08-31.md), historical findings with reproducible counterexamples
-- python_corrections=commit5202cbd; reported full gate123 passed; final integrated evidence is recorded separately after all tasks
+- python_corrections=commit5202cbd; initial corrected gate123 passed; final integrated gate through102e599 is255 passed in13.44s
 - site_source=static site under site/; numeric_trace.json is an offline Python reference execution export, not native CUDA intermediates or browser inference
 - site_fixture=three legal plies e2e4,d7d5,e4d5; token triples [[52,54,96],[47,45,102],[54,45,96]]
 - publication=GitHub Pages workflow publishes site/ from main; scoped ordinary push allowed, no force/history rewrite/unrelated changes
 - native_corrections=commit b3ba731; fresh direct Windows build, 15 checked process exits, 52 exact FP32 full boards, independent selected-top-k Q/K/V derivatives, malformed metadata/mask guards; independent review Approved
 - native_memcheck=controller Compute Sanitizer 2024.2 on valid attention and all 52 board fixtures: exit0 and zero reported errors; integrated position backward and CMake success remain unverified
-- in_progress=single-fixture whole-page RU/EN inspector and final integration/publication are being verified; do not treat implementation plans as completed evidence
+- site_inspector=commits58284fa,baf94a5,102e599; single reference fixture, semantic metadata for24 frozen/46 SSA/2 derived tensors; arbitrary-coordinate values and producer links; correct GEMM row/column, explicit ARGMAX and real K-transpose stages; explicit loading/ready/error lifecycle
+- site_validation=rejects inconsistent stored generic FP32 arithmetic before render, including malformed/missing data; not independent chess-legality proof or cryptographic authenticity
+- site_browser=all45 operations at1536px desktop and390x844 mobile; exact cells/producer navigation, RU/EN and invalid-export failure state verified; console errors/warnings empty
+- release_evidence=[../test_results/audit_corrections_2026-08-31.md](../test_results/audit_corrections_2026-08-31.md); final review/publication status is recorded there

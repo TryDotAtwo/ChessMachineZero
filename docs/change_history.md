@@ -1,13 +1,15 @@
 # Change History
 
-## 2026-08-31 — Audit corrections (integration in progress)
+## 2026-08-31 — Audit corrections and exact-trace inspector
 
 - Corrected latest-event epsilon from1e-6 to2^-21; independently legal400-ply histories and full materialized FP32 score invariants now guard square/time separation.
 - Aligned the Python selected-top-k Q/K/V surrogate with the native contract; added independent derivative assertions, stable original-index ties and exact hard-forward checks.
 - Fixed hardmax/FP4 STE cancellation, finite FP4 saturation, collinear HullKV tie preservation and development-oracle binary-input/absorbing-terminal semantics.
 - Rewrote architecture/project-memory claims to separate the executable45-op position subgraph from unfinished recurrent legality/status stages and distinguish FP4 storage from FP32 computation.
 - Native validation now propagates static graph shapes before device access, rejects malformed candidate metadata and empty hardmax masks, and guards invalid kernel indices before dereference.
-- Fresh Python/reference gate after independent task review: 123 passed. Fresh native build: 15 checked processes, 52 exact FP32 boards and independent Q/K/V derivatives. Controller memcheck: zero reported errors for attention and all board fixtures. Website integration remains in progress; [correction evidence](../test_results/audit_corrections_2026-08-31.md) records the actual gates and unverified boundaries.
+- Replaced the website's independent seven-move JavaScript replay with one three-ply reference export; the board now decodes only exported v45. All24 frozen/46 SSA/2 derived tensors have bilingual semantic axes, scalar provenance and arbitrary-coordinate/producer navigation.
+- Corrected GEMM row/column highlighting, centered ARGMAX, true K-transpose rendering and multi-stage attention/concatenation layout. Invalid exports fail closed; language controls remain usable on validation failure.
+- Final integrated Python/reference/Node gate through102e599: 255 passed in13.44s; four JS files individually syntax checked. All45 operations checked in desktop/mobile browser layouts, including exact cells, RU/EN and a deliberately malformed export. Final review caught and resolved a ready→Loading label regression with explicit lifecycle ownership and browser verification. Fresh native build: 15 checked processes, 52 exact FP32 boards and independent Q/K/V derivatives. Controller memcheck: zero reported errors for attention and all board fixtures. [Correction evidence](../test_results/audit_corrections_2026-08-31.md) records actual gates, release status and unverified boundaries.
 
 ## 2026-08-28 — Semantic tensor provenance and operation-specific highlighting
 

@@ -1,6 +1,6 @@
 # Audit correction evidence — 2026-08-31
 
-Status: integration in progress; only completed checks below are evidence. Source worktree: `codex/pure-frozen-transformer-vm-clean`. Original audited commit: `f7165cd`; historical findings: [audit_2026-08-31.md](audit_2026-08-31.md).
+Status: implementation and local acceptance complete through `102e599`; final release review and publication are recorded separately below. Source worktree: `codex/pure-frozen-transformer-vm-clean`. Original audited commit: `f7165cd`; historical findings: [audit_2026-08-31.md](audit_2026-08-31.md).
 
 ## Python compiler/reference corrections
 
@@ -65,12 +65,55 @@ The PowerShell fresh-build route is verified; a successful CMake/Ninja build is 
 
 ## Site QA baseline
 
-Local URL `http://127.0.0.1:8765/` before UI corrections reproduced the audit's seven-move JS fixture alongside a different three-move matrix export. The visible page mixed English and Russian and advertised Run artifact/verified/68tests. Browser error/warning log was empty: absence of console errors did not establish truthful content. Final UI checks are pending.
+Local URL `http://127.0.0.1:8765/` before UI corrections reproduced the audit's seven-move JS fixture alongside a different three-move matrix export. The visible page mixed English and Russian and advertised Run artifact/verified/68tests. Browser error/warning log was empty: absence of console errors did not establish truthful content.
 
-## Remaining acceptance
+## Final site and integrated acceptance
 
-- Whole-page RU/EN single-fixture inspector and arbitrary-cell/producer navigation.
-- Final integrated suite, independent whole-diff review, browser screenshots/mobile/console checks.
-- Fast-forward publication and live Pages verification.
+Site commits: `58284fa`, failure-state language follow-up `baf94a5`, and readiness-lifecycle correction `102e599`. The page uses one generated reference trace, not an independent JavaScript chess replay. All 24 frozen tensors, 46 SSA values and two derived attention matrices have bilingual purpose/axis metadata and an arbitrary-coordinate reader. Producer navigation and scalar arithmetic remain available; technical IDs are secondary mappings.
+
+The validator rejects missing/malformed topology, COO, fixture or arithmetic before rendering. The dedicated negative regression suite observed **124 failed / 3 passed before correction**, then **127 passed**. It checks generic FP32 arithmetic consistency, not independent chess legality. Hash fields are not cryptographic authentication, and metadata validation does not prove the natural-language descriptions truthful.
+
+Controller's fresh final command after all source changes:
+
+```powershell
+python -B -m pytest -q -p no:cacheprovider
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+foreach ($jsFile in @('site/app.js', 'site/i18n.js', 'site/matrix_inspector.js', 'site/trace_model.js')) {
+    node --check $jsFile
+    if ($LASTEXITCODE -ne 0) { throw "JavaScript syntax failed: $jsFile" }
+}
+git diff --check
+```
+
+Result after `102e599`: **255 passed in 13.44s**, all four individual JS syntax checks passed, diff check passed. Earlier `baf94a5` gate was 255 passed in17.36s. Native sources were unchanged since the fresh build and controller native/memcheck acceptance above; no cached executable was substituted for a rebuild of changed source.
+
+Controller browser checks on the final local site:
+
+| Surface | Observed result |
+| --- | --- |
+| Every operation | All 45 reachable and explained at 1536 px desktop and 390×844 mobile; no matrix-flow or attention-stage overflow; minimum matrix-card widths 438 px desktop / 312 px mobile |
+| GEMM hover | Real pointer hover selects only the left row and right column, one output cell, and its dot-product terms |
+| Copy and hardmax | Copy selects contributing cells only; hardmax shows centered ARGMAX, eligible row and winning cell, without false full-column highlighting |
+| Final attention | Three explicit stages: real Q×Kᵀ with Kᵀ shape 2×2064; scores→ARGMAX→A; A×V→board |
+| Arbitrary coordinates | Input, frozen, SSA, scores and hard-attention values read exactly; fractional coordinates rejected; producer jump preserves selected coordinates |
+| Chronological precision | Scores [0,28,466]=2.0664076805114746 and [0,28,465]=2.0664072036743164; selected attention [0,28,466]=1; output [0,28,96]=1 |
+| Fixture/board | Exactly e2e4,d7d5,e4d5; board decoded only from v45 has 64 cells, d5 white pawn and e2/e4/d7 empty |
+| RU/EN | Page, board descriptions, controls and explanations switch; mobile language controls fit; screenshots visually inspected |
+| Ready-state regression | Final review reproduced ready→Loading after repeated language handlers; explicit loading/ready/error ownership in102e599 now preserves initial readiness and RU→EN→RU readiness in the actual browser |
+| Invalid export | Separate local HTTP fixture removes values.v1: zero board cells, zero operation/matrix options, explicit validation failure; RU→EN→RU still switches the localized error prefix |
+| Console | No error/warning entries on valid or intentionally invalid export pages |
+
+The negative browser harness is a local ignored development fixture, not production fallback logic. Screenshots were inspected in the browser session; no screenshot files are claimed as committed evidence. A repeated linear COO lookup for late hard-attention queries remains an optional UI optimization; no responsiveness benchmark is claimed.
+
+Published-data identity for this source revision:
+
+- Executor: `vm_compiler.reference_executor`; dtype: `float32`.
+- Artifact SHA-256: `b2405abab2073dbd54d4879495563c8570cc12a846a470fe59449124d48414c6` (also the native fixture artifact).
+- Export source SHA-256: `36a8ebd35a9e232fd57be2bcc6da967b299e518256939e19f66c1bf73a7c9398`.
+- Fixture triples: `[[52,54,96],[47,45,102],[54,45,96]]`.
+
+## Release review and publication
+
+Independent core review through `d31c8fb`: Approved, no Critical/Important or new Minor findings. Independent site review through `58284fa` found no new blockers; the tracked failure-state language issue is fixed in `baf94a5`. Final integration review then found a real readiness-label regression; `102e599` closes it. Both independent Task3 and final integration addendum reviews are now **Approved**, no remaining Critical/Important findings. Fast-forward publication/live Pages checks are pending at this report revision.
 
 Full LEGAL_SET/status/recurrent chess, lower-precision execution equivalence, full native-intermediate parity, training benefit and performance superiority remain outside this correction's demonstrated scope.
