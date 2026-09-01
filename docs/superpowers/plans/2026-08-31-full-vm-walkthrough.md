@@ -134,5 +134,5 @@ Files: project docs, prompt/change history, `test_results/`.
   exact cells,
   producer jumps, RU/EN, mobile and console in a real browser.
 - [x] Self-review all diffs against runtime purity and evidence boundaries.
-- [ ] Ordinary scoped fast-forward publication; verify deployed artifact/source
+- [x] Ordinary scoped fast-forward publication; verify deployed artifact/source
   identity and versioned resources before marking the task complete.

@@ -206,8 +206,36 @@ after EN switching; both were fixed and the final asserted reload passed.
   attention/grouped-GEMM operators, SSA/frozen explanations, native evidence,
   RU/EN, 390-pixel layout and an empty console/problem list.
 
-The remaining gate after this review is ordinary fast-forward publication and
-verification of the deployed revision and content-versioned resources.
+## Publication and deployed identity
+
+Content commit `3b1dac6bbde0ddd6c1be4a6e9d235048a710e910` was pushed by
+ordinary fast-forward from `96b89b4` to both
+`codex/pure-frozen-transformer-vm-clean` and `main`. No force push or history
+rewrite was used. GitHub Pages workflow run `33490289502` completed with
+`success` for that exact content commit.
+
+Public URL: `https://trydotatwo.github.io/ChessMachineZero/`.
+
+The deployed `index.html` SHA-256 matched the local file exactly:
+`fbdc620cbad80b22e03aaa87a3cddf1903ecdbeeaa3b06900ed33cd1a5546a85`.
+All eight versioned CSS/JS/JSON resources matched local content. The deployed
+full recurrent trace matched raw SHA-256
+`0f5a8e7be7b6408bbbe19544e2331d3dc745c46531294dea48fd73f316fec0f1`.
+For legacy `numeric_trace.json`, Git normalized the Windows CRLF working-tree
+bytes to LF; deployed SHA-256 and the declared normalized content version both
+equal `e019a74b5451a41a80370221175c80255b20d627ccca99ab13b1607b3baf8496`.
+
+A fresh public Playwright session then asserted the recurrent version, native
+feedback evidence, op9 row/column factors and scalar proof, centered op13
+ARGMAX, final op2877, RU→EN status/glossary, 390×844 layout and empty
+warning/error/pageerror collection. Result:
+
+```text
+ok=true
+Full trace validated: 2877 ops / 192 frozen tensors
+bodyWidth=390 viewportWidth=390
+problems=[]
+```
 
 ## Explicit limits
 

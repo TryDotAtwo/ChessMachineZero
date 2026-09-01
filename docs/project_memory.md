@@ -14,8 +14,8 @@ authoritative boundary is [architecture.md](architecture.md).
   graph topology; chess rules are compiled, not absent
 - oracle=python-chess only in development/test wrappers
 - player=separate future component; not present here
-- publication=ordinary scoped fast-forward only; no force/history rewrite or
-  unrelated changes
+- publication=content commit3b1dac6 fast-forwarded to clean branch and main;
+  Pages run33490289502 succeeded; no force/history rewrite or unrelated changes
 
 ## Executable recurrent VM
 
@@ -94,6 +94,9 @@ authoritative boundary is [architecture.md](architecture.md).
   operations9/13/140/1464/2877, feedback and empty fresh console passed
 - cache=CSS,five JS files and both JSON traces use generator-derived content
   versions
+- public=https://trydotatwo.github.io/ChessMachineZero/; deployed HTML and all
+  eight versioned assets match local content; public Playwright acceptance
+  reached operations9/13/2877, RU/EN and390x844 with empty console
 
 ## Deliberate unknowns / future work
 
