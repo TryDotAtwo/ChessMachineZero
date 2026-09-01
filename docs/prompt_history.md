@@ -1,5 +1,11 @@
 # Prompt History
 
+## 2026-09-01 — Automatic claimable draws
+
+User selected automatic draw termination for now. The recurrent VM must match
+the development oracle's `outcome(claim_draw=True)`: claimable fifty-move and
+threefold positions emit `DRAW` without a separate `CLAIM_DRAW` request token.
+
 ## 2026-08-31 — Full executable VM walkthrough, inline only
 
 User requested a website showing the complete VM step by step, then explicitly

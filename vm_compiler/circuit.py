@@ -108,6 +108,15 @@ class Circuit:
         return self._emit(OpCode.MATRIX_MATMUL, (left, right),
                           (self.shapes[left][0], self.shapes[right][1]), name=name)
 
+    def grouped_matmul(self, left, right, groups, name=None):
+        left_rows, contraction = self.shapes[left]
+        right_rows, columns = self.shapes[right]
+        if (not isinstance(groups, int) or groups <= 0 or left_rows % groups
+                or right_rows != groups * contraction):
+            raise ValueError("circuit grouped matmul shape or group mismatch")
+        return self._emit(OpCode.GROUPED_MATRIX_MATMUL, (left, right),
+                          (left_rows, columns), (groups,), name)
+
     def add(self, left, right, name=None):
         shape = _broadcast(self.shapes[left], self.shapes[right])
         return self._emit(OpCode.RESIDUAL_ADD, (left, right), shape, name=name)
@@ -189,6 +198,12 @@ class Circuit:
         Constants are decoded/repacked exactly offline, not executed. Unsupported
         schemas fail closed; this is not a fallback interpreter in the runtime.
         """
+        imported = Artifact.from_bytes(artifact.to_bytes())
+        values = self.include_graph_values(imported, source)
+        return values[imported.operations[-1].outputs[0]]
+
+    def include_graph_values(self, artifact: Artifact, source=None):
+        """Inline one graph and expose its original-to-remapped SSA value map."""
         artifact = Artifact.from_bytes(artifact.to_bytes())
         if not artifact.operations:
             raise ValueError("cannot include an empty graph")
@@ -205,7 +220,7 @@ class Circuit:
             OpCode.POSITION_ADD: (1, 1), OpCode.RESIDUAL_ADD: (2, 0),
             OpCode.FROZEN_EXPAND: (1, 1), OpCode.HARDMAX_STE: (1, 1),
             OpCode.MATRIX_TRANSPOSE: (1, 0), OpCode.MATRIX_RESHAPE: (1, 2),
-            OpCode.MATRIX_MATMUL: (2, 0),
+            OpCode.MATRIX_MATMUL: (2, 0), OpCode.GROUPED_MATRIX_MATMUL: (2, 1),
         }
         for op in artifact.operations:
             if len(op.outputs) != 1 or op.outputs[0] in values or any(v not in values for v in op.inputs):
@@ -236,10 +251,12 @@ class Circuit:
                 result = self.reshape(args[0], *attrs)
             elif op.opcode == OpCode.MATRIX_MATMUL:
                 result = self.matmul(*args)
+            elif op.opcode == OpCode.GROUPED_MATRIX_MATMUL:
+                result = self.grouped_matmul(*args, attrs[0])
             else:
                 raise ValueError(f"unsupported included operation/schema: {op.opcode.name}")
             values[op.outputs[0]] = result
-        return result
+        return values
 
     def artifact(self, output) -> Artifact:
         if output not in self.shapes:

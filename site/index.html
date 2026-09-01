@@ -1,9 +1,163 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#090d0f"><title>ChessMachineZero · Frozen Transformer VM</title><link rel="stylesheet" href="./styles.css?v=0a8fc1b171af9a01"><script defer src="./i18n.js?v=8c9a3b6bac1f0ab2"></script><script defer src="./trace_model.js?v=69cb3062b70b84c4"></script><script defer src="./app.js?v=6bd9c7a3dbd6373a"></script><script defer src="./matrix_inspector.js?v=e4be9e67a7db0f12"></script></head>
-<body><header class="site-header"><a class="brand" href="#vm">ChessMachine<span>Zero</span></a><nav><a class="active" href="#vm">VM</a><a href="#matrices" data-i18n="navMatrices">Матрицы</a><a href="#boundary" data-i18n="navBoundary">Границы</a></nav><div class="language-switch"><button id="languageRu" class="active" type="button">RU</button><button id="languageEn" type="button">EN</button></div></header><main id="vm">
-<section class="intro"><div><p class="eyebrow" data-i18n="eyebrow">СТАТИЧЕСКИЙ ИНСПЕКТОР ТОЧНОГО ЭКСПОРТА</p><h1 id="page-title" data-i18n="title">Восстановление позиции замороженным Tensor-графом</h1><p data-i18n="subtitle">Один экспорт Python reference: история из трёх ходов, 45 SSA-операций и выходная доска.</p></div></section>
-<div class="verification" id="verification" role="status"><span></span><span id="traceStatus" data-i18n="loading">Загрузка точного экспорта…</span></div>
-<section class="workspace"><aside class="history-panel"><div class="panel-title" data-i18n="fixtureTitle">Фиксированная история токенов</div><div class="token-head"><span>#</span><span>FROM</span><span>TO</span><span>RESULT_PIECE</span></div><ol class="token-list" id="tokenList"></ol><p class="trace-note" data-i18n="fixtureNote">Токены декодируются из экспортированного fixture; браузер не применяет шахматные правила.</p></aside><section class="board-panel"><div class="tensor-label" data-i18n="outputLabel">ЭКСПОРТИРОВАННЫЙ ВЫХОД · v45 [1 × 64 × 128]</div><div class="board-frame"><div class="rank-labels"><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div><div class="board" id="board" role="grid"></div><div class="file-labels"><span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span></div></div><p class="browser-note" data-i18n="boardNote">Доска — только декодер one-hot v45; это не JavaScript chess replay.</p></section><aside class="artifact-panel"><div class="panel-title" data-i18n="artifactTitle">Провенанс экспорта</div><dl><div><dt>artifact</dt><dd>position_latest_event_v1</dd></div><div><dt>executor</dt><dd>Python reference</dd></div><div><dt data-i18n="precision">точность</dt><dd>FP32 compute</dd></div><div><dt data-i18n="sourceHash">source hash</dt><dd id="sourceHash">…</dd></div></dl></aside></section>
-<section class="boundary" id="boundary"><h2 data-i18n="boundaryTitle">Реальная граница исполнения</h2><p data-i18n="boundaryBody">Артефакт восстанавливает позицию из уже валидной хронологической истории. Он игнорирует request-строки 0–2 и не реализует LEGAL_SET, проверку хода, terminal status или следующий recurrent context.</p><p data-i18n="numericBody">Вес хранится как packed E2M1/FP4 + FP32 scales; текущая загрузка и вычисление — FP32. Полные QK и hard attention здесь — отладочный Python reference export, не захват всех native CUDA intermediates.</p><p data-i18n="browserValidationBody">Браузер проверяет арифметическую согласованность сохранённого экспорта; .cmz/CUDA здесь не запускается. Это не независимое доказательство шахматной легальности.</p><p data-i18n="attentionBody">Forward выбирает жёсткого победителя из всех 2064 кандидатов. Backward использует selected-top-8 softmax surrogate для Q/K/V; это не доказательство обучения или ускорения геометрического поиска.</p></section>
-<section class="numeric-inspector" id="matrices"><header class="trace-header"><div><strong>ChessMachineZero / MATRIX TRACE</strong><h2 id="numeric-title">Матричное исполнение</h2><p id="traceSubtitle"></p></div><div class="trace-actions"><a id="downloadTrace" href="./numeric_trace.json?v=ccae4ff484edaf99" download>JSON / COO</a></div></header><div class="operation-picker"><label id="operationLabel" for="numericOperations">Операция</label><select id="numericOperations"></select><button id="previousNumericOperation" type="button">←</button><button id="nextNumericOperation" type="button">→</button></div><section class="operation-heading"><div><h3 id="operationTitle"></h3><p id="operationDescription"></p></div><strong id="operationCounter"></strong></section><pre class="numeric-equation" id="numericEquation">Loading…</pre><div class="cell-controls"><label><span id="rowLabel">Строка</span><input id="outputRow" type="number" min="0" value="0"></label><label><span id="columnLabel">Столбец</span><input id="outputColumn" type="number" min="0" value="0"></label><label class="k-control"><span id="dimensionLabel">Размерность скалярного произведения</span><input id="dotDimension" type="range" min="0" value="0"><output id="dotDimensionValue">0–7</output></label></div><div class="matrix-flow" id="matrixFlow" aria-live="polite"></div><section class="cell-explanation"><h3 id="explanationTitle">Точная провенанс ячейки</h3><div id="cellExplanation"></div></section><section class="direct-reader"><h3 id="tensorReaderTitle">Любая ячейка экспорта</h3><div class="cell-controls"><label><span id="matrixLabel">Тензор / значение</span><select id="matrixSelector"></select></label><label><span>batch</span><input id="matrixBatch" type="number" min="0" value="0"></label><label><span>row</span><input id="matrixRow" type="number" min="0" value="0"></label><label><span>column</span><input id="matrixColumn" type="number" min="0" value="0"></label></div><p id="directCellValue">—</p><button id="producerJump" type="button" hidden></button></section></section>
-<footer data-i18n="footer">См. датированные audit corrections и native report в репозитории. Не интерпретируйте этот position subgraph как законченную шахматную VM.</footer></main></body></html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d0f">
+  <link rel="icon" href="data:,">
+  <title>ChessMachineZero · Frozen Transformer VM</title>
+  <link rel="stylesheet" href="./styles.css?v=1839a38d21544e75">
+  <script defer src="./i18n.js?v=015ddd2b44ac8677"></script>
+  <script defer src="./trace_model.js?v=69cb3062b70b84c4"></script>
+  <script defer src="./recurrent_inspector.js?v=306486b62bc5b806"></script>
+  <script defer src="./app.js?v=6bd9c7a3dbd6373a"></script>
+  <script defer src="./matrix_inspector.js?v=e4be9e67a7db0f12"></script>
+</head>
+<body>
+<header class="site-header">
+  <a class="brand" href="#vm">ChessMachine<span>Zero</span></a>
+  <nav>
+    <a class="active" href="#full-vm" data-i18n="navFullVm">Полная VM</a>
+    <a href="#matrices" data-i18n="navMatrices">45-op микроскоп</a>
+    <a href="#boundary" data-i18n="navBoundary">Границы</a>
+  </nav>
+  <div class="language-switch">
+    <button id="languageRu" class="active" type="button">RU</button>
+    <button id="languageEn" type="button">EN</button>
+  </div>
+</header>
+
+<main id="vm">
+  <section class="intro full-vm-intro">
+    <div>
+      <p class="eyebrow" data-i18n="eyebrow">ПОЛНЫЙ RECURRENT TENSOR TRACE</p>
+      <h1 id="page-title" data-i18n="title">Один ход шахмат: 2877 generic tensor-операций</h1>
+      <p data-i18n="subtitle">Запрос [e2,e4,белая пешка] + предыдущий context → история, новый LEGAL_SET, статус OK и следующий context.</p>
+    </div>
+    <a class="trace-download" id="downloadRecurrentTrace" href="./recurrent_trace.json?v=0f5a8e7be7b6408b" download>FULL TRACE · JSON</a>
+  </section>
+
+  <div class="verification" id="fullVmVerification" role="status">
+    <span></span><span id="fullVmStatus">Загрузка полного recurrent trace…</span>
+  </div>
+
+  <section class="full-vm-inspector" id="full-vm">
+    <header class="full-vm-heading">
+      <div>
+        <strong>INPUT → FROZEN GRAPH → OUTPUT → FEEDBACK</strong>
+        <h2 data-i18n="fullVmTitle">Полный переход VM, без JavaScript chess logic</h2>
+      </div>
+      <code>2877 ops · 192 frozen tensors · [2048×128] → [2045×128]</code>
+    </header>
+
+    <div class="context-loop">
+      <article class="context-card" id="contextInput"></article>
+      <div class="context-arrow" aria-hidden="true">→</div>
+      <article class="context-card output" id="contextOutput"></article>
+      <div class="feedback-edge" id="feedbackEdge"></div>
+    </div>
+
+    <div class="full-vm-stages" id="fullVmStages" aria-label="VM stages"></div>
+
+    <div class="full-operation-picker">
+      <label for="fullVmOperations" data-i18n="fullOperation">Операция полного графа</label>
+      <select id="fullVmOperations"></select>
+      <button id="previousFullVmOperation" type="button">←</button>
+      <button id="nextFullVmOperation" type="button">→</button>
+    </div>
+
+    <section class="full-operation-heading">
+      <div>
+        <h3 id="fullVmOperationTitle">—</h3>
+        <p id="fullVmOperationPurpose"></p>
+      </div>
+      <strong id="fullVmOperationCounter">—</strong>
+    </section>
+    <pre class="numeric-equation" id="fullVmEquation">Loading…</pre>
+    <p class="ssa-glossary" data-i18n="ssaGlossary">vN — результат N-й tensor-операции; wN — неизменяемая frozen-матрица. Рядом всегда указано, какие данные хранит тензор и зачем он нужен именно здесь.</p>
+    <div class="full-vm-matrix-flow" id="fullVmMatrixFlow" aria-live="polite"></div>
+    <section class="full-vm-proof" id="fullVmProof"></section>
+    <section class="full-vm-frozen" id="fullVmFrozen"></section>
+    <p class="full-vm-evidence" id="fullVmEvidence"></p>
+  </section>
+
+  <details class="legacy-position" id="legacyPositionInspector">
+    <summary>
+      <span data-i18n="legacyTitle">45-op микроскоп восстановления позиции</span>
+      <small data-i18n="legacySummary">Полный COO и произвольная координата для вложенного position subgraph</small>
+    </summary>
+
+    <div class="verification" id="verification" role="status">
+      <span></span><span id="traceStatus" data-i18n="loading">Загрузка position trace…</span>
+    </div>
+
+    <section class="workspace">
+      <aside class="history-panel">
+        <div class="panel-title" data-i18n="fixtureTitle">Фиксированная история токенов</div>
+        <div class="token-head"><span>#</span><span>FROM</span><span>TO</span><span>RESULT_PIECE</span></div>
+        <ol class="token-list" id="tokenList"></ol>
+        <p class="trace-note" data-i18n="fixtureNote">Токены декодируются из fixture; браузер не применяет шахматные правила.</p>
+      </aside>
+      <section class="board-panel">
+        <div class="tensor-label" data-i18n="outputLabel">ВЛОЖЕННЫЙ POSITION OUTPUT · v45 [1 × 64 × 128]</div>
+        <div class="board-frame">
+          <div class="rank-labels"><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
+          <div class="board" id="board" role="grid"></div>
+          <div class="file-labels"><span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span></div>
+        </div>
+        <p class="browser-note" data-i18n="boardNote">Доска — декодер one-hot position output; не JavaScript replay.</p>
+      </section>
+      <aside class="artifact-panel">
+        <div class="panel-title" data-i18n="artifactTitle">Провенанс position-экспорта</div>
+        <dl>
+          <div><dt>artifact</dt><dd>position_latest_event_v1</dd></div>
+          <div><dt>executor</dt><dd>Python reference</dd></div>
+          <div><dt data-i18n="precision">точность</dt><dd>FP32 compute</dd></div>
+          <div><dt data-i18n="sourceHash">source hash</dt><dd id="sourceHash">…</dd></div>
+        </dl>
+      </aside>
+    </section>
+
+    <section class="numeric-inspector" id="matrices">
+      <header class="trace-header">
+        <div><strong>POSITION SUBGRAPH / MATRIX TRACE</strong><h2 id="numeric-title">Матричное исполнение</h2><p id="traceSubtitle"></p></div>
+        <div class="trace-actions"><a id="downloadTrace" href="./numeric_trace.json?v=e019a74b5451a41a" download>JSON / COO</a></div>
+      </header>
+      <div class="operation-picker">
+        <label id="operationLabel" for="numericOperations">Операция</label><select id="numericOperations"></select>
+        <button id="previousNumericOperation" type="button">←</button><button id="nextNumericOperation" type="button">→</button>
+      </div>
+      <section class="operation-heading"><div><h3 id="operationTitle"></h3><p id="operationDescription"></p></div><strong id="operationCounter"></strong></section>
+      <pre class="numeric-equation" id="numericEquation">Loading…</pre>
+      <div class="cell-controls">
+        <label><span id="rowLabel">Строка</span><input id="outputRow" type="number" min="0" value="0"></label>
+        <label><span id="columnLabel">Столбец</span><input id="outputColumn" type="number" min="0" value="0"></label>
+        <label class="k-control"><span id="dimensionLabel">Размерность скалярного произведения</span><input id="dotDimension" type="range" min="0" value="0"><output id="dotDimensionValue">0–7</output></label>
+      </div>
+      <div class="matrix-flow" id="matrixFlow" aria-live="polite"></div>
+      <section class="cell-explanation"><h3 id="explanationTitle">Точная провенанс ячейки</h3><div id="cellExplanation"></div></section>
+      <section class="direct-reader">
+        <h3 id="tensorReaderTitle">Любая ячейка position-экспорта</h3>
+        <div class="cell-controls">
+          <label><span id="matrixLabel">Тензор / значение</span><select id="matrixSelector"></select></label>
+          <label><span>batch</span><input id="matrixBatch" type="number" min="0" value="0"></label>
+          <label><span id="matrixRowLabel">строка</span><input id="matrixRow" type="number" min="0" value="0"></label>
+          <label><span id="matrixColumnLabel">столбец</span><input id="matrixColumn" type="number" min="0" value="0"></label>
+        </div>
+        <p id="directCellValue">—</p><button id="producerJump" type="button" hidden></button>
+      </section>
+    </section>
+  </details>
+
+  <section class="boundary" id="boundary">
+    <h2 data-i18n="boundaryTitle">Реальная граница исполнения</h2>
+    <p data-i18n="boundaryBody">Production C++ исполняет 2877 generic tensor-op: routing, frozen GEMM, add, reshape/transpose, grouped GEMM, hardmax/STE и attention. Шахматных веток, board object, oracle или Python в runtime нет.</p>
+    <p data-i18n="numericBody">Вес хранится как packed E2M1/FP4 + FP32 scales; текущая загрузка и вычисление — FP32, TF32 отключён. Сайт показывает компактные exact-окна Python reference; native acceptance сравнивает полные выходы.</p>
+    <p data-i18n="browserValidationBody">Браузер не запускает .cmz и не вычисляет шахматы: он валидирует сохранённую топологию, feedback hashes и scalar proofs. Поэтому site trace — инспектор, не второй движок.</p>
+    <p data-i18n="attentionBody">Hard forward точный; backward — заданный STE/selected-softmax surrogate. Проверено, что градиент доходит до request, но полезность обучения и speedup над обычным движком пока не доказаны.</p>
+  </section>
+
+  <footer data-i18n="footer">Полная recurrent VM исполняется нативно; сайт честно разделяет reference-intermediate trace и native full-output acceptance.</footer>
+</main>
+</body>
+</html>

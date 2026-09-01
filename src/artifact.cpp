@@ -120,7 +120,7 @@ private:
 
 OpCode checked_opcode(std::uint16_t value) {
     if (value < static_cast<std::uint16_t>(OpCode::TokenProject) ||
-        value > static_cast<std::uint16_t>(OpCode::MatrixMatmul)) {
+        value > static_cast<std::uint16_t>(OpCode::GroupedMatrixMatmul)) {
         throw std::runtime_error("unknown artifact opcode " + std::to_string(value));
     }
     return static_cast<OpCode>(value);

@@ -22,6 +22,7 @@ enum class OpCode : std::uint16_t {
     MatrixTranspose = 11,
     MatrixReshape = 12,
     MatrixMatmul = 13,
+    GroupedMatrixMatmul = 14,
 };
 
 struct TensorRecord {

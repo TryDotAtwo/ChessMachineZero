@@ -21,8 +21,10 @@ SITE_VERSIONED_ASSETS = (
     "styles.css",
     "i18n.js",
     "trace_model.js",
+    "recurrent_inspector.js",
     "app.js",
     "matrix_inspector.js",
+    "recurrent_trace.json",
     "numeric_trace.json",
 )
 

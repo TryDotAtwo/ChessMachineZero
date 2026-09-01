@@ -1,5 +1,15 @@
 # Change History
 
+## 2026-09-01 — Complete recurrent frozen VM and full-graph inspector
+
+- Added the complete 2,877-operation/192-record recurrent artifact: request membership in the prior `LEGAL_SET`, conditional history append, new position, opposing legal set, mate/stalemate/overflow status and an exact `[B,2045,128]` feedback context. Terminal win/draw states are absorbing.
+- Implemented the confirmed automatic `outcome(claim_draw=True)` policy as frozen tensor circuits: insufficient material, current/future threefold with effective legal en-passant keys, current/future fifty-move, and the halfmove-99 legal-reply edge.
+- Added generic grouped intermediate matrix GEMM as wire opcode14 across Python serialization/reference and C++/CUDA dispatch, with exact two-batch forward/gradient tests and malformed-metadata rejection. No chess opcode or procedural C++ move logic was introduced.
+- Fresh native acceptance matched 47 complete FP32 contexts exactly: 40 output-to-next-input edges and 5 `context_0` bindings. Full `LEGAL_SET` backward reached the request with 144 nonzero finite components (`abs_sum=7056.8`). The hash-identical full workload passed Compute Sanitizer memcheck with exit 0 and `ERROR SUMMARY: 0 errors`.
+- Rebuilt the static site around all 2,877 operations in nine stages. Every operation has compact exact matrix windows, scalar provenance and bilingual tensor/frozen meanings; GEMM distinguishes left row from right column, hardmax is centered, and attention/grouped GEMM/final feedback are navigable. The nested 45-op full-COO position microscope remains available.
+- Strengthened browser validation to reject stage/producer/opcode/feedback/status/count/proof/value inconsistencies. Final real-browser acceptance passed desktop, 390×844 mobile, RU/EN and empty console assertions. Full integrated gate: 312 passed in 243.37s. [Evidence](../test_results/full_recurrent_vm_and_site_2026-09-01.md).
+- Preserved explicit limits: site intermediates are exact Python-reference windows for the same artifact, not every native CUDA intermediate; current compute is FP32; no trained player, learning advantage or performance speedup is claimed. Publication remains a separate final gate.
+
 ## 2026-08-31 — Inline full-VM foundation and executable legal sets
 
 - Added generic matrix transpose, batch-preserving reshape and intermediate GEMM wire ops, with pre-CUDA rank/shape/product validation and literal two-batch native forward/gradient acceptance.

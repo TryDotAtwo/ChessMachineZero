@@ -21,14 +21,16 @@ def test_static_asset_versions_are_content_derived_and_resolve(tmp_path):
         "styles.css": "body { color: lime; }\r\n",
         "i18n.js": "window.i18n = 1;\n",
         "trace_model.js": "window.model = 1;\n",
+        "recurrent_inspector.js": "window.recurrent = 1;\n",
         "app.js": "window.app = 1;\n",
         "matrix_inspector.js": "window.inspector = 1;\n",
+        "recurrent_trace.json": '{"fixture":"recurrent"}\n',
         "numeric_trace.json": '{"fixture":"exact"}\n',
     }
     for name, contents in assets.items():
         (site / name).write_text(contents, encoding="utf-8", newline="")
     (site / "index.html").write_text(
-        '<link rel="stylesheet" href="./styles.css"><script src="./i18n.js"></script><script src="./trace_model.js"></script><script src="./app.js"></script><script src="./matrix_inspector.js"></script><a id="downloadTrace" href="./numeric_trace.json">JSON</a>',
+        '<link rel="stylesheet" href="./styles.css"><script src="./i18n.js"></script><script src="./trace_model.js"></script><script src="./recurrent_inspector.js"></script><script src="./app.js"></script><script src="./matrix_inspector.js"></script><a id="downloadRecurrentTrace" href="./recurrent_trace.json">FULL</a><a id="downloadTrace" href="./numeric_trace.json">JSON</a>',
         encoding="utf-8",
     )
 
@@ -53,7 +55,10 @@ def test_static_asset_versions_are_content_derived_and_resolve(tmp_path):
 
 def test_published_asset_versions_match_current_content_and_app_fetches_download_link():
     published = dict(re.findall(r'\./([^?" ]+)\?v=([0-9a-f]{16})', HTML))
-    expected = {"styles.css", "i18n.js", "trace_model.js", "app.js", "matrix_inspector.js", "numeric_trace.json"}
+    expected = {
+        "styles.css", "i18n.js", "trace_model.js", "recurrent_inspector.js",
+        "app.js", "matrix_inspector.js", "recurrent_trace.json", "numeric_trace.json",
+    }
     assert set(published) == expected
     for name, version in published.items():
         path = ROOT / "site" / name
@@ -93,10 +98,15 @@ def test_site_describes_the_current_executable_artifact_exactly():
     assert trace["values"]["v45"]["shape"] == [1, 64, 128]
 
 
-def test_site_does_not_claim_unimplemented_recurrent_stages():
+def test_site_separates_complete_recurrent_trace_from_nested_position_microscope():
     assert "position subgraph" in HTML
     assert "Run artifact" not in HTML
-    assert "JavaScript chess replay" in HTML
+    assert "2877 generic tensor-операций" in HTML
+    assert "Production C++ исполняет 2877 generic tensor-op" in HTML
+    assert "Браузер не запускает .cmz и не вычисляет шахматы" in HTML
+    assert "exact-окна Python reference" in HTML
+    assert 'id="fullVmOperations"' in HTML
+    assert 'id="legacyPositionInspector"' in HTML
     assert "policy head" not in HTML.lower()
     assert "tree search" not in HTML.lower()
 
@@ -321,11 +331,11 @@ console.log(JSON.stringify({readyRu, readyEn, readyRuAgain, ru, en: nodes.traceS
     completed = subprocess.run(["node", "-e", script], cwd=ROOT, text=True, encoding="utf-8", capture_output=True)
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "readyRu": "Точный экспорт загружен: v45 декодирован без JavaScript chess replay.",
-        "readyEn": "Exact export loaded: v45 decoded without JavaScript chess replay.",
-        "readyRuAgain": "Точный экспорт загружен: v45 декодирован без JavaScript chess replay.",
-        "ru": "Ошибка проверки экспорта: trace schema mismatch",
-        "en": "Export validation error: trace schema mismatch",
+        "readyRu": "Position-микроскоп загружен: v45 декодирован без JavaScript chess replay.",
+        "readyEn": "Position microscope loaded: v45 decoded without JavaScript chess replay.",
+        "readyRuAgain": "Position-микроскоп загружен: v45 декодирован без JavaScript chess replay.",
+        "ru": "Ошибка проверки position trace: trace schema mismatch",
+        "en": "Position-trace validation error: trace schema mismatch",
         "events": ["en", "ru", "en"],
     }
     inspector = (ROOT / "site" / "matrix_inspector.js").read_text(encoding="utf-8")

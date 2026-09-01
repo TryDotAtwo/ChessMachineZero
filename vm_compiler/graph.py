@@ -20,6 +20,7 @@ class OpCode(IntEnum):
     MATRIX_TRANSPOSE = 11
     MATRIX_RESHAPE = 12
     MATRIX_MATMUL = 13
+    GROUPED_MATRIX_MATMUL = 14
 
 
 @dataclass(frozen=True)

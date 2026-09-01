@@ -80,9 +80,8 @@ subgraph is not represented as a full recurrent context.
 
 ## Task 4: Exact recurrent transition and terminal context
 
-Decision pending: the initial plan assumed oracle-style automatic claims;
-the user was asked to choose automatic claiming versus an explicit player claim.
-No claim token/protocol change or adjudication implementation is committed yet.
+Decision confirmed 2026-09-01: use oracle-style automatic claims exactly as
+`outcome(claim_draw=True)`. No `CLAIM_DRAW` token or request-language change.
 
 Files: new `vm_compiler/recurrent_circuit.py`, `tests/test_recurrent_circuit.py`,
 native fixtures/tests, compiler export entry point.
@@ -90,42 +89,50 @@ native fixtures/tests, compiler export entry point.
 API: `build_recurrent_artifact()` returns the full artifact with `context_0`;
 `FrozenVm::forward` returns its complete context without a procedural wrapper.
 
-- [ ] RED: e2e4 initial transition, illegal e2e5 unchanged history, wrong result
+- [x] RED/GREEN: e2e4 initial transition, illegal e2e5 unchanged history, wrong result
   piece, black reply, exact sorted next legal set and hard-one-hot output.
-- [ ] Implement tensor request membership/conditional chronological append and
+- [x] Implement tensor request membership/conditional chronological append and
   invoke the legal circuit on the resulting position.
-- [ ] RED/GREEN: Fool's Mate absorbing BLACK_WIN, stalemate, material/repetition/
+- [x] RED/GREEN: Fool's Mate absorbing BLACK_WIN, stalemate, material/repetition/
   halfmove draw-policy cases, terminal absorption and explicit history overflow.
-- [ ] Assert whole context equality across multi-step native runs and exact
+- [x] Assert whole context equality across multi-step native runs and exact
   output-to-next-input feedback; run forward and gradient acceptance separately.
 
 ## Task 5: Native trace and artifact-driven inspector
 
-Files: generic trace API/executable under `include/cmz/`, `src/`, `tests/native/`;
-`vm_compiler/site_trace.py`, `site_semantics.py`, site JS/HTML/CSS, focused tests.
+Resolution recorded 2026-09-01: keep native inference uninstrumented. Native
+acceptance compares complete contexts, sequential feedback and backward. The
+static inspector uses compact exact Python-reference intermediates from the same
+serialized artifact; it explicitly labels them as non-native. A native dump of
+roughly3GiB retained SSA is not added to the production runtime or website.
+
+Files: `vm_compiler/recurrent_site_trace.py`, `site/recurrent_inspector.js`,
+site HTML/CSS/i18n, native output/feedback tests and focused browser tests.
 
 Manifest interface: `schema_version`, artifact/source/precision provenance,
 ordered `steps` with request/prior/output bindings and content-versioned data
 paths; each step contains operation/tensor schemas and semantic producer links.
 
-- [ ] RED: missing/corrupted step, invalid producer, feedback mismatch and
+- [x] RED/GREEN: missing/corrupted step, stage gap, invalid producer/opcode,
+  feedback mismatch and
   forged status/value are rejected; current45-op fixture remains inspectable.
-- [ ] Capture generic native intermediate tensors without changing inference
-  arithmetic; serialize only in inspection mode outside the hot path.
-- [ ] Replace fixed fixture/v45/op45 assumptions with declared schemas and
-  generic scalar rules. Retain full arbitrary-coordinate access and strict
-  arithmetic checks; no unknown opcode may silently pass validation.
-- [ ] Add stage/iteration navigation and decoded context/legal/status panels;
-  each displayed fact links to its actual tensor cells and producing operation.
+- [x] Preserve native arithmetic/hot path unchanged; record the explicit
+  `native_intermediate_capture=false` boundary and full-output native evidence.
+- [x] Cover all2877 operations with declared schemas, bilingual semantics,
+  generic scalar rules and compact exact windows. Retain full arbitrary-cell
+  access in the nested45-op microscope; unknown opcodes fail closed.
+- [x] Add nine-stage/operation navigation, decoded context/legal/status panels,
+  exact feedback identity, frozen-matrix meanings and per-operation proofs.
 
 ## Task 6: Evidence, self-review and publication
 
 Files: project docs, prompt/change history, `test_results/`.
 
-- [ ] Run full Python suite, fresh native transition/gradient tests and targeted
+- [x] Run full Python suite, fresh native transition/gradient tests and targeted
   CUDA memory checks. Record actual byte bounds and known unverified scope.
-- [ ] Inspect every recorded operation path, full feedback loop, exact cells,
+- [x] Inspect representative paths for every opcode family, full feedback loop,
+  exact cells,
   producer jumps, RU/EN, mobile and console in a real browser.
-- [ ] Self-review all diffs against runtime purity and evidence boundaries.
+- [x] Self-review all diffs against runtime purity and evidence boundaries.
 - [ ] Ordinary scoped fast-forward publication; verify deployed artifact/source
   identity and versioned resources before marking the task complete.

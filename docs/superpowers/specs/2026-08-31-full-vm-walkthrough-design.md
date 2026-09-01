@@ -22,12 +22,11 @@ The externally supplied context is an initial context or an unmodified prior
 VM output. A player can supply arbitrary hard-one-hot requests. History
 legality is established inductively by VM transitions, not by a CPU checker.
 Terminal contexts are absorbing; an illegal request leaves history unchanged;
-capacity exhaustion is explicit. The initial plan assumed compatibility with
-the existing oracle's automatic exercise of claimable draws. That assumption
-needs user confirmation: automatic claims versus a player claim changes game
-behavior and potentially the request token language. The choice was raised on
-2026-08-31 before implementing adjudication; no claim token/protocol change has
-been made. Human arbitration, clocks and draw offers remain outside this task.
+capacity exhaustion is explicit. The recurrent VM matches the existing
+oracle's `outcome(claim_draw=True)` behavior. The user confirmed on 2026-09-01
+that claimable fifty-move and threefold positions terminate automatically.
+There is no `CLAIM_DRAW` request token. Human arbitration, clocks and draw
+offers remain outside this task.
 
 ## Boundaries
 
@@ -63,23 +62,28 @@ passes; partial subgraphs must never return a plausible substitute full context.
 
 ## Trace and website
 
-Use an artifact-driven, versioned execution manifest containing bootstrap and
-ordered recurrent steps. Each step identifies request/prior context, operation
-list, frozen values, intermediate tensors, named outputs, shape/axis semantics,
-source/artifact identity and compute precision. Show the context feedback edge
-explicitly and verify its exact equality across consecutive calls.
+Use an artifact-driven, versioned execution manifest containing bootstrap,
+request/prior/output summaries and every ordered operation. Each operation
+identifies its inputs/output, frozen values, shapes, bilingual semantics and a
+compact exact numeric window with scalar provenance. Show the context feedback
+edge explicitly and verify exact equality across consecutive native calls.
 
-The native inspection path captures actual execution tensors. Inspection-only
-CPU serialization is outside the production hot path; generic derivations of
-unmaterialized attention scores must be labelled as derived views, not captured
-native buffers. The site may decode/display tokens and verify generic scalar
-arithmetic, but may not apply chess rules or synthesize game states.
+Resolution recorded 2026-09-01: native acceptance compares complete output
+contexts, recurrent feedback and backward without adding an intermediate-dump
+API to production. Website intermediate windows come from the exact Python
+reference executor for the same serialized artifact and must be labelled as
+non-native. Publishing all conservative batch-one retained SSA values would be
+roughly3GiB; the website intentionally uses compact windows. Generic derivations
+of scores are labelled, and the site may decode/display tokens and verify
+generic scalar arithmetic but may not apply chess rules or synthesize states.
 
-Keep a small manifest plus content-versioned per-step data, loaded on demand.
-The UI has iteration/stage navigation, then operation navigation, then arbitrary
-scalar coordinates with exact contributing row/column/value provenance. Names,
-purposes, axes, status and controls remain RU/EN. Validation stays fail-closed;
-removing fixed `45/v45` assumptions must not weaken consistency checks.
+The UI has stage navigation and all-operation navigation. Every operation shows
+the selected output cell, exact contributors available in its compact window,
+and frozen-matrix meaning. The nested45-op position microscope retains complete
+COO and arbitrary scalar coordinates. Names, purposes, axes, status and controls
+remain RU/EN. Validation stays fail-closed for topology, producer order, feedback,
+status/channel consistency and displayed scalar values; removing fixed
+`45/v45` assumptions must not weaken the retained position inspector.
 
 ## Acceptance and publication
 

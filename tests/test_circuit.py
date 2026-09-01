@@ -105,3 +105,19 @@ def test_include_graph_remaps_sources_and_preserves_position_values():
     actual = execute_artifact_reference(circuit.artifact(output), request)
     expected = torch.from_numpy(build_initial_piece_state()).unsqueeze(0).expand(2, -1, -1)
     assert torch.equal(actual, expected)
+
+
+def test_include_graph_values_exposes_remapped_intermediates_without_reexecution():
+    from vm_compiler.compiler import build_position_reconstruction_artifact
+
+    imported = build_position_reconstruction_artifact()
+    circuit = Circuit()
+    source = circuit.bias(circuit.input, 0.)
+    values = circuit.include_graph_values(imported, source)
+
+    assert values[0] == source
+    assert circuit.shapes[values[40]] == (2064, 2)   # dynamic event keys
+    assert circuit.shapes[values[41]] == (64, 2)     # square queries
+    assert circuit.shapes[values[44]] == (2064, 128) # dynamic event values
+    assert circuit.shapes[values[45]] == (64, 128)   # final board
+    assert len(circuit.operations) == 1 + len(imported.operations)

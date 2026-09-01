@@ -85,6 +85,14 @@ int main() {
         {{static_cast<OpCode>(13), {0, 0}, {1}, {}}}, "matmul");
     rejects("matrix matmul schema", {},
         {{static_cast<OpCode>(13), {0}, {1}, {}}}, "schema");
+    rejects("grouped matmul schema", {},
+        {{OpCode::GroupedMatrixMatmul, {0}, {1}, {16}}}, "schema");
+    rejects("grouped matmul zero groups", {},
+        {{OpCode::GroupedMatrixMatmul, {0, 0}, {1}, {0}}}, "group");
+    rejects("grouped matmul indivisible rows", {},
+        {{OpCode::GroupedMatrixMatmul, {0, 0}, {1}, {3}}}, "group");
+    rejects("grouped matmul right rows", {},
+        {{OpCode::GroupedMatrixMatmul, {0, 0}, {1}, {8}}}, "group");
     std::cout << "graph validation failures=" << failures << '\n';
     return failures ? 1 : 0;
 }

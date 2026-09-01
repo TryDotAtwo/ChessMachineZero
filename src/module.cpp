@@ -133,6 +133,19 @@ void validate_graph(const cmz::Artifact& artifact) {
                 result = {left[0], left[1], right[2]};
                 break;
             }
+            case cmz::OpCode::GroupedMatrixMatmul: {
+                require_schema(operation, 2U, 1U, 1U);
+                const auto& left = input_shape(0);
+                const auto& right = input_shape(1);
+                const std::int64_t groups = operation.attributes[0];
+                TORCH_CHECK(left.size() == 3 && right.size() == 3,
+                            "artifact grouped matmul rank must be three");
+                TORCH_CHECK(groups > 0 && left[0] == right[0] && left[1] % groups == 0 &&
+                                right[1] == groups * left[2],
+                            "artifact grouped matmul group or shape mismatch");
+                result = {left[0], left[1], right[2]};
+                break;
+            }
             case cmz::OpCode::RowRoute: {
                 TORCH_CHECK(
                     operation.inputs.size() == 1U && operation.outputs.size() == 1U &&
@@ -304,6 +317,19 @@ torch::Tensor FrozenVm::execute_graph(const torch::Tensor& input) const {
             case OpCode::MatrixMatmul:
                 result = torch::matmul(values.at(operation.inputs[0]), values.at(operation.inputs[1]));
                 break;
+            case OpCode::GroupedMatrixMatmul: {
+                const auto& left = values.at(operation.inputs[0]);
+                const auto& right = values.at(operation.inputs[1]);
+                const auto groups = static_cast<std::int64_t>(operation.attributes[0]);
+                const auto rows = left.size(1) / groups;
+                const auto contraction = left.size(2);
+                const auto columns = right.size(2);
+                result = torch::matmul(
+                    left.reshape({left.size(0) * groups, rows, contraction}),
+                    right.reshape({right.size(0) * groups, contraction, columns}))
+                    .reshape({left.size(0), groups * rows, columns});
+                break;
+            }
             case OpCode::RowRoute: {
                 const auto stride = operation.attributes.size() == 3U
                     ? operation.attributes[2]

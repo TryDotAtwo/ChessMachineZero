@@ -61,9 +61,12 @@ def execute_artifact_reference_values(
     final = 0
     for operation in artifact.operations:
         inputs = [values[index] for index in operation.inputs]
-        if operation.opcode in (OpCode.MATRIX_TRANSPOSE, OpCode.MATRIX_RESHAPE, OpCode.MATRIX_MATMUL):
-            input_count = 2 if operation.opcode == OpCode.MATRIX_MATMUL else 1
-            attribute_count = 2 if operation.opcode == OpCode.MATRIX_RESHAPE else 0
+        if operation.opcode in (OpCode.MATRIX_TRANSPOSE, OpCode.MATRIX_RESHAPE,
+                                OpCode.MATRIX_MATMUL, OpCode.GROUPED_MATRIX_MATMUL):
+            input_count = 2 if operation.opcode in (
+                OpCode.MATRIX_MATMUL, OpCode.GROUPED_MATRIX_MATMUL) else 1
+            attribute_count = (2 if operation.opcode == OpCode.MATRIX_RESHAPE else
+                               1 if operation.opcode == OpCode.GROUPED_MATRIX_MATMUL else 0)
             if (len(inputs) != input_count or len(operation.outputs) != 1
                     or len(operation.attributes) != attribute_count):
                 raise ValueError("artifact matrix operation schema mismatch")
@@ -77,10 +80,23 @@ def execute_artifact_reference_values(
                 if rows <= 0 or columns <= 0 or rows * columns != inputs[0].shape[1] * inputs[0].shape[2]:
                     raise ValueError("artifact reshape element count mismatch")
                 result = inputs[0].reshape(inputs[0].shape[0], rows, columns)
-            else:
+            elif operation.opcode == OpCode.MATRIX_MATMUL:
                 if inputs[0].shape[0] != inputs[1].shape[0] or inputs[0].shape[2] != inputs[1].shape[1]:
                     raise ValueError("artifact matmul shape mismatch")
                 result = inputs[0] @ inputs[1]
+            else:
+                groups = operation.attributes[0]
+                if (groups <= 0 or inputs[0].shape[0] != inputs[1].shape[0]
+                        or inputs[0].shape[1] % groups
+                        or inputs[1].shape[1] != groups * inputs[0].shape[2]):
+                    raise ValueError("artifact grouped matmul group or shape mismatch")
+                batch = inputs[0].shape[0]
+                rows = inputs[0].shape[1] // groups
+                contraction = inputs[0].shape[2]
+                columns = inputs[1].shape[2]
+                result = (inputs[0].reshape(batch * groups, rows, contraction)
+                          @ inputs[1].reshape(batch * groups, contraction, columns))
+                result = result.reshape(batch, groups * rows, columns)
         elif operation.opcode == OpCode.ROW_ROUTE:
             start, end = operation.attributes[:2]
             stride = operation.attributes[2] if len(operation.attributes) == 3 else 1

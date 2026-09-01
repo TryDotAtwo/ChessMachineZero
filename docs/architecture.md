@@ -1,165 +1,189 @@
 # Pure frozen Transformer chess VM
 
-This is a from-scratch branch, not a migration of the retired engine.
+This branch is a from-scratch implementation, not a migration of the retired
+engine. The production boundary is one serialized frozen tensor graph executed
+by the generic C++/CUDA runtime.
 
-## Implemented scope versus target
+## Executable recurrent contract
 
-The **executable artifact currently reconstructs a position from an already
-valid chronological history**. `build_position_reconstruction_artifact()` emits
-45 generic operations and a final `[B,64,128]` one-hot board. Its input has shape
-`[B,2048,128]`, but only history rows participate. It ignores the requested move
-in rows 0–2 and does not apply or validate that request.
-
-An additional executable legal-set artifact now composes position recovery
-with frozen occupancy, special-move, king-safety and stable-compaction circuits.
-It returns `[B,768,128]`: 256 ordered triples, padded with token0. This is not
-request application or adjudication; the current site still exports position
-recovery only. See the legal-set section below.
-
-The complete recurrent chess environment is a **target, not a completed
-capability**. It must eventually map a request plus previous context to the next
-`[B,2045,128]` context, generate the current legal set, and determine terminal or
-illegal-move status. No executable artifact does that complete transition yet;
-no trained player or demonstrated full-game learning result exists here.
-
-`FrozenVm::execute_graph` exposes the position artifact for testing/composition.
-`FrozenVm::forward` requires the recurrent output shape; it must not silently
-accept a board-only artifact as a finished chess VM.
-
-## Tensor protocol
-
-A move has three hard one-hot rows `[FROM, TO, RESULT_PIECE]`. Square channels
-encode file/rank, and channels 96–107 identify the 12 color-specific resulting
-pieces. A promotion directly supplies the promoted result piece.
-
-The target recurrent context comprises 1200 history rows (400 plies), 768
-`LEGAL_SET` rows (256 triples), one status row (channels 89–94), and 76 reserved
-rows. Request plus context gives 2048 rows of width 128. This layout does not
-itself establish that legal-set/status execution exists.
-
-The compiled `context_0` contains padded history, 20 sorted opening moves, OK and
-padding service rows. It has no board rows. Bootstrap and reusable rule-relation
-images contain frozen constants but have empty operation lists; they are not
-executable complete chess artifacts. The position artifact separately contains
-its frozen initial-position constants.
-
-## Runtime boundary
-
-Production C++/CUDA loads immutable tensor records and executes generic
-operations: row routing, projection/GEMM, addition, concatenation, batch
-expansion, hardmax and 2D attention. The generic executor also supports a gated
-FFN for other graphs. No opcode has chess-specific semantics.
-Wire opcodes11–13 add matrix transpose, batch-preserving reshape and GEMM of two
-intermediate rank-three matrices. Static ranks, products and contraction axes
-are validated before accessing CUDA. They are layout/arithmetic, not chess ops.
-
-Chess rules have not disappeared: their structure is compiled **offline into
-weights and graph connections**, not evaluated by piece-specific C++ branches.
-Python and python-chess are development/compiler/oracle tools, not production
-inference dependencies. The browser is a static inspector, not a replacement
-runtime.
-
-## Position reconstruction
-
-Three strided views select the history's source, destination and result-piece
-rows. Four castling patterns and 28 en-passant patterns are recognized through
-frozen projections, additions and hardmax. These recognize events in a valid
-history; they are **not legality checks**. This subgraph trusts the declared
-result piece.
-
-There are 2064 candidate events: 64 initial-square events plus five streams of
-400 source-empty, destination-piece, castling-rook-source,
-castling-rook-destination and en-passant-clear events. Targets and payloads are
-separate tensors. Each square selects its latest event; the board is not carried
-as recurrent state.
-
-For compact square index `s`, `x = 1 + s/64`. Query `(2*xq,-1)` and key
-`(xk,xk²-epsilon*t)` give:
+`build_recurrent_artifact()` emits the complete one-ply transition:
 
 ```text
-score = xq² - (xk-xq)² + epsilon*t
-epsilon = 2^-21
-0 <= t <= 400
+input  [B, 2048, 128] = requested move [B, 3, 128]
+                         + previous context [B, 2045, 128]
+
+output [B, 2045, 128] = next context
 ```
 
-The nearest different square has penalty `2^-12`; maximum time bonus is
-`400*2^-21`. Their separation is `112*2^-21 > 0`. Materialized FP32-score
-tests check every square/timestamp and strict chronological ordering. The
-earlier epsilon `1e-6` violated this bound and produced incorrect boards.
+The request is three hard one-hot rows `[FROM, TO, RESULT_PIECE]`. Square
+channels use the numeric square language (`a1=11`, `a2=12`, `b1=21`);
+channels 96–107 identify the twelve color-specific result pieces. Promotions
+supply the promoted result piece directly. There is no separate human-readable
+move object at runtime.
 
-## Legal-set circuit
+The context is fixed:
 
-`build_legal_artifact()` emits 549 operations and91 deduplicated frozen records.
-Its 7,780 candidates are generated once from reusable geometry, in native
-triple order. Runtime source-piece/color matching, target occupancy, sliding
-interiors, pawn movement, castling rights and last-ply en passant eligibility
-are linear projections, residuals and binary hardmax circuits.
+- 1200 rows: 400 chronological plies, three rows per ply;
+- 768 rows: at most 256 sorted legal triples, token-0 padded;
+- one row: `OK`, `ILLEGAL_MOVE`, `WHITE_WIN`, `BLACK_WIN`, `DRAW`, or
+  `HISTORY_OVERFLOW` in channels 89–94;
+- 76 reserved service rows.
 
-Post-move occupancy includes source clearing, target occupation, en passant
-victim clearing and castling rook relocation. Non-king candidates test all
-opponent attacks on the current king against that occupancy; king candidates
-use an attacked-square map with the old king square removed. Castling checks
-start, transit and destination plus the rook/king history-derived rights.
+The artifact contains `context_0` with empty history, the exact twenty opening
+moves and `OK`. For every accepted move, the output context is the next input
+context byte-for-byte; C++ only needs to concatenate the next three-row request.
+Terminal win/draw contexts are absorbing. Illegal requests do not append to the
+history. A request at the 400-ply capacity emits `HISTORY_OVERFLOW` explicitly.
 
-Stable compaction uses 64-wide local prefix GEMMs and a small block-prefix GEMM,
-then affine integer rank scores, hardmax routes and routes-times-payload GEMM.
-There is no runtime sorting, index readback or CPU candidate filtering. The
-compiler exposes count/presence/overflow value IDs for composition. A complete
-transition must consume that overflow indication; these diagnostics are not a
-shipped terminal-status implementation.
+The current artifact has 2,877 ordered operations and 192 immutable tensor
+records. Its final output is the full `[B,2045,128]` context, not a board-only or
+legal-set-only substitute.
 
-The FP32 logical payload estimate for B=1 is45,219,348 frozen bytes plus
-263,740,908 retained-value bytes (views counted conservatively). It excludes
-autograd, attention temporaries and allocator/workspace costs. There is no
-compactness or speedup claim. Exact forward evidence covers complete sets, not
-just counts; integrated legal-graph backward is not yet native acceptance.
+## Where the chess rules live
 
-## Numerical representation and backward
+Chess semantics exist in the offline compiler. It synthesizes fixed relation
+matrices, candidate tables and graph topology; the C++ runtime does not discover
+or branch on pieces, colors, squares, castling or en passant.
 
-The artifact stores packed E2M1/FP4 codes **plus FP32 scales**. Several records
-use one FP32 scale per element: 4.5 bytes per element before metadata, not
-uniform four-bit weight memory.
+Position recovery is the original 45-operation subgraph. It reconstructs the
+current 64-square one-hot position from chronological result-piece events. Four
+castling patterns and 28 en-passant patterns become frozen projections and hard
+selection. Latest-event attention uses 2D parabolic keys over 2,064 events with
+`epsilon=2^-21`; materialized FP32 tests prove square separation and time order
+through all 400 plies.
 
-The native loader decodes records into **FP32 CUDA tensors**. Native attention
-also requires FP32. Native FP4 compute, exact FP16/BF16 fallback, and TF32
-equivalence are not established. Reduced precision needs its own numerical
-encoding and task-level acceptance; blindly casting these weights is invalid.
+The legal circuit starts from 7,780 position-independent move candidates. Frozen
+geometry and tensor gates check side/source/target/path constraints, promotions,
+castling rights and transit, en passant, and post-move king safety. Castling rook
+relocation and en-passant victim removal are included in each candidate's
+post-board. Candidate order is canonical at compile time; two-level prefix GEMMs,
+hard rank routing and payload GEMM perform stable compaction into 256 triples.
+There is no runtime sort, CPU filtering or external policy head.
 
-Hardmax forward selects the lowest-index eligible maximum. Its first-order
-backward is a softmax-Jacobian surrogate at the specified temperature. Attention
-forward returns the winning value exactly; backward differentiates the
-softmax-weighted value over selected top-k competitors, with gradients to Q, K
-**and V**. Candidate selection itself is discrete. The development reference
-uses this same specified surrogate, not full-candidate softmax.
+Request legality is exact membership in the previous context's `LEGAL_SET`.
+After an accepted request, the graph appends the triple, reconstructs the new
+position, builds the opposing side's next `LEGAL_SET`, and selects the status.
+Mate and stalemate derive from the same legal circuit, not from a second engine.
 
-The standalone FP4 primitive uses quantized forward and an identity surrogate;
-it is not evidence that the executor computes GEMMs in FP4.
+## Automatic draw policy
 
-A surrogate gradient is not the true derivative of chess and does not prove
-that a player learns faster or better. Tests concern forward correctness and
-first-order derivatives. Useful learning, long-rollout gradient quality and
-higher-order derivative equivalence require separate experiments.
+For now the VM deliberately matches the development oracle's
+`outcome(claim_draw=True)`. There is no `CLAIM_DRAW` request token. The graph
+automatically emits `DRAW` for:
 
-## Attention and performance boundaries
+- stalemate;
+- insufficient material;
+- an already claimable fifty-move or threefold position;
+- a requested move that makes fifty moves or a third repetition claimable.
 
-Attention keys/queries have width two. Static key sets can use offline nested
-convex-layer candidate metadata with stable original-index ties. Dynamic Q/K/V
-uses batch-local candidate indices.
+The repetition key includes board, side, castling rights and only an *effective*
+legal en-passant right. A raw expired en-passant square is not treated as a
+different key. The halfmove-99 lookahead also verifies that the candidate leaves
+at least one legal reply; a move that immediately stalemates is adjudicated by
+stalemate, not by a fictitious future fifty-move claim. Reply existence is
+factorized into `[256,candidate]` and `[256,64,64]` tensors instead of allocating
+a `[256,candidate,64]` cube.
 
-The position artifact provides **all 2064 candidates**. The native kernel scans
-them while maintaining top-8. It avoids constructing a dense score matrix, but
-is not a demonstrated sublinear geometric lookup or measured speed advantage.
-Runtime allocations remain; there is no allocation-free hot-path claim. CUDA
-device guards/current streams must be preserved, with no host readback in
-steady-state inference.
+`python-chess` is used only by development fixtures and the oracle comparison.
+It is not linked or called by production inference.
 
-## Development evidence and site
+## Generic runtime boundary
 
-The numerical website trace is exported from the Python/PyTorch development
-executor, not captured from every native CUDA intermediate. Native tests are
-separate evidence and must identify their exact fixtures and build.
+The serialized graph uses only these generic tensor operations:
 
-The initial audit, including counterexamples and limits of the old tests, is
-[test_results/audit_2026-08-31.md](../test_results/audit_2026-08-31.md).
-Build commands and current acceptance evidence are documented separately.
-Passing tests are not proof of the unimplemented complete chess environment.
+- row routing and row concatenation;
+- frozen expansion and token/frozen projections (GEMM);
+- residual/position addition;
+- hardmax with the declared STE;
+- 2D hard attention;
+- batch-preserving reshape and matrix transpose;
+- intermediate matrix GEMM;
+- grouped intermediate matrix GEMM.
+
+Grouped GEMM is wire opcode 14. It performs the same rank-three row-by-column
+operation independently for each declared group; static ranks, extents,
+contraction axes and products are validated before CUDA access. It is a layout
+and arithmetic primitive, not a chess opcode. Production sources contain no
+board class, move generator, chess oracle or per-piece dispatch.
+
+## Storage, compute and backward
+
+Tensor records are stored as packed E2M1/FP4 codes plus FP32 scales. Records with
+one scale per element cost 4.5 bytes per element before metadata, so the file
+format must not be advertised as a uniform four-bit memory footprint. The
+current native loader materializes FP32 tensors and computes in FP32 with TF32
+disabled. Native FP4, FP16 and BF16 execution are not established.
+
+Hardmax has exact lowest-index hard forward and a specified floating softmax
+surrogate backward. 2D attention returns the selected value exactly; its
+first-order backward differentiates a selected-top-k softmax-weighted surrogate
+to Q, K and V. The legal-set loss has a finite nonzero gradient through the full
+recurrent graph to the three-row request (`144` nonzero request components in
+the recorded native acceptance). This proves gradient transport, not that a
+player will learn useful chess or outperform a conventional environment.
+
+For batch one, the compiler's conservative logical estimate is 269,563,016
+bytes of decoded frozen FP32 payload plus 3,020,409,648 bytes of retained SSA
+values. It counts views conservatively and excludes autograd saves, allocator
+and workspace. A sampled RTX 3070 Laptop run of 47 full contexts, recurrent
+feedback and one backward reached 3,736 MiB global device usage and took
+56,284 ms. This is an acceptance workload, not a per-move latency benchmark or
+a speedup claim.
+
+## Acceptance evidence
+
+Fresh native build `build/recurrent-native-20260901-c`:
+
+- loaded `context_0` from the artifact;
+- executed 47 complete recurrent contexts in FP32 with TF32 disabled;
+- verified five `context_0` bindings and fed 40 sequential output contexts
+  directly into the following request;
+- matched every complete oracle context exactly;
+- backpropagated generated `LEGAL_SET` to the request with `144` nonzero finite
+  components and absolute gradient sum `7056.8`.
+
+The accepted artifact hash is
+`63d4bbd5abfbe555b4e4240445d42631fab78912f467d6ccc34d21bf564d7710`.
+The 47 native cases cover ordinary play, Fool's Mate absorption, next-move
+threefold, effective-en-passant repetition, stalemate, illegal requests and a
+wrong result-piece request. Python exact tests additionally cover history
+overflow, the fifty-move edge and insufficient material. These are strong
+fixture and invariant checks, not an exhaustive proof over every reachable
+chess history.
+
+## Website evidence boundary
+
+`site/recurrent_trace.json` covers all 2,877 operations in nine stages. Every
+operation exposes its opcode, inputs/output, shapes, bilingual semantic purpose,
+frozen-matrix meaning, compact exact numeric windows and a scalar proof for the
+selected output cell. The top-level context cards show request, previous state,
+next status/legal count and the exact output-to-input feedback hash. The nested
+45-operation position microscope retains full COO and arbitrary-coordinate
+producer navigation.
+
+The recurrent intermediate numbers are generated by the exact Python reference
+executor for the same serialized artifact. They are not a capture of every
+native CUDA intermediate. Publishing every retained batch-one SSA cell would be
+roughly 3 GiB, so the static trace intentionally publishes compact windows and
+proofs instead. Native evidence separately compares full output contexts and
+the backward path. The browser validates topology, producer order, feedback
+identity and scalar proofs; it neither runs `.cmz` nor computes chess.
+
+Real-browser acceptance covers GEMM, hardmax, attention, grouped GEMM, the final
+operation, RU/EN switching, 1440 px desktop, 390×844 mobile, and an empty fresh
+console. In GEMM, only the left input row is green, only the right input column
+is amber, and the output marks only the selected cell. `ARGMAX` is rendered as
+the centered operation between input and output.
+
+## Deliberate non-claims
+
+- No player transformer is included.
+- No useful training result, long-rollout gradient study or speed advantage is
+  demonstrated.
+- No native low-precision compute path is accepted yet.
+- The static site is an inspector, not a second runtime and not native capture
+  of all intermediates.
+- The test corpus is not a formal exhaustive verification of chess.
+
+Current commands, hashes, timings and remaining boundaries are recorded in
+`test_results/full_recurrent_vm_and_site_2026-09-01.md`.
